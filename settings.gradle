@@ -2,3 +2,4 @@ rootProject.name = 'hazelcast-toolkit'
 
 include 'toolkit-core'
 include 'toolkit-scan-api'
+include 'toolkit-scan-reflections'

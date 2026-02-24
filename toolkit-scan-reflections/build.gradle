@@ -1,0 +1,7 @@
+dependencies {
+    api project(':toolkit-core')
+    api project(':toolkit-scan-api')
+
+    implementation 'org.reflections:reflections:' + project.property('reflectionsVersion')
+    implementation 'org.slf4j:slf4j-api:' + project.property('slf4jVersion')
+}
