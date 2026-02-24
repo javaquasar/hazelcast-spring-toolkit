@@ -1,0 +1,15 @@
+dependencies {
+    api project(':toolkit-core')
+    api project(':toolkit-runtime')
+    api project(':toolkit-scan-reflections')
+    api project(':toolkit-metrics-spring')
+
+    compileOnly "org.springframework.boot:spring-boot-autoconfigure:${project.property('springBoot3Version')}"
+    compileOnly "org.springframework.boot:spring-boot:${project.property('springBoot3Version')}"
+    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor:${project.property('springBoot3Version')}"
+
+    compileOnly 'org.springframework:spring-web:6.2.0'
+
+    implementation 'com.hazelcast:hazelcast:' + project.property('hazelcastVersion')
+    implementation 'javax.cache:cache-api:1.1.1'
+}
