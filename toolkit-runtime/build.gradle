@@ -1,0 +1,6 @@
+dependencies {
+    api project(':toolkit-core')
+    api project(':toolkit-scan-api')
+
+    api 'com.hazelcast:hazelcast:' + project.property('hazelcastVersion')
+}
