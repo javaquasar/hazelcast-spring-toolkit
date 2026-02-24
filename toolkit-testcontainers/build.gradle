@@ -1,0 +1,16 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api platform("org.testcontainers:testcontainers-bom:${testcontainersVersion}")
+
+    api 'org.testcontainers:testcontainers'
+    api 'org.testcontainers:junit-jupiter'
+    api 'org.testcontainers:postgresql'
+    api 'org.testcontainers:hazelcast'
+}
+
+test {
+    useJUnitPlatform()
+}
