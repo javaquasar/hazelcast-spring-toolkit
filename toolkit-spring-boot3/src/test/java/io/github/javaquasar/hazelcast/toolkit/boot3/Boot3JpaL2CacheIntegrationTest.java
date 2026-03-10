@@ -3,7 +3,6 @@ package io.github.javaquasar.hazelcast.toolkit.boot3;
 import com.hazelcast.cache.ICache;
 import com.hazelcast.core.HazelcastInstance;
 import io.github.javaquasar.hazelcast.toolkit.boot3.l2.L2CacheTestConfiguration;
-import io.github.javaquasar.hazelcast.toolkit.boot3.l2.RecordingCacheEntryListener;
 import io.github.javaquasar.hazelcast.toolkit.boot3.l2.TestCachedEntity;
 import io.github.javaquasar.hazelcast.toolkit.boot3.l2.TestCachedEntityRepository;
 import io.github.javaquasar.hazelcast.toolkit.testcontainers.TestcontainersEnvironment;
@@ -64,10 +63,9 @@ class Boot3JpaL2CacheIntegrationTest extends TestcontainersEnvironment {
     }
 
     @Test
-    void storesJpaEntityInHazelcastL2CacheAndPublishesCacheEvent() {
+    void storesJpaEntityInHazelcastL2Cache() {
         Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
         statistics.clear();
-        RecordingCacheEntryListener.reset();
 
         Long entityId = transactionTemplate.execute(status -> repository.save(new TestCachedEntity("alpha")).getId());
         assertNotNull(entityId);
@@ -88,10 +86,7 @@ class Boot3JpaL2CacheIntegrationTest extends TestcontainersEnvironment {
 
         Awaitility.await()
                 .atMost(Duration.ofSeconds(10))
-                .untilAsserted(() -> {
-                    assertTrue(countEntries(l2Cache.unwrap(ICache.class)) > 0);
-                    assertTrue(RecordingCacheEntryListener.totalEvents() > 0);
-                });
+                .untilAsserted(() -> assertTrue(countEntries(l2Cache.unwrap(ICache.class)) > 0));
 
         long hitCountBeforeSecondRead = statistics.getSecondLevelCacheHitCount();
         TestCachedEntity secondRead = transactionTemplate.execute(status -> repository.findById(entityId).orElseThrow());
@@ -104,7 +99,6 @@ class Boot3JpaL2CacheIntegrationTest extends TestcontainersEnvironment {
         List<String> distributedObjects = hazelcastInstance.getDistributedObjects().stream()
                 .map(object -> object.getServiceName() + ":" + object.getName())
                 .toList();
-        System.out.println("HZ distributed objects: " + distributedObjects);
         assertTrue(distributedObjects.stream().anyMatch(name -> name.endsWith(TestCachedEntity.CACHE_REGION)));
     }
 

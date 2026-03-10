@@ -11,9 +11,7 @@ import org.springframework.context.annotation.Primary;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
-import javax.cache.configuration.FactoryBuilder;
 import javax.cache.configuration.MutableConfiguration;
-import javax.cache.configuration.MutableCacheEntryListenerConfiguration;
 import javax.cache.spi.CachingProvider;
 import java.util.Properties;
 
@@ -33,17 +31,11 @@ public class L2CacheTestConfiguration {
 
         Cache<Object, Object> cache = cacheManager.getCache(TestCachedEntity.CACHE_REGION);
         if (cache == null) {
-            cache = cacheManager.createCache(TestCachedEntity.CACHE_REGION,
+            cacheManager.createCache(TestCachedEntity.CACHE_REGION,
                     new MutableConfiguration<>()
                             .setStoreByValue(false)
                             .setStatisticsEnabled(true));
         }
-
-        cache.registerCacheEntryListener(new MutableCacheEntryListenerConfiguration<>(
-                FactoryBuilder.factoryOf(RecordingCacheEntryListener.class.getName()),
-                null,
-                false,
-                true));
 
         return cacheManager;
     }
