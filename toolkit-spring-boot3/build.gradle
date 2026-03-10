@@ -17,6 +17,8 @@ dependencies {
     testImplementation project(':toolkit-testcontainers')
     testImplementation "org.springframework.boot:spring-boot-starter-test:${springBoot3Version}"
     testImplementation "org.springframework.boot:spring-boot-starter-jdbc:${springBoot3Version}"
+    testImplementation "org.springframework.boot:spring-boot-starter-data-jpa:${springBoot3Version}"
+    testImplementation "org.hibernate.orm:hibernate-jcache:6.6.33.Final"
     testImplementation "org.testcontainers:junit-jupiter:${testcontainersVersion}"
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testRuntimeOnly 'org.postgresql:postgresql:42.7.5'
