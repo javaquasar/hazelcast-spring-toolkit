@@ -48,6 +48,7 @@ public abstract class TestcontainersEnvironment {
 
         registry.add("hazelcast.client.cluster-name", TestcontainersEnvironment::hazelcastClusterName);
         registry.add("hazelcast.client.network.cluster-members", TestcontainersEnvironment::hazelcastMembers);
+        registry.add("hazelcast.client.network.smart-routing", () -> false);
     }
 
     public static String jdbcUrl() {

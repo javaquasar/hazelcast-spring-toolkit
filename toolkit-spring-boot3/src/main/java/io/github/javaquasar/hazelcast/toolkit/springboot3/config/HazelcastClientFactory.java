@@ -30,6 +30,7 @@ public class HazelcastClientFactory {
         clientConfig.setClusterName(props.getClusterName());
         clientConfig.setInstanceName(props.getInstanceName());
         clientConfig.getNetworkConfig().setAddresses(props.getNetwork().getClusterMembers());
+        clientConfig.getNetworkConfig().setSmartRouting(props.getNetwork().isSmartRouting());
 
         // Compact registration
         String basePackage = toolkitProps.getCompact().getBasePackage();

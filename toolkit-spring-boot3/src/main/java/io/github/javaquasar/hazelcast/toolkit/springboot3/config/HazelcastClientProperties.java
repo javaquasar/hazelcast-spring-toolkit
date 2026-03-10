@@ -38,6 +38,7 @@ public class HazelcastClientProperties {
 
     public static class Network {
         private List<String> clusterMembers = new ArrayList<>();
+        private boolean smartRouting = true;
 
         public List<String> getClusterMembers() {
             return clusterMembers;
@@ -45,6 +46,14 @@ public class HazelcastClientProperties {
 
         public void setClusterMembers(List<String> clusterMembers) {
             this.clusterMembers = clusterMembers;
+        }
+
+        public boolean isSmartRouting() {
+            return smartRouting;
+        }
+
+        public void setSmartRouting(boolean smartRouting) {
+            this.smartRouting = smartRouting;
         }
     }
 
