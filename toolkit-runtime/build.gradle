@@ -3,4 +3,8 @@ dependencies {
     api project(':toolkit-scan-api')
 
     api 'com.hazelcast:hazelcast:' + project.property('hazelcastVersion')
+
+    testImplementation project(':toolkit-scan-reflections')
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
