@@ -6,6 +6,7 @@ dependencies {
 
     compileOnly "org.springframework.boot:spring-boot-autoconfigure:${springBoot3Version}"
     compileOnly "org.springframework.boot:spring-boot:${springBoot3Version}"
+    compileOnly 'org.springframework:spring-aop:6.2.0'
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor:${springBoot3Version}"
 
     compileOnly 'org.springframework:spring-web:6.2.0'

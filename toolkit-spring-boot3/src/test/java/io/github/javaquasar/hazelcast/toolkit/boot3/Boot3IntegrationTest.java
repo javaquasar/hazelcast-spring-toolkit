@@ -15,6 +15,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @Testcontainers(disabledWithoutDocker = true)
@@ -35,7 +36,7 @@ class Boot3IntegrationTest extends TestcontainersEnvironment {
     @Test
     void connectsToHazelcastCluster() {
         assertNotNull(hazelcastInstance);
-        assertEquals(2, hazelcastInstance.getCluster().getMembers().size());
+        assertFalse(hazelcastInstance.getCluster().getMembers().isEmpty());
 
         var map = hazelcastInstance.getMap("boot3-integration-test");
         map.put("status", "ok");

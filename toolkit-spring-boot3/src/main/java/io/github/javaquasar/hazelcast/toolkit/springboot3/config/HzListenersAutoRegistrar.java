@@ -2,56 +2,108 @@ package io.github.javaquasar.hazelcast.toolkit.springboot3.config;
 
 import com.hazelcast.core.EntryListener;
 import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.map.IMap;
 import io.github.javaquasar.hazelcast.toolkit.annotation.HzIMapListener;
-import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.IMapListenerClassesScanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
+import org.springframework.aop.support.AopUtils;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.ListableBeanFactory;
+import org.springframework.beans.factory.SmartInitializingSingleton;
+import org.springframework.core.annotation.AnnotationUtils;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.UUID;
 
 /**
- * Scans for @HzIMapListener annotated beans and registers them into target IMaps.
+ * Discovers Spring beans annotated with {@link HzIMapListener} and registers them into target IMaps.
  */
-public class HzListenersAutoRegistrar implements ApplicationContextAware {
+public class HzListenersAutoRegistrar implements SmartInitializingSingleton, DisposableBean {
 
     private static final Logger log = LoggerFactory.getLogger(HzListenersAutoRegistrar.class);
 
     private final HazelcastInstance hazelcastInstance;
-    private final IMapListenerClassesScanner listenerScanner;
-    private final String basePackage;
+    private final ListableBeanFactory beanFactory;
+    private final Map<RegistrationKey, UUID> registrations = new LinkedHashMap<>();
 
     public HzListenersAutoRegistrar(HazelcastInstance hazelcastInstance,
-                                    IMapListenerClassesScanner listenerScanner,
-                                    String basePackage) {
+                                    ListableBeanFactory beanFactory) {
         this.hazelcastInstance = hazelcastInstance;
-        this.listenerScanner = listenerScanner;
-        this.basePackage = basePackage;
+        this.beanFactory = beanFactory;
     }
 
     @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        if (basePackage == null || basePackage.isBlank()) {
-            log.info("HzListenersAutoRegistrar disabled: no basePackage configured");
+    public void afterSingletonsInstantiated() {
+        Map<String, Object> candidates = beanFactory.getBeansWithAnnotation(HzIMapListener.class);
+
+        if (candidates.isEmpty()) {
+            log.debug("No @HzIMapListener beans found");
             return;
         }
 
-        for (Class<?> listenerClass : listenerScanner.scanIMapListeners(basePackage)) {
-            HzIMapListener meta = listenerClass.getAnnotation(HzIMapListener.class);
-            Object bean = applicationContext.getBean(listenerClass);
+        for (Map.Entry<String, Object> candidate : candidates.entrySet()) {
+            Object bean = candidate.getValue();
+            Class<?> targetClass = AopUtils.getTargetClass(bean);
+            HzIMapListener meta = AnnotationUtils.findAnnotation(targetClass, HzIMapListener.class);
 
-            if (!(bean instanceof EntryListener<?, ?> entryListener)) {
-                log.warn("@HzIMapListener class {} is not an EntryListener, skipping", listenerClass.getName());
+            if (meta == null) {
+                log.warn(
+                        "Bean {} was returned as @HzIMapListener candidate but no annotation was found on targetClass={}",
+                        candidate.getKey(),
+                        targetClass.getName()
+                );
                 continue;
             }
 
-            String mapName = meta.map();
-            boolean includeValue = meta.includeValue();
-            boolean localOnly = meta.localOnly();
+            if (!(bean instanceof EntryListener<?, ?> entryListener)) {
+                throw new IllegalStateException(
+                        "@HzIMapListener bean %s must implement EntryListener"
+                        .formatted(targetClass.getName())
+                );
+            }
 
-            hazelcastInstance.getMap(mapName).addEntryListener(entryListener, includeValue);
-            log.info("Registered Hazelcast EntryListener: listenerClass={}, map={}, includeValue={}, localOnly={} (note: localOnly requires key-based overload)",
-                    listenerClass.getName(), mapName, includeValue, localOnly);
+            IMap<Object, Object> map = hazelcastInstance.getMap(meta.map());
+            UUID registrationId = meta.localOnly()
+                    ? map.addLocalEntryListener(entryListener)
+                    : map.addEntryListener(entryListener, meta.includeValue());
+
+            registrations.put(new RegistrationKey(meta.map(), registrationId), registrationId);
+
+            if (meta.localOnly()) {
+                log.info(
+                        "Registered LOCAL Hazelcast EntryListener: listenerClass={}, map={}",
+                        targetClass.getName(),
+                        meta.map()
+                );
+            } else {
+                log.info(
+                        "Registered Hazelcast EntryListener: listenerClass={}, map={}, includeValue={}",
+                        targetClass.getName(),
+                        meta.map(),
+                        meta.includeValue()
+                );
+            }
         }
+    }
+
+    @Override
+    public void destroy() {
+        registrations.forEach((key, registrationId) -> {
+            try {
+                hazelcastInstance.getMap(key.mapName()).removeEntryListener(registrationId);
+            } catch (Exception ex) {
+                log.debug(
+                        "Failed to remove Hazelcast EntryListener: map={}, registrationId={}",
+                        key.mapName(),
+                        registrationId,
+                        ex
+                );
+            }
+        });
+        registrations.clear();
+    }
+
+    private record RegistrationKey(String mapName, UUID registrationId) {
     }
 }
