@@ -5,6 +5,8 @@ plugins {
 dependencies {
     api platform("org.testcontainers:testcontainers-bom:${testcontainersVersion}")
 
+    api 'org.springframework:spring-test:6.2.12'
+    api 'org.testcontainers:junit-jupiter'
     api 'org.testcontainers:testcontainers'
     api 'org.testcontainers:postgresql'
 }
