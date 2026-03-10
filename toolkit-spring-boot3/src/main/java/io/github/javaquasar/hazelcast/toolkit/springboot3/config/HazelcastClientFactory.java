@@ -2,6 +2,7 @@ package io.github.javaquasar.hazelcast.toolkit.springboot3.config;
 
 import com.hazelcast.client.HazelcastClient;
 import com.hazelcast.client.config.ClientConfig;
+import com.hazelcast.client.impl.connection.tcp.RoutingMode;
 import com.hazelcast.config.CompactSerializationConfig;
 import com.hazelcast.config.SerializationConfig;
 import com.hazelcast.core.HazelcastInstance;
@@ -30,7 +31,9 @@ public class HazelcastClientFactory {
         clientConfig.setClusterName(props.getClusterName());
         clientConfig.setInstanceName(props.getInstanceName());
         clientConfig.getNetworkConfig().setAddresses(props.getNetwork().getClusterMembers());
-        clientConfig.getNetworkConfig().setSmartRouting(props.getNetwork().isSmartRouting());
+        if (!props.getNetwork().isSmartRouting()) {
+            clientConfig.getNetworkConfig().getClusterRoutingConfig().setRoutingMode(RoutingMode.SINGLE_MEMBER);
+        }
 
         // Compact registration
         String basePackage = toolkitProps.getCompact().getBasePackage();
