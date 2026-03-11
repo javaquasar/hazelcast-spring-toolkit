@@ -2,6 +2,7 @@ package io.github.javaquasar.hazelcast.toolkit.springboot3.config;
 
 import com.hazelcast.client.config.ClientConfig;
 import com.hazelcast.config.CompactSerializationConfig;
+import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientFactory;
 import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.CompactClassesScanner;
 import io.github.javaquasar.hazelcast.toolkit.springboot3.config.compact.invalid.BrokenCompactType;
 import io.github.javaquasar.hazelcast.toolkit.springboot3.config.compact.valid.CustomizerCompactType;
@@ -29,9 +30,13 @@ class HazelcastClientFactoryTest {
                 })
         );
 
-        ClientConfig clientConfig = factory.createClientConfig(clientProperties(), toolkitProperties(
+        ClientConfig clientConfig = factory.createClientConfig(
+                "test-client",
+                "test-cluster",
+                List.of("127.0.0.1:5701"),
+                true,
                 "io.github.javaquasar.hazelcast.toolkit.springboot3.config.compact.valid"
-        ));
+        );
         CompactSerializationConfig compactConfig = clientConfig.getSerializationConfig().getCompactSerializationConfig();
 
         assertEquals("true", clientConfig.getProperty("test.customizer.applied"));
@@ -47,9 +52,13 @@ class HazelcastClientFactoryTest {
 
         IllegalStateException exception = assertThrows(
                 IllegalStateException.class,
-                () -> factory.createClientConfig(clientProperties(), toolkitProperties(
+                () -> factory.createClientConfig(
+                        "test-client",
+                        "test-cluster",
+                        List.of("127.0.0.1:5701"),
+                        true,
                         "io.github.javaquasar.hazelcast.toolkit.springboot3.config.compact.invalid"
-                ))
+                )
         );
 
         assertTrue(exception.getMessage().contains(BrokenCompactType.class.getName()));
@@ -67,19 +76,5 @@ class HazelcastClientFactoryTest {
         Field field = CompactSerializationConfig.class.getDeclaredField("typeNameToRegistration");
         field.setAccessible(true);
         return (Map<String, ?>) field.get(compactConfig);
-    }
-
-    private HazelcastClientProperties clientProperties() {
-        HazelcastClientProperties properties = new HazelcastClientProperties();
-        properties.setClusterName("test-cluster");
-        properties.setInstanceName("test-client");
-        properties.getNetwork().setClusterMembers(List.of("127.0.0.1:5701"));
-        return properties;
-    }
-
-    private HzToolkitProperties toolkitProperties(String basePackage) {
-        HzToolkitProperties properties = new HzToolkitProperties();
-        properties.getCompact().setBasePackage(basePackage);
-        return properties;
     }
 }

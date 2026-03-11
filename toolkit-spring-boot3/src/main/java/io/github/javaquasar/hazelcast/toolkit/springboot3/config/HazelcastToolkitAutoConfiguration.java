@@ -2,6 +2,7 @@ package io.github.javaquasar.hazelcast.toolkit.springboot3.config;
 
 import com.hazelcast.core.HazelcastInstance;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientConfigCustomizer;
+import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientFactory;
 import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HzToolkitMetricsController;
 import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.CompactClassesScanner;
 import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.IMapListenerClassesScanner;
@@ -44,7 +45,13 @@ public class HazelcastToolkitAutoConfiguration {
     public HazelcastInstance hazelcastInstance(HazelcastClientFactory factory,
                                                HazelcastClientProperties props,
                                                HzToolkitProperties toolkitProps) {
-        return factory.createClient(props, toolkitProps);
+        return factory.createClient(
+                props.getInstanceName(),
+                props.getClusterName(),
+                props.getNetwork().getClusterMembers(),
+                props.getNetwork().isSmartRouting(),
+                toolkitProps.getCompact().getBasePackage()
+        );
     }
 
     @Bean
