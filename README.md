@@ -23,7 +23,7 @@ The repository already contains modules for Spring Boot 2 and 4, but Boot 3 is c
 - `toolkit-scan-reflections`: `org.reflections`-based scanner implementation
 - `toolkit-spring-boot2`: Spring Boot 2 integration module
 - `toolkit-spring-boot3`: Spring Boot 3 integration module
-- `toolkit-spring-boot4`: Spring Boot 4 integration module
+- `toolkit-spring-boot4`: Spring Boot 4 integration module (opt-in via `-PenableBoot4=true`)
 - `toolkit-metrics-spring`: optional Spring metrics/controller integration
 - `toolkit-testcontainers`: shared Testcontainers support for integration tests
 
@@ -280,8 +280,15 @@ Local build:
 ./gradlew build
 ```
 
-Build a release bundle for one published module:
+Enable the optional Spring Boot 4 module when Boot 4 dependencies are available locally:
 
+```bash
+./gradlew -PenableBoot4=true :toolkit-spring-boot4:compileJava
+```
+
+This keeps the default build stable while Boot 4 support is still being developed.
+
+Build a release bundle for one published module:
 ```bash
 ./gradlew :toolkit-core:centralBundleZip -PreleaseVersion=0.1.0
 ```
@@ -297,3 +304,4 @@ Build release bundles for all published modules:
 - Boot 3 is the primary supported integration path in the current codebase.
 - Boot 2 and Boot 4 modules are present for future parity work.
 - The project is modular on purpose so common runtime contracts can be reused across framework variants.
+

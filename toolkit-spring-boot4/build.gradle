@@ -9,4 +9,5 @@ dependencies {
     compileOnly "org.springframework.boot:spring-boot:${springBoot4Version}"
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor:${springBoot4Version}"
     compileOnly 'org.springframework:spring-web:6.2.12'
+    compileOnly 'javax.cache:cache-api:1.1.1'
 }
