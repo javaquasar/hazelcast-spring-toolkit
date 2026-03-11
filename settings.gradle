@@ -1,5 +1,7 @@
 rootProject.name = 'hazelcast-toolkit'
 
+def enableBoot4 = (gradle.startParameter.projectProperties['enableBoot4'] ?: 'false').toBoolean()
+
 include 'toolkit-core'
 include 'toolkit-runtime'
 include 'toolkit-scan-api'
@@ -8,4 +10,7 @@ include 'toolkit-metrics-spring'
 include 'toolkit-spring-common'
 include 'toolkit-spring-boot2'
 include 'toolkit-spring-boot3'
+if (enableBoot4) {
+    include 'toolkit-spring-boot4'
+}
 include 'toolkit-testcontainers'

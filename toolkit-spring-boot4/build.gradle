@@ -1,0 +1,12 @@
+dependencies {
+    api project(':toolkit-core')
+    api project(':toolkit-runtime')
+    api project(':toolkit-scan-reflections')
+    api project(':toolkit-metrics-spring')
+    api project(':toolkit-spring-common')
+
+    compileOnly "org.springframework.boot:spring-boot-autoconfigure:${springBoot4Version}"
+    compileOnly "org.springframework.boot:spring-boot:${springBoot4Version}"
+    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor:${springBoot4Version}"
+    compileOnly 'org.springframework:spring-web:6.2.12'
+}
