@@ -1,0 +1,12 @@
+dependencies {
+    api project(':toolkit-core')
+    api project(':toolkit-runtime')
+    api project(':toolkit-scan-reflections')
+    api project(':toolkit-metrics-spring')
+    api project(':toolkit-spring-common')
+
+    compileOnly "org.springframework.boot:spring-boot-autoconfigure:${project.property('springBoot2Version')}"
+    compileOnly "org.springframework.boot:spring-boot:${project.property('springBoot2Version')}"
+    compileOnly "org.springframework:spring-web:5.3.34"
+    compileOnly 'javax.cache:cache-api:1.1.1'
+}
