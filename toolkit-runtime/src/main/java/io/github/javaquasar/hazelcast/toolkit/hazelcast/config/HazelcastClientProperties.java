@@ -1,11 +1,8 @@
-package io.github.javaquasar.hazelcast.toolkit.springboot3.config;
-
-import org.springframework.boot.context.properties.ConfigurationProperties;
+package io.github.javaquasar.hazelcast.toolkit.hazelcast.config;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@ConfigurationProperties(prefix = "hazelcast.client")
 public class HazelcastClientProperties {
 
     private String instanceName = "app-hz-client";
@@ -56,5 +53,4 @@ public class HazelcastClientProperties {
             this.smartRouting = smartRouting;
         }
     }
-
 }

@@ -1,8 +1,5 @@
-package io.github.javaquasar.hazelcast.toolkit.springboot3.config;
+package io.github.javaquasar.hazelcast.toolkit.hazelcast.config;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
-@ConfigurationProperties(prefix = "hazelcast.toolkit")
 public class HzToolkitProperties {
 
     private Compact compact = new Compact();
@@ -25,7 +22,6 @@ public class HzToolkitProperties {
     }
 
     public static class Compact {
-        /** Base package to scan for @HzCompact types */
         private String basePackage = "";
 
         public String getBasePackage() {
@@ -38,7 +34,6 @@ public class HzToolkitProperties {
     }
 
     public static class Metrics {
-        /** Enables HTTP endpoints in HzToolkitMetricsController */
         private boolean enabled = false;
 
         public boolean isEnabled() {

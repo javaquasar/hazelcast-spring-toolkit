@@ -3,6 +3,8 @@ package io.github.javaquasar.hazelcast.toolkit.springboot3.config;
 import com.hazelcast.core.HazelcastInstance;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientConfigCustomizer;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientFactory;
+import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HazelcastClientProperties;
+import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties;
 import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HzToolkitMetricsController;
 import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.CompactClassesScanner;
 import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.IMapListenerClassesScanner;
@@ -12,14 +14,27 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 
 import javax.cache.CacheManager;
 
 @AutoConfiguration
-@EnableConfigurationProperties({HazelcastClientProperties.class, HzToolkitProperties.class})
 public class HazelcastToolkitAutoConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConfigurationProperties(prefix = "hazelcast.client")
+    public HazelcastClientProperties hazelcastClientProperties() {
+        return new HazelcastClientProperties();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConfigurationProperties(prefix = "hazelcast.toolkit")
+    public HzToolkitProperties hzToolkitProperties() {
+        return new HzToolkitProperties();
+    }
 
     @Bean
     @ConditionalOnMissingBean
