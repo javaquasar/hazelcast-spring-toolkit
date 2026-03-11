@@ -1,6 +1,7 @@
 package io.github.javaquasar.hazelcast.toolkit.springboot3.config;
 
 import com.hazelcast.core.HazelcastInstance;
+import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientConfigCustomizer;
 import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HzToolkitMetricsController;
 import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.CompactClassesScanner;
 import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.IMapListenerClassesScanner;

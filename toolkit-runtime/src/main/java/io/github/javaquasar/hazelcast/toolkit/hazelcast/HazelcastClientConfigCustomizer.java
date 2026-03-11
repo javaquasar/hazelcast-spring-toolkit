@@ -1,4 +1,4 @@
-package io.github.javaquasar.hazelcast.toolkit.springboot3.config;
+package io.github.javaquasar.hazelcast.toolkit.hazelcast;
 
 import com.hazelcast.client.config.ClientConfig;
 

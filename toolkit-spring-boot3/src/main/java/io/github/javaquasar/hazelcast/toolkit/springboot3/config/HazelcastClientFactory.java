@@ -6,6 +6,7 @@ import com.hazelcast.client.impl.connection.tcp.RoutingMode;
 import com.hazelcast.config.CompactSerializationConfig;
 import com.hazelcast.config.SerializationConfig;
 import com.hazelcast.core.HazelcastInstance;
+import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientConfigCustomizer;
 import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.CompactClassesScanner;
 import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.CompactScanResult;
 import org.slf4j.Logger;
