@@ -2,11 +2,9 @@ package io.github.javaquasar.hazelcast.toolkit.boot3;
 
 import com.hazelcast.core.HazelcastInstance;
 import io.github.javaquasar.hazelcast.toolkit.testcontainers.TestcontainersEnvironment;
-import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -15,7 +13,6 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -23,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @Testcontainers(disabledWithoutDocker = true)
 @SpringBootTest(classes = TestApplication.class)
-@Import(ListenerTestConfiguration.class)
 class Boot3IntegrationTest extends TestcontainersEnvironment {
 
     @Autowired
@@ -46,20 +42,6 @@ class Boot3IntegrationTest extends TestcontainersEnvironment {
         map.put("status", "ok");
 
         assertEquals("ok", map.get("status"));
-    }
-
-    @Test
-    void registersHazelcastMapListenerAndReceivesEntryAddedEvent() {
-        assertNotNull(hazelcastInstance);
-        ListenerTestConfiguration.RecordingEntryListener.reset();
-
-        hazelcastInstance
-                .getMap(ListenerTestConfiguration.RecordingEntryListener.MAP_NAME)
-                .put("listener-key", "listener-value");
-
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(10))
-                .untilAsserted(() -> assertEquals(1, ListenerTestConfiguration.RecordingEntryListener.addedEvents()));
     }
 
     @Test

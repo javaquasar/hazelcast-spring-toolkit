@@ -1,3 +1,5 @@
+def boot3TestRunId = providers.provider { Long.toString(System.currentTimeMillis()) }
+
 dependencies {
     api project(':toolkit-core')
     api project(':toolkit-runtime')
@@ -22,4 +24,8 @@ dependencies {
     testImplementation "org.testcontainers:junit-jupiter:${testcontainersVersion}"
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testRuntimeOnly 'org.postgresql:postgresql:42.7.5'
+}
+
+tasks.withType(Test).configureEach {
+    binaryResultsDirectory = layout.buildDirectory.dir(boot3TestRunId.map { "test-results/${name}/binary-${it}" })
 }

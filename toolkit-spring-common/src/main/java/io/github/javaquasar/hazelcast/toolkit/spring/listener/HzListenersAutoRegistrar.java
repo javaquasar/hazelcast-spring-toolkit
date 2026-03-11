@@ -3,6 +3,7 @@ package io.github.javaquasar.hazelcast.toolkit.spring.listener;
 import com.hazelcast.core.EntryListener;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.map.IMap;
+import com.hazelcast.map.listener.MapListener;
 import io.github.javaquasar.hazelcast.toolkit.annotation.HzIMapListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,29 +57,27 @@ public class HzListenersAutoRegistrar implements SmartInitializingSingleton, Dis
                 continue;
             }
 
-            if (!(bean instanceof EntryListener<?, ?> entryListener)) {
+            if (!(bean instanceof MapListener) && !(bean instanceof EntryListener<?, ?>)) {
                 throw new IllegalStateException(
-                        "@HzIMapListener bean %s must implement EntryListener"
+                        "@HzIMapListener bean %s must implement MapListener or EntryListener"
                                 .formatted(targetClass.getName())
                 );
             }
 
             IMap<Object, Object> map = hazelcastInstance.getMap(meta.map());
-            UUID registrationId = meta.localOnly()
-                    ? map.addLocalEntryListener(entryListener)
-                    : map.addEntryListener(entryListener, meta.includeValue());
+            UUID registrationId = registerListener(map, bean, meta);
 
             registrations.put(new RegistrationKey(meta.map(), registrationId), registrationId);
 
             if (meta.localOnly()) {
                 log.info(
-                        "Registered LOCAL Hazelcast EntryListener: listenerClass={}, map={}",
+                        "Registered LOCAL Hazelcast listener: listenerClass={}, map={}",
                         targetClass.getName(),
                         meta.map()
                 );
             } else {
                 log.info(
-                        "Registered Hazelcast EntryListener: listenerClass={}, map={}, includeValue={}",
+                        "Registered Hazelcast listener: listenerClass={}, map={}, includeValue={}",
                         targetClass.getName(),
                         meta.map(),
                         meta.includeValue()
@@ -87,20 +86,24 @@ public class HzListenersAutoRegistrar implements SmartInitializingSingleton, Dis
         }
     }
 
+    private UUID registerListener(IMap<Object, Object> map, Object bean, HzIMapListener meta) {
+        if (bean instanceof MapListener mapListener) {
+            return meta.localOnly()
+                    ? map.addLocalEntryListener(mapListener)
+                    : map.addEntryListener(mapListener, meta.includeValue());
+        }
+
+        EntryListener<?, ?> entryListener = (EntryListener<?, ?>) bean;
+        return meta.localOnly()
+                ? map.addLocalEntryListener(entryListener)
+                : map.addEntryListener(entryListener, meta.includeValue());
+    }
+
     @Override
     public void destroy() {
-        registrations.forEach((key, registrationId) -> {
-            try {
-                hazelcastInstance.getMap(key.mapName()).removeEntryListener(registrationId);
-            } catch (Exception ex) {
-                log.debug(
-                        "Failed to remove Hazelcast EntryListener: map={}, registrationId={}",
-                        key.mapName(),
-                        registrationId,
-                        ex
-                );
-            }
-        });
+        if (!registrations.isEmpty()) {
+            log.debug("Skipping explicit Hazelcast listener deregistration for {} registrations during bean shutdown", registrations.size());
+        }
         registrations.clear();
     }
 
