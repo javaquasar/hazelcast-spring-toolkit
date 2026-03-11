@@ -1,7 +1,13 @@
 package io.github.javaquasar.hazelcast.toolkit.boot3.l2;
 
 import com.hazelcast.cache.HazelcastCachingProvider;
+import com.hazelcast.client.config.ClientConfig;
+import com.hazelcast.config.EvictionConfig;
+import com.hazelcast.config.EvictionPolicy;
+import com.hazelcast.config.MaxSizePolicy;
+import com.hazelcast.config.NearCacheConfig;
 import com.hazelcast.core.HazelcastInstance;
+import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientConfigCustomizer;
 import org.hibernate.cache.jcache.ConfigSettings;
 import org.hibernate.cfg.AvailableSettings;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernatePropertiesCustomizer;
@@ -41,6 +47,11 @@ public class L2CacheTestConfiguration {
     }
 
     @Bean
+    public HazelcastClientConfigCustomizer l2NearCacheCustomizer() {
+        return this::customizeNearCache;
+    }
+
+    @Bean
     public HibernatePropertiesCustomizer hibernatePropertiesCustomizer(CacheManager cacheManager) {
         return properties -> {
             properties.put("javax.persistence.sharedCache.mode", "ENABLE_SELECTIVE");
@@ -54,5 +65,18 @@ public class L2CacheTestConfiguration {
             properties.put(AvailableSettings.GENERATE_STATISTICS, true);
             properties.put("hibernate.cache.use_structured_entries", true);
         };
+    }
+
+    private void customizeNearCache(ClientConfig clientConfig) {
+        NearCacheConfig nearCacheConfig = new NearCacheConfig(TestCachedEntity.CACHE_REGION);
+        nearCacheConfig.setInvalidateOnChange(true);
+        nearCacheConfig.setTimeToLiveSeconds(0);
+        nearCacheConfig.setMaxIdleSeconds(0);
+        nearCacheConfig.setEvictionConfig(new EvictionConfig()
+                .setEvictionPolicy(EvictionPolicy.LRU)
+                .setMaxSizePolicy(MaxSizePolicy.ENTRY_COUNT)
+                .setSize(10_000));
+
+        clientConfig.addNearCacheConfig(nearCacheConfig);
     }
 }
