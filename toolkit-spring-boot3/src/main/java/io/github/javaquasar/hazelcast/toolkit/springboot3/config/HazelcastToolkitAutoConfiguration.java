@@ -5,6 +5,7 @@ import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HzToolkitMetricsCon
 import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.CompactClassesScanner;
 import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.IMapListenerClassesScanner;
 import org.springframework.beans.factory.ListableBeanFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -32,8 +33,9 @@ public class HazelcastToolkitAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public HazelcastClientFactory hazelcastClientFactory(CompactClassesScanner scanner) {
-        return new HazelcastClientFactory(scanner);
+    public HazelcastClientFactory hazelcastClientFactory(CompactClassesScanner scanner,
+                                                         ObjectProvider<HazelcastClientConfigCustomizer> customizers) {
+        return new HazelcastClientFactory(scanner, customizers.orderedStream().toList());
     }
 
     @Bean
