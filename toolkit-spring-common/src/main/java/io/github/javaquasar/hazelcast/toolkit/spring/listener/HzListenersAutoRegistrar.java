@@ -1,4 +1,4 @@
-package io.github.javaquasar.hazelcast.toolkit.springboot3.config;
+package io.github.javaquasar.hazelcast.toolkit.spring.listener;
 
 import com.hazelcast.core.EntryListener;
 import com.hazelcast.core.HazelcastInstance;
@@ -59,7 +59,7 @@ public class HzListenersAutoRegistrar implements SmartInitializingSingleton, Dis
             if (!(bean instanceof EntryListener<?, ?> entryListener)) {
                 throw new IllegalStateException(
                         "@HzIMapListener bean %s must implement EntryListener"
-                        .formatted(targetClass.getName())
+                                .formatted(targetClass.getName())
                 );
             }
 

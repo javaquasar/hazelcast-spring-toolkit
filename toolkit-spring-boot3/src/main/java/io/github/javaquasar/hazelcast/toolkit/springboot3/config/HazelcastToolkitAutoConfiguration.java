@@ -8,6 +8,7 @@ import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperti
 import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HzToolkitMetricsController;
 import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.CompactClassesScanner;
 import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.IMapListenerClassesScanner;
+import io.github.javaquasar.hazelcast.toolkit.spring.listener.HzListenersAutoRegistrar;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
