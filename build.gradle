@@ -4,8 +4,8 @@ plugins {
 }
 
 allprojects {
-    group = 'io.github.javaquasar'
-    version = findProperty("releaseVersion") ?: '0.1.0-SNAPSHOT'
+    group = findProperty('group')
+    version = findProperty('releaseVersion') ?: findProperty('version')
 
     repositories {
         mavenCentral()
@@ -121,4 +121,3 @@ configure(subprojects.findAll { it.name in publishedModules }) { Project p ->
 tasks.register("centralBundleAll") {
     dependsOn publishedModules.collect { ":${it}:centralBundleZip" }
 }
-
