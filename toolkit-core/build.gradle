@@ -1,4 +1,4 @@
 dependencies {
-    api 'com.hazelcast:hazelcast:' + project.property('hazelcastVersion')
-    api 'org.slf4j:slf4j-api:' + project.property('slf4jVersion')
+    api "com.hazelcast:hazelcast:${hazelcastVersion}"
+    api "org.slf4j:slf4j-api:${slf4jVersion}"
 }
