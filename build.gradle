@@ -1,10 +1,11 @@
 plugins {
-    id 'java-library'
+    id 'maven-publish'
+    id 'signing'
 }
 
 allprojects {
     group = 'io.github.javaquasar'
-    version = '0.1.0-SNAPSHOT'
+    version = findProperty("releaseVersion") ?: '0.1.0-SNAPSHOT'
 
     repositories {
         mavenCentral()
@@ -30,4 +31,94 @@ subprojects {
     tasks.withType(Test).configureEach {
         useJUnitPlatform()
     }
+
+    tasks.withType(Javadoc).configureEach {
+        options.addStringOption('Xdoclint:none', '-quiet')
+        options.encoding = 'UTF-8'
+    }
 }
+
+def publishedModules = [
+        'toolkit-core',
+        'toolkit-runtime',
+        'toolkit-scan-api',
+        'toolkit-scan-reflections',
+        'toolkit-metrics-spring',
+        'toolkit-spring-common',
+        'toolkit-spring-boot2',
+        'toolkit-spring-boot3',
+]
+
+configure(subprojects.findAll { it.name in publishedModules }) { Project p ->
+    apply plugin: 'maven-publish'
+    apply plugin: 'signing'
+
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                from components.java
+
+                // By default artifactId matches the module name. Override it here if needed:
+                // artifactId = "hazelcast-toolkit-core"
+
+                pom {
+                    name = (p.findProperty('pomName') ?: p.name).toString()
+                    description = (p.findProperty('pomDescription') ?: (p.description ?: p.name)).toString()
+                    url = 'https://github.com/javaquasar/hazelcast-spring-toolkit'
+
+                    licenses {
+                        license {
+                            name = 'The Apache License, Version 2.0'
+                            url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            id = 'javaquasar'
+                            name = 'javaquasar'
+                            url = 'https://github.com/javaquasar'
+                        }
+                    }
+
+                    scm {
+                        url = 'https://github.com/javaquasar/hazelcast-spring-toolkit'
+                        connection = 'scm:git:https://github.com/javaquasar/hazelcast-spring-toolkit.git'
+                        developerConnection = 'scm:git:ssh://git@github.com:javaquasar/hazelcast-spring-toolkit.git'
+                    }
+                }
+            }
+        }
+
+        // Local staging repository used to assemble the Central Portal bundle ZIP
+        repositories {
+            maven {
+                name = "localStaging"
+                url = p.layout.buildDirectory.dir("staging-repo")
+            }
+        }
+    }
+
+    signing {
+        def key = p.findProperty("signingKey")
+        def pass = p.findProperty("signingPassword")
+        if (key && pass) {
+            useInMemoryPgpKeys(key.toString(), pass.toString())
+        }
+        sign publishing.publications.mavenJava
+    }
+
+    // ZIP bundle ready for upload to the Central Portal
+    p.tasks.register("centralBundleZip", Zip) {
+        dependsOn p.tasks.named("publishMavenJavaPublicationToLocalStagingRepository")
+        from(p.layout.buildDirectory.dir("staging-repo"))
+        archiveFileName = "${p.name}-${p.version}-central-bundle.zip"
+        destinationDirectory = p.layout.buildDirectory.dir("central")
+    }
+}
+
+// Root helper task that builds bundle ZIPs for all published modules
+tasks.register("centralBundleAll") {
+    dependsOn publishedModules.collect { ":${it}:centralBundleZip" }
+}
+

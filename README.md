@@ -288,16 +288,54 @@ Enable the optional Spring Boot 4 module when Boot 4 dependencies are available 
 
 This keeps the default build stable while Boot 4 support is still being developed.
 
-Build a release bundle for one published module:
+### Published Modules
+
+The current release configuration publishes these library modules:
+- `toolkit-core`
+- `toolkit-runtime`
+- `toolkit-scan-api`
+- `toolkit-scan-reflections`
+- `toolkit-metrics-spring`
+- `toolkit-spring-common`
+- `toolkit-spring-boot2`
+- `toolkit-spring-boot3`
+
+The test support module `toolkit-testcontainers` is intentionally not published.
+
+### Publication Commands
+
+Build and verify everything before release:
+
+```bash
+./gradlew build
+```
+
+Publish one module into its local staging Maven repository:
+
+```bash
+./gradlew :toolkit-core:publishMavenJavaPublicationToLocalStagingRepository -PreleaseVersion=0.1.0
+```
+
+Create a Central Portal bundle ZIP for one module:
+
 ```bash
 ./gradlew :toolkit-core:centralBundleZip -PreleaseVersion=0.1.0
 ```
 
-Build release bundles for all published modules:
+Create bundle ZIPs for all published modules:
 
 ```bash
 ./gradlew centralBundleAll -PreleaseVersion=0.1.0
 ```
+
+If signing is enabled, provide the keys through Gradle properties, for example in `~/.gradle/gradle.properties`:
+
+```properties
+signingKey=...
+signingPassword=...
+```
+
+Generated staging repositories and ZIP bundles are written under each published module's `build` directory.
 
 ## Current Notes
 
@@ -305,3 +343,4 @@ Build release bundles for all published modules:
 - Boot 2 and Boot 4 modules are present for future parity work.
 - The project is modular on purpose so common runtime contracts can be reused across framework variants.
 
+.\gradlew :toolkit-spring-boot3:test --tests io.github.javaquasar.hazelcast.toolkit.boot3.Boot3IntegrationTest --offline
