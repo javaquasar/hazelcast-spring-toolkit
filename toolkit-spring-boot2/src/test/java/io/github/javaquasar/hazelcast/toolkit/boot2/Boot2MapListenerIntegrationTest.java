@@ -1,8 +1,6 @@
-package io.github.javaquasar.hazelcast.toolkit.boot3;
+package io.github.javaquasar.hazelcast.toolkit.boot2;
 
 import com.hazelcast.core.HazelcastInstance;
-import io.github.javaquasar.hazelcast.toolkit.spring.test.boot.EmbeddedHazelcastTestConfiguration;
-import io.github.javaquasar.hazelcast.toolkit.spring.test.boot.ListenerTestConfiguration;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,13 +13,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest(
-        classes = Boot3ListenerTestApplication.class,
+        classes = Boot2ListenerTestApplication.class,
         properties = {
                 "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration"
         }
 )
 @Import({EmbeddedHazelcastTestConfiguration.class, ListenerTestConfiguration.class})
-class Boot3MapListenerIntegrationTest {
+class Boot2MapListenerIntegrationTest {
 
     @Autowired
     private HazelcastInstance hazelcastInstance;

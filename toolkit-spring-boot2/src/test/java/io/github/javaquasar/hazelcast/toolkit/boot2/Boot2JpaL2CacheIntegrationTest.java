@@ -1,34 +1,29 @@
-package io.github.javaquasar.hazelcast.toolkit.boot3;
+package io.github.javaquasar.hazelcast.toolkit.boot2;
 
 import com.hazelcast.cache.HazelcastCachingProvider;
 import com.hazelcast.cache.ICache;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.nearcache.NearCacheStats;
-import io.github.javaquasar.hazelcast.toolkit.boot3.l2.L2CacheTestConfiguration;
+import io.github.javaquasar.hazelcast.toolkit.boot2.l2.Boot2L2CacheTestConfiguration;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientFactory;
 import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.CompactClassesScanner;
-import io.github.javaquasar.hazelcast.toolkit.spring.test.boot.SharedTestApplication;
 import io.github.javaquasar.hazelcast.toolkit.spring.test.l2.SharedTestCachedEntity;
 import io.github.javaquasar.hazelcast.toolkit.spring.test.l2.SharedTestCachedEntityRepository;
-import io.github.javaquasar.hazelcast.toolkit.testcontainers.TestcontainersEnvironment;
 import org.awaitility.Awaitility;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
 import javax.cache.spi.CachingProvider;
+import javax.persistence.EntityManagerFactory;
 import java.time.Duration;
 import java.util.List;
 import java.util.Properties;
@@ -37,16 +32,24 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@Testcontainers(disabledWithoutDocker = true)
 @SpringBootTest(
-        classes = SharedTestApplication.class,
+        classes = Boot2TestApplication.class,
         properties = {
+                "spring.datasource.url=jdbc:h2:mem:boot2l2;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
+                "spring.datasource.driver-class-name=org.h2.Driver",
+                "spring.datasource.username=sa",
+                "spring.datasource.password=",
+                "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
                 "spring.jpa.hibernate.ddl-auto=create-drop",
-                "spring.jpa.open-in-view=false"
+                "spring.jpa.open-in-view=false",
+                "hazelcast.client.instance-name=boot2-l2-client",
+                "hazelcast.client.cluster-name=boot2-l2-test-cluster",
+                "hazelcast.client.network.cluster-members[0]=127.0.0.1:5701",
+                "hazelcast.client.network.smart-routing=false"
         }
 )
-@Import(L2CacheTestConfiguration.class)
-class Boot3JpaL2CacheIntegrationTest extends TestcontainersEnvironment {
+@Import(Boot2L2CacheTestConfiguration.class)
+class Boot2JpaL2CacheIntegrationTest {
 
     @Autowired
     private SharedTestCachedEntityRepository repository;
@@ -64,12 +67,7 @@ class Boot3JpaL2CacheIntegrationTest extends TestcontainersEnvironment {
     private HazelcastInstance hazelcastInstance;
 
     @Autowired
-    private jakarta.persistence.EntityManagerFactory entityManagerFactory;
-
-    @DynamicPropertySource
-    static void registerProperties(DynamicPropertyRegistry registry) {
-        TestcontainersEnvironment.registerSpringProperties(registry);
-    }
+    private EntityManagerFactory entityManagerFactory;
 
     @BeforeEach
     void clearL2CacheRegion() {
@@ -120,7 +118,6 @@ class Boot3JpaL2CacheIntegrationTest extends TestcontainersEnvironment {
     }
 
     @Test
-    @Disabled("Flaky in the 2-node Testcontainers setup: remote L2 updates do not invalidate the client near cache reliably")
     void invalidatesNearCacheWhenAnotherClientUpdatesL2CacheEntry() {
         Long entityId = transactionTemplate.execute(status -> repository.save(new SharedTestCachedEntity("bravo")).getId());
         assertNotNull(entityId);
@@ -190,9 +187,9 @@ class Boot3JpaL2CacheIntegrationTest extends TestcontainersEnvironment {
 
     private RemoteCacheAccess openRemoteCacheAccess() {
         HazelcastInstance remoteHazelcastClient = new HazelcastClientFactory(new CompactClassesScanner(), List.of()).createClient(
-                "boot3-l2-remote-client",
-                hazelcastClusterName(),
-                hazelcastMembers(),
+                "boot2-l2-remote-client",
+                Boot2L2CacheTestConfiguration.CLUSTER_NAME,
+                List.of(Boot2L2CacheTestConfiguration.MEMBER_ADDRESS),
                 false,
                 null
         );

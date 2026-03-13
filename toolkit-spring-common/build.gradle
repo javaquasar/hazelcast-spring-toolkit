@@ -1,3 +1,5 @@
+apply plugin: 'java-test-fixtures'
+
 dependencies {
     api project(':toolkit-core')
     api project(':toolkit-runtime')
@@ -6,4 +8,14 @@ dependencies {
     compileOnly 'org.springframework:spring-context:6.2.12'
     compileOnly 'org.springframework:spring-aop:6.2.12'
     implementation 'com.hazelcast:hazelcast:' + project.property('hazelcastVersion')
+
+    testFixturesCompileOnly 'org.springframework:spring-context:6.2.12'
+    testFixturesCompileOnly 'org.springframework:spring-beans:6.2.12'
+    testFixturesCompileOnly 'org.springframework:spring-aop:6.2.12'
+    testFixturesCompileOnly "org.springframework.boot:spring-boot-autoconfigure:${project.property('springBoot3Version')}"
+    testFixturesCompileOnly "org.springframework.boot:spring-boot-test:${project.property('springBoot3Version')}"
+    testFixturesCompileOnly 'org.springframework.data:spring-data-jpa:3.5.5'
+    testFixturesCompileOnly 'org.hibernate.orm:hibernate-core:6.6.33.Final'
+    testFixturesCompileOnly 'javax.persistence:javax.persistence-api:2.2'
+    testFixturesCompileOnly 'jakarta.persistence:jakarta.persistence-api:3.1.0'
 }
