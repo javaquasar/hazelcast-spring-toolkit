@@ -4,6 +4,7 @@ public class HzToolkitProperties {
 
     private Compact compact = new Compact();
     private Metrics metrics = new Metrics();
+    private Client client = new Client();
 
     public Compact getCompact() {
         return compact;
@@ -19,6 +20,14 @@ public class HzToolkitProperties {
 
     public void setMetrics(Metrics metrics) {
         this.metrics = metrics;
+    }
+
+    public Client getClient() {
+        return client;
+    }
+
+    public void setClient(Client client) {
+        this.client = client;
     }
 
     public static class Compact {
@@ -42,6 +51,18 @@ public class HzToolkitProperties {
 
         public void setEnabled(boolean enabled) {
             this.enabled = enabled;
+        }
+    }
+
+    public static class Client {
+        private String baseName = "";
+
+        public String getBaseName() {
+            return baseName;
+        }
+
+        public void setBaseName(String baseName) {
+            this.baseName = baseName;
         }
     }
 }

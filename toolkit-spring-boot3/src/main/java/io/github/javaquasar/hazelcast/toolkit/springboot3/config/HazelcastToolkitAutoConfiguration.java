@@ -17,6 +17,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
 
 import javax.cache.CacheManager;
 
@@ -60,9 +61,11 @@ public class HazelcastToolkitAutoConfiguration {
     @ConditionalOnMissingBean(name = "hazelcastInstance")
     public HazelcastInstance hazelcastInstance(HazelcastClientFactory factory,
                                                HazelcastClientProperties props,
-                                               HzToolkitProperties toolkitProps) {
+                                               HzToolkitProperties toolkitProps,
+                                               Environment environment) {
         return factory.createClient(
-                props.getInstanceName(),
+                resolveClientBaseName(props, toolkitProps),
+                environment.getProperty("spring.application.name"),
                 props.getClusterName(),
                 props.getNetwork().getClusterMembers(),
                 props.getNetwork().isSmartRouting(),
@@ -82,5 +85,13 @@ public class HazelcastToolkitAutoConfiguration {
     public HzToolkitMetricsController hzToolkitMetricsController(CacheManager cacheManager,
                                                                  HazelcastInstance hazelcastInstance) {
         return new HzToolkitMetricsController(cacheManager, hazelcastInstance);
+    }
+
+    private static String resolveClientBaseName(HazelcastClientProperties props, HzToolkitProperties toolkitProps) {
+        String configuredBaseName = toolkitProps.getClient().getBaseName();
+        if (configuredBaseName != null && !configuredBaseName.isBlank()) {
+            return configuredBaseName;
+        }
+        return props.getInstanceName();
     }
 }

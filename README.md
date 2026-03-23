@@ -42,6 +42,10 @@ Add the Boot 3 module to your project and configure the Hazelcast client.
 ### Configuration
 
 ```yaml
+spring:
+  application:
+    name: my-service
+
 hazelcast:
   client:
     instance-name: app-hz-client
@@ -51,14 +55,35 @@ hazelcast:
         - 127.0.0.1:5701
       smart-routing: true
   toolkit:
+    client:
+      base-name: hz.client
     compact:
       base-package: com.example.app.hazelcast
     metrics:
       enabled: false
 ```
 
-### What Boot 3 Auto-Config Does
+### Hazelcast Client Naming
 
+The toolkit can derive the final Hazelcast client name from two inputs:
+
+- `hazelcast.toolkit.client.base-name`
+- `spring.application.name`
+
+Behavior:
+
+- If both are present, the final client name becomes `<base-name>-<sanitized-application-name>`.
+- If `spring.application.name` is missing or blank, the base name is used as-is.
+- If `hazelcast.toolkit.client.base-name` is not configured, the toolkit falls back to `hazelcast.client.instance-name` for backward compatibility.
+- Application names are lowercased and sanitized by replacing unsupported characters with `-`.
+
+Examples:
+
+- base `hz.client` + app `my-service` -> `hz.client-my-service`
+- base `hz.client` + app `Billing/API @ EU` -> `hz.client-billing-api-eu`
+- base `app-hz-client` + missing app name -> `app-hz-client`
+
+### What Boot 3 Auto-Config Does
 `toolkit-spring-boot3` currently provides:
 - a `HazelcastInstance` client bean
 - compact type scanning from `hazelcast.toolkit.compact.base-package`

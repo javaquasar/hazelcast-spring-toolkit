@@ -8,11 +8,14 @@ import io.github.javaquasar.hazelcast.toolkit.hazelcast.compact.CompactClientCon
 import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.CompactClassesScanner;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Creates a single Hazelcast client instance.
  */
 public class HazelcastClientFactory {
+
+    private static final String DEFAULT_CLIENT_BASE_NAME = "app-hz-client";
 
     private final CompactClientConfigSupport compactSupport;
     private final List<HazelcastClientConfigCustomizer> customizers;
@@ -37,8 +40,18 @@ public class HazelcastClientFactory {
                                           List<String> clusterMembers,
                                           boolean smartRouting,
                                           String compactBasePackage) {
+        return createClient(instanceName, null, clusterName, clusterMembers, smartRouting, compactBasePackage);
+    }
+
+    public HazelcastInstance createClient(String baseName,
+                                          String applicationName,
+                                          String clusterName,
+                                          List<String> clusterMembers,
+                                          boolean smartRouting,
+                                          String compactBasePackage) {
         return HazelcastClient.newHazelcastClient(createClientConfig(
-                instanceName,
+                baseName,
+                applicationName,
                 clusterName,
                 clusterMembers,
                 smartRouting,
@@ -51,9 +64,18 @@ public class HazelcastClientFactory {
                                            List<String> clusterMembers,
                                            boolean smartRouting,
                                            String compactBasePackage) {
+        return createClientConfig(instanceName, null, clusterName, clusterMembers, smartRouting, compactBasePackage);
+    }
+
+    public ClientConfig createClientConfig(String baseName,
+                                           String applicationName,
+                                           String clusterName,
+                                           List<String> clusterMembers,
+                                           boolean smartRouting,
+                                           String compactBasePackage) {
         ClientConfig clientConfig = new ClientConfig();
         clientConfig.setClusterName(clusterName);
-        clientConfig.setInstanceName(instanceName);
+        clientConfig.setInstanceName(buildClientName(baseName, applicationName));
         clientConfig.getNetworkConfig().setAddresses(clusterMembers);
         if (!smartRouting) {
             clientConfig.getNetworkConfig().getClusterRoutingConfig().setRoutingMode(RoutingMode.SINGLE_MEMBER);
@@ -62,5 +84,30 @@ public class HazelcastClientFactory {
         compactSupport.registerCompactTypes(clientConfig.getSerializationConfig(), compactBasePackage);
         customizers.forEach(customizer -> customizer.customize(clientConfig));
         return clientConfig;
+    }
+
+    public static String buildClientName(String baseName, String applicationName) {
+        String resolvedBaseName = hasText(baseName) ? baseName.trim() : DEFAULT_CLIENT_BASE_NAME;
+        String sanitizedApplicationName = sanitizeApplicationName(applicationName);
+        if (sanitizedApplicationName.isBlank()) {
+            return resolvedBaseName;
+        }
+        return resolvedBaseName + "-" + sanitizedApplicationName;
+    }
+
+    static String sanitizeApplicationName(String applicationName) {
+        if (!hasText(applicationName)) {
+            return "";
+        }
+        String sanitized = applicationName.trim().toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", "-")
+                .replaceAll("^-+", "")
+                .replaceAll("-+$", "")
+                .replaceAll("-{2,}", "-");
+        return sanitized;
+    }
+
+    private static boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }

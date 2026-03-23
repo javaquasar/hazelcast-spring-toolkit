@@ -47,6 +47,39 @@ class HazelcastClientFactoryTest {
     }
 
     @Test
+    void buildClientNameReturnsBaseNameWhenApplicationNameMissing() {
+        assertEquals("hz.client", HazelcastClientFactory.buildClientName("hz.client", null));
+        assertEquals("hz.client", HazelcastClientFactory.buildClientName("hz.client", "   "));
+    }
+
+    @Test
+    void buildClientNameAppendsSanitizedApplicationName() {
+        assertEquals("hz.client-my-service",
+                HazelcastClientFactory.buildClientName("hz.client", "My Service"));
+    }
+
+    @Test
+    void buildClientNameIgnoresApplicationNameThatSanitizesToBlank() {
+        assertEquals("hz.client", HazelcastClientFactory.buildClientName("hz.client", "!!!"));
+    }
+
+    @Test
+    void createClientConfigUsesSanitizedApplicationNameInInstanceName() {
+        HazelcastClientFactory factory = new HazelcastClientFactory(new CompactClassesScanner());
+
+        ClientConfig clientConfig = factory.createClientConfig(
+                "hz.client",
+                " Billing/API @ EU ",
+                "test-cluster",
+                List.of("127.0.0.1:5701"),
+                true,
+                null
+        );
+
+        assertEquals("hz.client-billing-api-eu", clientConfig.getInstanceName());
+    }
+
+    @Test
     void createClientConfigRejectsMismatchedExplicitSerializer() {
         HazelcastClientFactory factory = new HazelcastClientFactory(new CompactClassesScanner());
 
