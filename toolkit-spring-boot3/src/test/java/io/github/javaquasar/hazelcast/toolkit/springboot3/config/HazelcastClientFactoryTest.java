@@ -3,6 +3,7 @@ package io.github.javaquasar.hazelcast.toolkit.springboot3.config;
 import com.hazelcast.client.config.ClientConfig;
 import com.hazelcast.config.CompactSerializationConfig;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientFactory;
+import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientNameBuilder;
 import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.CompactClassesScanner;
 import io.github.javaquasar.hazelcast.toolkit.springboot3.config.compact.invalid.BrokenCompactType;
 import io.github.javaquasar.hazelcast.toolkit.springboot3.config.compact.valid.CustomizerCompactType;
@@ -48,19 +49,19 @@ class HazelcastClientFactoryTest {
 
     @Test
     void buildClientNameReturnsBaseNameWhenApplicationNameMissing() {
-        assertEquals("hz.client", HazelcastClientFactory.buildClientName("hz.client", null));
-        assertEquals("hz.client", HazelcastClientFactory.buildClientName("hz.client", "   "));
+        assertEquals("hz-client", HazelcastClientNameBuilder.build("hz.client", null));
+        assertEquals("hz-client", HazelcastClientNameBuilder.build("hz.client", "   "));
     }
 
     @Test
     void buildClientNameAppendsSanitizedApplicationName() {
-        assertEquals("hz.client-my-service",
-                HazelcastClientFactory.buildClientName("hz.client", "My Service"));
+        assertEquals("hz-client-my-service",
+                HazelcastClientNameBuilder.build("hz.client", "My Service"));
     }
 
     @Test
     void buildClientNameIgnoresApplicationNameThatSanitizesToBlank() {
-        assertEquals("hz.client", HazelcastClientFactory.buildClientName("hz.client", "!!!"));
+        assertEquals("hz-client", HazelcastClientNameBuilder.build("hz.client", "!!!"));
     }
 
     @Test
@@ -76,7 +77,7 @@ class HazelcastClientFactoryTest {
                 null
         );
 
-        assertEquals("hz.client-billing-api-eu", clientConfig.getInstanceName());
+        assertEquals("hz-client-billing-api-eu", clientConfig.getInstanceName());
     }
 
     @Test
