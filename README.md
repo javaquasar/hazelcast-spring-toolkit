@@ -1,45 +1,50 @@
 # Hazelcast Toolkit
 
-Annotation-driven Hazelcast integration for Spring Boot applications.
+**Annotation-driven Hazelcast client integration for Spring Boot.**
+Register Compact serialization types with `@HzCompact`, wire IMap listeners with `@HzIMapListener`, and activate Hibernate second-level cache with one property — all without writing a single line of `ClientConfig` boilerplate.
 
-This project helps you reduce Hazelcast boilerplate around:
-- Hazelcast client bootstrapping
-- Compact serialization registration
-- `IMap` listener registration
-- Spring Boot integration
-- Hibernate L2 cache experiments and integration tests
+[![Java 17](https://img.shields.io/badge/Java-17-blue)](https://adoptium.net/)
+[![Spring Boot 3](https://img.shields.io/badge/Spring%20Boot-3.x-6db33f)](https://spring.io/projects/spring-boot)
+[![Hazelcast 5.5](https://img.shields.io/badge/Hazelcast-5.5-ff6600)](https://hazelcast.com/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-## Status
+---
 
-The most complete integration today is `toolkit-spring-boot3`.
+## Why this library?
 
-The repository already contains modules for Spring Boot 2 and 4, but Boot 3 is currently the main implemented path.
+The official Spring Boot Hazelcast auto-configuration creates an embedded **server** node, not a client — unsuitable for applications that connect to an external cluster. Configuring a Hazelcast **client** with Compact serialization, typed IMap listeners, and Hibernate L2 cache wiring requires scattered boilerplate across `@Configuration` classes. This library replaces all of that with annotations and one `application.yml` block.
 
-## Modules
+| Feature | Spring Boot default | hazelcast-toolkit |
+|---|---|---|
+| Client vs server | Embedded server | Client only |
+| Compact type registration | Manual `ClientConfig` | `@HzCompact` + package scan |
+| IMap listener wiring | Manual `addEntryListener()` | `@HzIMapListener` on bean |
+| Hibernate L2 cache | Not provided | `hazelcast.toolkit.hibernate.l2.enabled=true` |
+| Instance customization | N/A | `HazelcastClientConfigCustomizer` beans |
 
-- `toolkit-core`: public annotations such as `@HzCompact` and `@HzIMapListener`
-- `toolkit-runtime`: shared Hazelcast runtime contracts and helpers
-- `toolkit-scan-api`: scanner abstraction
-- `toolkit-scan-reflections`: `org.reflections`-based scanner implementation
-- `toolkit-spring-boot2`: Spring Boot 2 integration module
-- `toolkit-spring-boot3`: Spring Boot 3 integration module
-- `toolkit-spring-boot4`: Spring Boot 4 integration module (opt-in via `-PenableBoot4=true`)
-- `toolkit-metrics-spring`: optional Spring metrics/controller integration
-- `toolkit-testcontainers`: shared Testcontainers support for integration tests
+---
 
-## Features
+## Quick Start
 
-- Annotate compact types with `@HzCompact`
-- Register either zero-config compact classes or explicit `CompactSerializer` implementations
-- Auto-register `EntryListener` beans with `@HzIMapListener`
-- Apply additional Hazelcast client tuning through `HazelcastClientConfigCustomizer`
-- Reuse shared Hazelcast/Postgres Testcontainers infrastructure in integration tests
+### 1. Add the dependency
 
-## Spring Boot 3 Quick Start
+**Gradle:**
+```groovy
+implementation 'io.github.javaquasar:toolkit-spring-boot3:0.1.0'
+```
 
-Add the Boot 3 module to your project and configure the Hazelcast client.
+**Maven:**
+```xml
+<dependency>
+    <groupId>io.github.javaquasar</groupId>
+    <artifactId>toolkit-spring-boot3</artifactId>
+    <version>0.1.0</version>
+</dependency>
+```
 
-### Configuration
+### 2. Configure `application.yml`
+
+Minimal configuration — connects to a local Hazelcast node:
 
 ```yaml
 spring:
@@ -48,326 +53,204 @@ spring:
 
 hazelcast:
   client:
-    instance-name: app-hz-client
     cluster-name: dev
     network:
       cluster-members:
         - 127.0.0.1:5701
-      smart-routing: true
   toolkit:
-    client:
-      base-name: hz.client
     compact:
-      base-package: com.example.app.hazelcast
-    metrics:
-      enabled: false
+      base-package: com.example.app.model   # package containing @HzCompact classes
 ```
 
-### Hazelcast Client Naming
+### 3. Annotate your types
 
-The toolkit can derive the final Hazelcast client name from two inputs:
+```java
+@HzCompact                            // reflective compact serialization
+public class UserProfile { ... }
 
-- `hazelcast.toolkit.client.base-name`
-- `spring.application.name`
+@Component
+@HzIMapListener(map = "users")        // auto-registered on startup
+public class UserListener implements EntryAddedListener<String, UserProfile> {
+    @Override
+    public void entryAdded(EntryEvent<String, UserProfile> event) { ... }
+}
+```
 
-Behavior:
+That is all the code you need. The toolkit bootstraps the `HazelcastInstance`, scans `com.example.app.model` for `@HzCompact` types, and registers the listener bean against the `users` IMap.
 
-- If both are present, the final client name becomes `<base-name>-<sanitized-application-name>`.
-- If `spring.application.name` is missing or blank, the base name is used as-is.
-- If `hazelcast.toolkit.client.base-name` is not configured, the toolkit falls back to `hazelcast.client.instance-name` for backward compatibility.
-- Application names are lowercased and sanitized by replacing unsupported characters with `-`.
+---
+
+## Features
+
+### Compact Serialization — `@HzCompact`
+
+Two registration modes controlled by a single annotation:
+
+**Zero-config (reflective)** — Hazelcast infers the schema from class fields:
+```java
+@HzCompact
+public class OrderEntry {
+    private String orderId;
+    private BigDecimal amount;
+    // getters + setters ...
+}
+```
+
+**Explicit serializer** — full control over encoding (enums, versioning, cross-language):
+```java
+@HzCompact(serializer = OrderEntryCompactSerializer.class)
+public class OrderEntry { ... }
+```
+
+- Explicit serializers are registered **before** reflective classes (Hazelcast's recommended order).
+- The toolkit validates that `serializer.getCompactClass() == annotatedClass` at startup — a mismatch throws `IllegalStateException`.
+- Serializer classes must have a public no-args constructor.
+
+### IMap Listeners — `@HzIMapListener`
+
+Annotate any Spring bean that implements `MapListener` or `EntryListener`:
+
+```java
+@Component
+@HzIMapListener(map = "sessions", localOnly = true)
+public class SessionEvictionListener implements EntryRemovedListener<String, Session> {
+    @Override
+    public void entryRemoved(EntryEvent<String, Session> event) { ... }
+}
+```
+
+| Attribute | Default | Description |
+|---|---|---|
+| `map` | (required) | IMap name to listen on |
+| `includeValue` | `true` | Include entry value in events |
+| `localOnly` | `false` | Listen only to locally-owned partitions |
+
+Listeners are registered after all Spring singletons are initialized (`SmartInitializingSingleton`) and deregistered cleanly on context shutdown (`DisposableBean`). AOP-proxied beans (e.g. `@Transactional`) are handled correctly.
+
+### Hibernate Second-Level Cache
+
+Activate with one property:
+
+```yaml
+hazelcast:
+  toolkit:
+    hibernate:
+      l2:
+        enabled: true
+```
+
+The toolkit registers a `HibernatePropertiesCustomizer` that configures Hibernate 6's `JCacheRegionFactory` to use the toolkit-managed `CacheManager`. No manual wiring of `HazelcastCachingProvider` or instance names is required.
+
+### Client Customization
+
+Register `HazelcastClientConfigCustomizer` beans to extend the default config (TLS, connection retry, labels, etc.):
+
+```java
+@Bean
+@Order(10)
+public HazelcastClientConfigCustomizer tlsCustomizer() {
+    return config -> config.getNetworkConfig()
+            .setSSLConfig(new SSLConfig().setEnabled(true));
+}
+```
+
+All detected customizers are applied in `@Order` sequence before the client is created.
+
+### Client Naming
+
+The final Hazelcast instance name is derived from two optional properties:
+
+| Property | Default |
+|---|---|
+| `hazelcast.toolkit.client.base-name` | falls back to `hazelcast.client.instance-name` |
+| `spring.application.name` | (empty) |
+
+When both are set, the name becomes `<base-name>-<sanitized-application-name>`. Application names are lowercased and reduced to `[a-z0-9-]`.
 
 Examples:
 
-- base `hz.client` + app `my-service` -> `hz.client-my-service`
-- base `hz.client` + app `Billing/API @ EU` -> `hz.client-billing-api-eu`
-- base `app-hz-client` + missing app name -> `app-hz-client`
+| base-name | application-name | Result |
+|---|---|---|
+| `hz.client` | `my-service` | `hz.client-my-service` |
+| `hz.client` | `Billing/API @ EU` | `hz.client-billing-api-eu` |
+| `app-hz-client` | _(absent)_ | `app-hz-client` |
 
-### What Boot 3 Auto-Config Does
-`toolkit-spring-boot3` currently provides:
-- a `HazelcastInstance` client bean
-- compact type scanning from `hazelcast.toolkit.compact.base-package`
-- `@HzIMapListener` bean registration
-- ordered `HazelcastClientConfigCustomizer` application
-- optional metrics controller wiring
+---
 
-## Compact Serialization
+## Configuration Reference
 
-### Zero-Config Compact
+### `hazelcast.client.*`
 
-If you only need Hazelcast reflective compact serialization, annotate the class with `@HzCompact`.
+| Property | Default | Description |
+|---|---|---|
+| `instance-name` | `app-hz-client` | Fallback client instance name |
+| `cluster-name` | `dev` | Hazelcast cluster name |
+| `network.cluster-members` | `[]` | Cluster member addresses (`host:port`) |
+| `network.smart-routing` | `true` | Route operations to owner partition member |
 
-```java
-import io.github.javaquasar.hazelcast.toolkit.annotation.HzCompact;
+### `hazelcast.toolkit.*`
 
-@HzCompact
-public class UserProfile {
-    private String userId;
-    private String nickname;
+| Property | Default | Description |
+|---|---|---|
+| `client.base-name` | _(empty)_ | Base name for client naming (takes precedence over `instance-name`) |
+| `compact.base-package` | _(empty)_ | Root package to scan for `@HzCompact` classes |
+| `metrics.enabled` | `false` | Enable the optional metrics REST controller |
+| `hibernate.l2.enabled` | `false` | Activate Hibernate second-level cache via JCache |
 
-    public UserProfile() {
-    }
+---
 
-    public String getUserId() {
-        return userId;
-    }
+## Known Limitations
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+- **JVM-scoped instance name uniqueness**: Hazelcast forbids two `HazelcastInstance` clients with the same name within a single JVM. In test suites that start multiple Spring contexts, every `@SpringBootTest` class must configure a unique `hazelcast.client.instance-name`.
 
-    public String getNickname() {
-        return nickname;
-    }
+- **Hibernate 5 composite-key issue**: If you use Hibernate 5 and JPA entities with composite keys, Hazelcast's L2 cache key conversion may fail. See [`docs/hibernate-l2-cachekey-converter-issue.md`](docs/hibernate-l2-cachekey-converter-issue.md) for root cause analysis and workarounds.
 
-    public void setNickname(String nickname) {
-        this.nickname = nickname;
-    }
-}
-```
+- **Boot 4 partial support**: `toolkit-spring-boot4` provides the core `HazelcastInstance` bean and listener registration. JCache and Hibernate L2 auto-configuration parity with Boot 3 is planned but not yet complete. The Boot 4 module is opt-in: pass `-PenableBoot4=true` to Gradle.
 
-### Explicit CompactSerializer
+---
 
-If a class needs custom compact serialization, declare the serializer in `@HzCompact`.
+## Modules
 
-```java
-import io.github.javaquasar.hazelcast.toolkit.annotation.HzCompact;
+| Module | Published | Description |
+|---|---|---|
+| `toolkit-core` | Yes | Public annotations: `@HzCompact`, `@HzIMapListener` |
+| `toolkit-scan-api` | Yes | `ClassScanner` interface |
+| `toolkit-scan-reflections` | Yes | `org.reflections`-based scanner implementation |
+| `toolkit-runtime` | Yes | `HazelcastClientFactory`, `HazelcastClientConfigCustomizer`, properties |
+| `toolkit-spring-common` | Yes | `HzListenersAutoRegistrar` — Spring-aware IMap listener wiring |
+| `toolkit-metrics-spring` | Yes | Optional `HzToolkitMetricsController` |
+| `toolkit-spring-boot2` | Yes | Spring Boot 2 auto-configuration |
+| `toolkit-spring-boot3` | Yes | Spring Boot 3 auto-configuration (primary) |
+| `toolkit-spring-boot4` | No | Spring Boot 4 auto-configuration (opt-in, in progress) |
+| `toolkit-testcontainers` | No | Shared Hazelcast + Postgres test infrastructure |
 
-@HzCompact(serializer = UserLimitEntryCompactSerializer.class)
-public class UserLimitEntry {
-    private LimitPeriod period;
-    private Integer limitAmount;
-    private Long startMillis;
-
-    public LimitPeriod getPeriod() {
-        return period;
-    }
-
-    public void setPeriod(LimitPeriod period) {
-        this.period = period;
-    }
-
-    public Integer getLimitAmount() {
-        return limitAmount;
-    }
-
-    public void setLimitAmount(Integer limitAmount) {
-        this.limitAmount = limitAmount;
-    }
-
-    public Long getStartMillis() {
-        return startMillis;
-    }
-
-    public void setStartMillis(Long startMillis) {
-        this.startMillis = startMillis;
-    }
-}
-```
-
-```java
-public enum LimitPeriod {
-    DAILY(1),
-    WEEKLY(2),
-    MONTHLY(3);
-
-    private final int id;
-
-    LimitPeriod(int id) {
-        this.id = id;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public static LimitPeriod fromId(int id) {
-        for (LimitPeriod value : values()) {
-            if (value.id == id) {
-                return value;
-            }
-        }
-        throw new IllegalArgumentException("Unknown id: " + id);
-    }
-}
-```
-
-```java
-import com.hazelcast.nio.serialization.compact.CompactReader;
-import com.hazelcast.nio.serialization.compact.CompactSerializer;
-import com.hazelcast.nio.serialization.compact.CompactWriter;
-
-public class UserLimitEntryCompactSerializer implements CompactSerializer<UserLimitEntry> {
-
-    @Override
-    public void write(CompactWriter writer, UserLimitEntry object) {
-        writer.writeInt32("periodId", object.getPeriod() != null ? object.getPeriod().getId() : 0);
-        writer.writeInt32("limitAmount", object.getLimitAmount() == null ? 0 : object.getLimitAmount());
-        writer.writeInt64("startMillis", object.getStartMillis() == null ? 0L : object.getStartMillis());
-    }
-
-    @Override
-    public UserLimitEntry read(CompactReader reader) {
-        UserLimitEntry object = new UserLimitEntry();
-        int periodId = reader.readInt32("periodId");
-        object.setPeriod(periodId == 0 ? null : LimitPeriod.fromId(periodId));
-        object.setLimitAmount(reader.readInt32("limitAmount"));
-        object.setStartMillis(reader.readInt64("startMillis"));
-        return object;
-    }
-
-    @Override
-    public String getTypeName() {
-        return "UserLimitEntry";
-    }
-
-    @Override
-    public Class<UserLimitEntry> getCompactClass() {
-        return UserLimitEntry.class;
-    }
-}
-```
-
-Notes:
-- Explicit serializers are registered before zero-config compact classes.
-- The toolkit validates that `serializer.getCompactClass()` matches the annotated class.
-- Serializers must have a no-args constructor.
-
-## Hazelcast Client Customization
-
-Shared client tuning can be plugged in through `HazelcastClientConfigCustomizer` from `toolkit-runtime`.
-
-```java
-import com.hazelcast.client.config.ClientConfig;
-import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientConfigCustomizer;
-import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Component;
-
-@Component
-@Order(100)
-public class HazelcastClientTuning implements HazelcastClientConfigCustomizer {
-
-    @Override
-    public void customize(ClientConfig clientConfig) {
-        clientConfig.setProperty("hazelcast.client.statistics.enabled", "true");
-    }
-}
-```
-
-All detected customizers are applied in Spring order.
-
-## IMap Listener Registration
-
-Annotate a Spring bean that implements `EntryListener` with `@HzIMapListener`.
-
-```java
-import com.hazelcast.core.EntryEvent;
-import com.hazelcast.map.listener.EntryAddedListener;
-import io.github.javaquasar.hazelcast.toolkit.annotation.HzIMapListener;
-import org.springframework.stereotype.Component;
-
-@Component
-@HzIMapListener(map = "users", includeValue = true)
-public class UsersAddedListener implements EntryAddedListener<String, String> {
-
-    @Override
-    public void entryAdded(EntryEvent<String, String> event) {
-        System.out.println("Added user: " + event.getKey());
-    }
-}
-```
-
-Notes:
-- `localOnly = true` uses local listener registration.
-- Listener beans are resolved from the Spring context, so proxies are supported.
-
-## Tests
-
-The repository contains focused tests for:
-- `@HzCompact` registration in `toolkit-runtime`
-- explicit compact serializer scanning and validation in `toolkit-spring-boot3`
-- Boot 3 Hazelcast/Postgres integration with shared Testcontainers setup
-- Hibernate L2 cache experiments against Hazelcast + PostgreSQL
-
-Useful commands:
-
-```bash
-./gradlew build
-./gradlew :toolkit-runtime:test --tests io.github.javaquasar.hazelcast.toolkit.hazelcast.CompactRegistrationTest
-./gradlew :toolkit-spring-boot3:test --tests io.github.javaquasar.hazelcast.toolkit.springboot3.config.HazelcastClientFactoryTest
-```
+---
 
 ## Build and Release
 
-Local build:
-
 ```bash
+# Build and test everything
 ./gradlew build
-```
 
-Enable the optional Spring Boot 4 module when Boot 4 dependencies are available locally:
+# Run a single test class
+./gradlew :toolkit-spring-boot3:test --tests io.github.javaquasar.hazelcast.toolkit.boot3.Boot3MapListenerIntegrationTest
 
-```bash
+# Build with the optional Boot 4 module
 ./gradlew -PenableBoot4=true :toolkit-spring-boot4:compileJava
 ```
 
-This keeps the default build stable while Boot 4 support is still being developed.
+### Publishing to Maven Central
 
-### Published Modules
-
-The current release configuration publishes these library modules:
-- `toolkit-core`
-- `toolkit-runtime`
-- `toolkit-scan-api`
-- `toolkit-scan-reflections`
-- `toolkit-metrics-spring`
-- `toolkit-spring-common`
-- `toolkit-spring-boot2`
-- `toolkit-spring-boot3`
-
-The test support module `toolkit-testcontainers` is intentionally not published.
-
-### Publication Commands
-
-Build and verify everything before release:
-
-```bash
-./gradlew build
-```
-
-Publish one module into its local staging Maven repository:
+Publish one module to a local staging repository:
 
 ```bash
 ./gradlew :toolkit-core:publishMavenJavaPublicationToLocalStagingRepository -PreleaseVersion=0.1.0
 ```
 
-Create a Central Portal bundle ZIP for one module:
-
-```bash
-./gradlew :toolkit-core:centralBundleZip -PreleaseVersion=0.1.0
-```
-
-Create bundle ZIPs for all published modules:
+Bundle all published modules for Central Portal upload:
 
 ```bash
 ./gradlew centralBundleAll -PreleaseVersion=0.1.0
 ```
 
-If signing is enabled, provide the keys through Gradle properties, for example in `~/.gradle/gradle.properties`:
-
-```properties
-signingKey=...
-signingPassword=...
-```
-
-Generated staging repositories and ZIP bundles are written under each published module's `build` directory.
-
-## Current Notes
-
-- Boot 3 is the primary supported integration path in the current codebase.
-- Boot 2 and Boot 4 modules are present for future parity work.
-- The project is modular on purpose so common runtime contracts can be reused across framework variants.
-
-
-
-
+GPG signing requires `signingKey` and `signingPassword` in `~/.gradle/gradle.properties`. Staging repos and ZIP bundles are written to each module's `build/` directory.
