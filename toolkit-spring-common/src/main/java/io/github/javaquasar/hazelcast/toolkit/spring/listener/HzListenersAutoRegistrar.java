@@ -18,7 +18,25 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Discovers Spring beans annotated with {@link HzIMapListener} and registers them into target IMaps.
+ * Discovers Spring beans annotated with {@link HzIMapListener} and registers them
+ * as Hazelcast {@link com.hazelcast.map.IMap} listeners at application startup.
+ *
+ * <p>Implements {@link SmartInitializingSingleton} so that registration runs after
+ * all Spring singletons — including AOP proxies — have been fully initialized.
+ * Target classes are resolved via {@link org.springframework.aop.support.AopUtils#getTargetClass}
+ * to handle {@code @Transactional} and similar proxy wrappers correctly.
+ *
+ * <p>Implements {@link DisposableBean} so that every registered listener is
+ * deregistered cleanly when the Spring context closes.  Deregistration errors are
+ * caught and logged as warnings rather than propagated, since Hazelcast may already
+ * be shutting down at that point.
+ *
+ * <p>Each registration is tracked internally as a {@link java.util.UUID} returned
+ * by Hazelcast.  This UUID — not the listener object — is what Hazelcast uses for
+ * removal.
+ *
+ * @see HzIMapListener
+ * @since 0.1.0
  */
 public class HzListenersAutoRegistrar implements SmartInitializingSingleton, DisposableBean {
 

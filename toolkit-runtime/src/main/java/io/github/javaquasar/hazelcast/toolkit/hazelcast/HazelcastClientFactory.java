@@ -12,7 +12,30 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 /**
- * Creates a single Hazelcast client instance.
+ * Builds and returns a configured {@link HazelcastInstance} Hazelcast client.
+ *
+ * <p>Construction order for each client:
+ * <ol>
+ *   <li>A fresh {@link ClientConfig} is created and populated with cluster name,
+ *       instance name (via {@link HazelcastClientNameBuilder}), network addresses,
+ *       and routing mode.
+ *   <li>Compact serialization types discovered by {@link CompactClientConfigSupport}
+ *       are registered on the serialization config.
+ *   <li>Each {@link HazelcastClientConfigCustomizer} is applied in order, allowing
+ *       further overrides (TLS, connection retry, etc.).
+ *   <li>{@link HazelcastClient#newHazelcastClient(ClientConfig)} creates and returns
+ *       the live instance.
+ * </ol>
+ *
+ * <p>The instance name is derived from {@code baseName} and {@code applicationName}
+ * following the rules in {@link HazelcastClientNameBuilder}.  Within a single JVM,
+ * Hazelcast forbids two clients with the same instance name — ensure each
+ * Spring application context uses a unique name (important in test suites that
+ * spin up multiple contexts).
+ *
+ * @see HazelcastClientConfigCustomizer
+ * @see HazelcastClientNameBuilder
+ * @since 0.1.0
  */
 public class HazelcastClientFactory {
 

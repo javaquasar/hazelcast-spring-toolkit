@@ -1,5 +1,28 @@
 package io.github.javaquasar.hazelcast.toolkit.hazelcast.config;
 
+/**
+ * Configuration properties bound under the {@code hazelcast.toolkit} prefix.
+ *
+ * <p>Controls toolkit-specific behaviour such as compact serialization scanning,
+ * client naming, optional metrics, and Hibernate second-level cache integration.
+ *
+ * <p>Example {@code application.yml}:
+ * <pre>{@code
+ * hazelcast:
+ *   toolkit:
+ *     compact:
+ *       base-package: com.example.model
+ *     client:
+ *       base-name: my-service
+ *     metrics:
+ *       enabled: true
+ *     hibernate:
+ *       l2:
+ *         enabled: true
+ * }</pre>
+ *
+ * @since 0.1.0
+ */
 public class HzToolkitProperties {
 
     private Compact compact = new Compact();
@@ -39,6 +62,9 @@ public class HzToolkitProperties {
         this.hibernate = hibernate;
     }
 
+    /**
+     * Compact serialization scanning settings.
+     */
     public static class Compact {
         private String basePackage = "";
 
@@ -51,6 +77,9 @@ public class HzToolkitProperties {
         }
     }
 
+    /**
+     * Metrics REST endpoint settings.
+     */
     public static class Metrics {
         private boolean enabled = false;
 
@@ -63,6 +92,10 @@ public class HzToolkitProperties {
         }
     }
 
+    /**
+     * Client naming settings.
+     * Takes precedence over {@link HazelcastClientProperties#getInstanceName()}.
+     */
     public static class Client {
         private String baseName = "";
 
