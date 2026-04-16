@@ -17,7 +17,14 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @SpringBootTest(
         classes = Boot3ListenerTestApplication.class,
         properties = {
-                "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration"
+                // Exclude persistence and JCache auto-configs — this test uses an embedded Hazelcast member
+                // and does not need a JCache CacheManager.  Without the JCache exclusion,
+                // HazelcastJCacheAutoConfiguration would attempt to bind the CacheManager to the server
+                // instance via propertiesByInstanceItself, which only works for client instances.
+                "spring.autoconfigure.exclude=" +
+                        "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration," +
+                        "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration," +
+                        "io.github.javaquasar.hazelcast.toolkit.springboot3.config.HazelcastJCacheAutoConfiguration"
         }
 )
 @Import({EmbeddedHazelcastTestConfiguration.class, ListenerTestConfiguration.class})

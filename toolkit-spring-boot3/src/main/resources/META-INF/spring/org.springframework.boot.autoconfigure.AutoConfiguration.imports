@@ -1,1 +1,3 @@
 io.github.javaquasar.hazelcast.toolkit.springboot3.config.HazelcastToolkitAutoConfiguration
+io.github.javaquasar.hazelcast.toolkit.springboot3.config.HazelcastJCacheAutoConfiguration
+io.github.javaquasar.hazelcast.toolkit.springboot3.config.HazelcastHibernateL2AutoConfiguration

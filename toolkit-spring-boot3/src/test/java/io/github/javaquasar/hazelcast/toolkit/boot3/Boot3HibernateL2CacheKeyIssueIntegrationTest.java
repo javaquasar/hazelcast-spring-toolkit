@@ -34,7 +34,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         classes = Boot3L2CacheKeyIssueTestApplication.class,
         properties = {
                 "spring.jpa.hibernate.ddl-auto=create-drop",
-                "spring.jpa.open-in-view=false"
+                "spring.jpa.open-in-view=false",
+                // L2CacheTestConfiguration no longer provides HibernatePropertiesCustomizer; delegate to auto-config
+                "hazelcast.toolkit.hibernate.l2.enabled=true",
+                // Unique client name prevents InvalidConfigurationException when multiple test contexts
+                // start in the same JVM (Hazelcast forbids duplicate instance names per JVM)
+                "hazelcast.client.instance-name=boot3-l2-issue-test"
         }
 )
 @Import(L2CacheTestConfiguration.class)

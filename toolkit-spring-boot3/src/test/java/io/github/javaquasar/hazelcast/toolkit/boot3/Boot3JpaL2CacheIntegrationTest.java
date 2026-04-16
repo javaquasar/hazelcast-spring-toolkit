@@ -42,7 +42,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         classes = SharedTestApplication.class,
         properties = {
                 "spring.jpa.hibernate.ddl-auto=create-drop",
-                "spring.jpa.open-in-view=false"
+                "spring.jpa.open-in-view=false",
+                "hazelcast.toolkit.hibernate.l2.enabled=true",
+                // Unique client name prevents InvalidConfigurationException when multiple test contexts
+                // start in the same JVM (Hazelcast forbids duplicate instance names per JVM)
+                "hazelcast.client.instance-name=boot3-jpa-l2-test"
         }
 )
 @Import(L2CacheTestConfiguration.class)

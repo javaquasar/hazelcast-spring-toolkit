@@ -11,6 +11,7 @@ dependencies {
     compileOnly "org.springframework.boot:spring-boot:${springBoot3Version}"
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor:${springBoot3Version}"
 
+    compileOnly 'org.springframework:spring-context-support:6.2.0'
     compileOnly 'org.springframework:spring-web:6.2.0'
 
     implementation "com.hazelcast:hazelcast:${hazelcastVersion}"
@@ -21,6 +22,7 @@ dependencies {
     testImplementation "org.springframework.boot:spring-boot-starter-test:${springBoot3Version}"
     testImplementation "org.springframework.boot:spring-boot-starter-jdbc:${springBoot3Version}"
     testImplementation "org.springframework.boot:spring-boot-starter-data-jpa:${springBoot3Version}"
+    testImplementation 'org.springframework:spring-context-support:6.2.0'
     testImplementation "org.hibernate.orm:hibernate-jcache:6.6.33.Final"
     testImplementation "org.testcontainers:junit-jupiter:${testcontainersVersion}"
     testImplementation 'javax.persistence:javax.persistence-api:2.2'
