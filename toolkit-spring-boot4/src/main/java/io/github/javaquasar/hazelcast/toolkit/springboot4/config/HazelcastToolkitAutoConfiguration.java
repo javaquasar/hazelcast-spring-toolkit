@@ -7,7 +7,6 @@ import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HazelcastClientPr
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties;
 import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HzToolkitMetricsController;
 import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.CompactClassesScanner;
-import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.IMapListenerClassesScanner;
 import io.github.javaquasar.hazelcast.toolkit.spring.listener.HzListenersAutoRegistrar;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -42,12 +41,6 @@ public class HazelcastToolkitAutoConfiguration {
     @ConditionalOnMissingBean
     public CompactClassesScanner compactClassesScanner() {
         return new CompactClassesScanner();
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public IMapListenerClassesScanner iMapListenerClassesScanner() {
-        return new IMapListenerClassesScanner();
     }
 
     @Bean

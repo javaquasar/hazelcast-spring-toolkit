@@ -101,9 +101,15 @@ public class HzListenersAutoRegistrar implements SmartInitializingSingleton, Dis
 
     @Override
     public void destroy() {
-        if (!registrations.isEmpty()) {
-            log.debug("Skipping explicit Hazelcast listener deregistration for {} registrations during bean shutdown", registrations.size());
-        }
+        registrations.forEach((key, registrationId) -> {
+            try {
+                hazelcastInstance.getMap(key.mapName()).removeEntryListener(registrationId);
+                log.debug("Deregistered Hazelcast listener: map={}, registrationId={}", key.mapName(), registrationId);
+            } catch (Exception e) {
+                log.warn("Failed to deregister Hazelcast listener from map '{}' (registrationId={}): {}",
+                        key.mapName(), registrationId, e.getMessage());
+            }
+        });
         registrations.clear();
     }
 
