@@ -38,7 +38,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
                 "spring.datasource.password=",
                 "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
                 "spring.jpa.hibernate.ddl-auto=create-drop",
-                "spring.jpa.open-in-view=false"
+                "spring.jpa.open-in-view=false",
+                "hazelcast.toolkit.hibernate.l2.enabled=true"
         }
 )
 @Import(Boot2L2CacheTestConfiguration.class)

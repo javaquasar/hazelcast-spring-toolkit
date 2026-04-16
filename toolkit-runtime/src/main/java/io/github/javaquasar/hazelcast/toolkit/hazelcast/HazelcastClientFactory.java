@@ -6,6 +6,8 @@ import com.hazelcast.client.impl.connection.tcp.RoutingMode;
 import com.hazelcast.core.HazelcastInstance;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.compact.CompactClientConfigSupport;
 import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.CompactClassesScanner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -13,6 +15,8 @@ import java.util.List;
  * Creates a single Hazelcast client instance.
  */
 public class HazelcastClientFactory {
+
+    private static final Logger logger = LoggerFactory.getLogger(HazelcastClientFactory.class);
 
     private final CompactClientConfigSupport compactSupport;
     private final List<HazelcastClientConfigCustomizer> customizers;
@@ -46,14 +50,16 @@ public class HazelcastClientFactory {
                                           List<String> clusterMembers,
                                           boolean smartRouting,
                                           String compactBasePackage) {
-        return HazelcastClient.newHazelcastClient(createClientConfig(
-                baseName,
-                applicationName,
-                clusterName,
-                clusterMembers,
-                smartRouting,
-                compactBasePackage
-        ));
+        ClientConfig config = createClientConfig(baseName, applicationName, clusterName, clusterMembers, smartRouting, compactBasePackage);
+        HazelcastInstance instance = HazelcastClient.newHazelcastClient(config);
+        logger.info(
+                "Hazelcast client started — configured instance name: '{}', actual instance name: '{}', cluster: '{}', labels: {}",
+                config.getInstanceName(),
+                instance.getName(),
+                config.getClusterName(),
+                config.getLabels()
+        );
+        return instance;
     }
 
     public ClientConfig createClientConfig(String instanceName,

@@ -368,4 +368,6 @@ Generated staging repositories and ZIP bundles are written under each published 
 - Boot 2 and Boot 4 modules are present for future parity work.
 - The project is modular on purpose so common runtime contracts can be reused across framework variants.
 
-.\gradlew :toolkit-spring-boot3:test --tests io.github.javaquasar.hazelcast.toolkit.boot3.Boot3IntegrationTest --offline
+
+
+

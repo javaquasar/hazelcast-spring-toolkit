@@ -21,6 +21,22 @@ import org.springframework.core.env.Environment;
 
 import javax.cache.CacheManager;
 
+/**
+ * Core Boot 2 auto-configuration for the Hazelcast toolkit.
+ *
+ * <p>Provides:
+ * <ul>
+ *   <li>Property-binding beans ({@link HazelcastClientProperties}, {@link HzToolkitProperties})
+ *   <li>A configured {@link HazelcastInstance} Hazelcast client
+ *   <li>Automatic {@code @HzIMapListener} registration
+ *   <li>Optional metrics REST controller
+ * </ul>
+ *
+ * <p>JCache and Hibernate second-level cache auto-configuration are handled by the
+ * companion classes {@link HazelcastJCacheAutoConfiguration} and
+ * {@link HazelcastHibernateL2AutoConfiguration}, both of which are registered in
+ * {@code META-INF/spring.factories} and ordered to run after this class.
+ */
 @Configuration(proxyBeanMethods = false)
 public class HazelcastToolkitAutoConfiguration {
 
