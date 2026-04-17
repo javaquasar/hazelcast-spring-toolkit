@@ -30,6 +30,7 @@ public class HzToolkitProperties {
     private Metrics metrics = new Metrics();
     private Client client = new Client();
     private Hibernate hibernate = new Hibernate();
+    private Actuator actuator = new Actuator();
 
     public Compact getCompact() {
         return compact;
@@ -61,6 +62,14 @@ public class HzToolkitProperties {
 
     public void setHibernate(Hibernate hibernate) {
         this.hibernate = hibernate;
+    }
+
+    public Actuator getActuator() {
+        return actuator;
+    }
+
+    public void setActuator(Actuator actuator) {
+        this.actuator = actuator;
     }
 
     /**
@@ -300,6 +309,102 @@ public class HzToolkitProperties {
                  * <p>Requires {@code com.hazelcast:hazelcast-hibernate} on the classpath.
                  */
                 HAZELCAST
+            }
+        }
+    }
+
+    /**
+     * Actuator endpoint settings ({@code hazelcast.toolkit.actuator.*}).
+     */
+    public static class Actuator {
+
+        private NearCacheCheck nearCacheCheck = new NearCacheCheck();
+
+        public NearCacheCheck getNearCacheCheck() {
+            return nearCacheCheck;
+        }
+
+        public void setNearCacheCheck(NearCacheCheck nearCacheCheck) {
+            this.nearCacheCheck = nearCacheCheck;
+        }
+
+        /**
+         * Near-cache health-check endpoint settings
+         * ({@code hazelcast.toolkit.actuator.near-cache-check.*}).
+         *
+         * <p>When enabled, registers a Spring Boot Actuator endpoint at
+         * {@code /actuator/hazelcast-near-cache} that probes whether the Hazelcast
+         * near-cache is hitting correctly and whether L2-cache evictions propagate as
+         * near-cache invalidations.
+         *
+         * <p>Requires {@code spring-boot-actuator} and {@code jakarta.persistence}
+         * on the classpath. Both JCache and native ({@code HAZELCAST_LOCAL}) region-factory
+         * modes are supported.
+         *
+         * <p>Example {@code application.yml}:
+         * <pre>{@code
+         * hazelcast:
+         *   toolkit:
+         *     actuator:
+         *       near-cache-check:
+         *         enabled: true
+         *         entity-class: com.mycompany.entity.User
+         *         entity-id: "42"
+         * }</pre>
+         *
+         * <p><b>Production safety:</b> the check is read-only except for a single
+         * targeted {@code Cache.evict()} call on the probe entity. Secure the endpoint
+         * via Spring Security and avoid calling it in tight loops.
+         */
+        public static class NearCacheCheck {
+
+            /**
+             * Master switch. Set to {@code true} to register the
+             * {@code /actuator/hazelcast-near-cache} endpoint.
+             */
+            private boolean enabled = false;
+
+            /**
+             * Fully-qualified class name of a cacheable JPA entity used as the probe
+             * (e.g. {@code com.mycompany.entity.User}).
+             *
+             * <p>The entity must be annotated with Hibernate {@code @Cache} and the row
+             * identified by {@link #entityId} must exist in the database.
+             * Can be overridden per-request via the {@code entity} query parameter.
+             */
+            private String entityClass;
+
+            /**
+             * Primary-key value of the probe entity, expressed as a {@code String}.
+             * The endpoint converts it to {@code Long} automatically; for other ID types
+             * override via the {@code id} query parameter.
+             *
+             * <p>Can be overridden per-request via the {@code id} query parameter.
+             */
+            private String entityId;
+
+            public boolean isEnabled() {
+                return enabled;
+            }
+
+            public void setEnabled(boolean enabled) {
+                this.enabled = enabled;
+            }
+
+            public String getEntityClass() {
+                return entityClass;
+            }
+
+            public void setEntityClass(String entityClass) {
+                this.entityClass = entityClass;
+            }
+
+            public String getEntityId() {
+                return entityId;
+            }
+
+            public void setEntityId(String entityId) {
+                this.entityId = entityId;
             }
         }
     }

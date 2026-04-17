@@ -9,11 +9,15 @@ dependencies {
 
     compileOnly "org.springframework.boot:spring-boot-autoconfigure:${springBoot2Version}"
     compileOnly "org.springframework.boot:spring-boot:${springBoot2Version}"
+    compileOnly "org.springframework.boot:spring-boot-actuator:${springBoot2Version}"
     compileOnly "org.springframework:spring-context-support:5.3.34"
     compileOnly "org.springframework:spring-web:5.3.34"
     compileOnly 'javax.cache:cache-api:1.1.1'
+    compileOnly 'javax.persistence:javax.persistence-api:2.2'
+    compileOnly 'org.hibernate:hibernate-core:5.6.15.Final'
 
     testImplementation testFixtures(project(':toolkit-spring-common'))
+    testImplementation "org.springframework.boot:spring-boot-actuator:${springBoot2Version}"
     testImplementation "org.springframework.boot:spring-boot-autoconfigure:${springBoot2Version}"
     testImplementation "org.springframework.boot:spring-boot:${springBoot2Version}"
     testImplementation "org.springframework.boot:spring-boot-starter-test:${springBoot2Version}"

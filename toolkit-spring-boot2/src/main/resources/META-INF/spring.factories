@@ -1,4 +1,5 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
   io.github.javaquasar.hazelcast.toolkit.springboot2.config.HazelcastToolkitAutoConfiguration,\
   io.github.javaquasar.hazelcast.toolkit.springboot2.config.HazelcastJCacheAutoConfiguration,\
-  io.github.javaquasar.hazelcast.toolkit.springboot2.config.HazelcastHibernateL2AutoConfiguration
+  io.github.javaquasar.hazelcast.toolkit.springboot2.config.HazelcastHibernateL2AutoConfiguration,\
+  io.github.javaquasar.hazelcast.toolkit.springboot2.config.HazelcastActuatorAutoConfiguration

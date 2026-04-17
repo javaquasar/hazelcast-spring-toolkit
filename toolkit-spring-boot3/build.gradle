@@ -9,15 +9,20 @@ dependencies {
 
     compileOnly "org.springframework.boot:spring-boot-autoconfigure:${springBoot3Version}"
     compileOnly "org.springframework.boot:spring-boot:${springBoot3Version}"
+    compileOnly "org.springframework.boot:spring-boot-actuator:${springBoot3Version}"
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor:${springBoot3Version}"
 
     compileOnly 'org.springframework:spring-context-support:6.2.0'
     compileOnly 'org.springframework:spring-web:6.2.0'
+    compileOnly 'org.springframework:spring-tx:6.2.0'
+    compileOnly 'jakarta.persistence:jakarta.persistence-api:3.1.0'
+    compileOnly 'org.hibernate.orm:hibernate-core:6.6.33.Final'
 
     implementation "com.hazelcast:hazelcast:${hazelcastVersion}"
     implementation 'javax.cache:cache-api:1.1.1'
 
     testImplementation testFixtures(project(':toolkit-spring-common'))
+    testImplementation "org.springframework.boot:spring-boot-actuator:${springBoot3Version}"
     testImplementation project(':toolkit-testcontainers')
     testImplementation "org.springframework.boot:spring-boot-starter-test:${springBoot3Version}"
     testImplementation "org.springframework.boot:spring-boot-starter-jdbc:${springBoot3Version}"

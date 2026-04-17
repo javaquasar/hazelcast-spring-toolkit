@@ -12,19 +12,44 @@ Register Compact serialization types with `@HzCompact`, wire IMap listeners with
 
 ## Why this library?
 
-The official Spring Boot Hazelcast auto-configuration creates an embedded **server** node, not a client — unsuitable for applications that connect to an external cluster. Configuring a Hazelcast **client** with Compact serialization, typed IMap listeners, and Hibernate L2 cache wiring requires scattered boilerplate across `@Configuration` classes. This library replaces all of that with annotations and one `application.yml` block.
+**hazelcat-toolkit** is a high-level, annotation-driven toolkit that brings modern Hazelcast 5+ best practices to Spring Boot applications.
 
-| Feature | Spring Boot default | hazelcast-toolkit |
-|---|---|---|
-| Client vs server | Embedded server | Client only |
-| Compact type registration | Manual `ClientConfig` | `@HzCompact` + package scan |
-| IMap listener wiring | Manual `addEntryListener()` | `@HzIMapListener` on bean |
-| Hibernate L2 cache | Not provided | `hazelcast.toolkit.hibernate.l2.enabled=true` |
-| Instance customization | N/A | `HazelcastClientConfigCustomizer` beans |
+While Spring Boot provides basic Hazelcast auto-configuration, it is intentionally minimal and focused only on core `HazelcastInstance` and `Cache` integration. hazelcat-toolkit goes significantly further by eliminating boilerplate for the most common real-world use cases.
+
+### Key Differences from Official Spring Boot Hazelcast Support
+
+| Feature                              | Official Spring Boot                          | hazelcat-toolkit                                      | Benefit |
+|--------------------------------------|-----------------------------------------------|-------------------------------------------------------|---------|
+| **Hazelcast Instance**               | Basic client/server auto-config               | Smart client with auto-naming, `HazelcastClientConfigCustomizer` | Cleaner, more maintainable configuration |
+| **Compact Serialization**            | Not supported                                 | `@HzCompact` + automatic package scanning (zero-config + explicit serializers) | Modern, efficient, cross-language ready |
+| **IMap Event Listeners**             | Manual registration                           | `@HzIMapListener` on Spring beans (auto-registered) | Zero-boilerplate event-driven architecture |
+| **Hibernate 2nd-Level Cache**        | No dedicated support                          | Full auto-configuration with safe defaults + known issue documentation | Production-ready L2 caching |
+| **Configuration Style**              | Properties + XML/YAML files only              | Annotations + properties + type-safe customizers     | Developer-friendly and type-safe |
+| **Multi Boot Version Support**       | Single implementation                         | Dedicated modules for Boot 2 / 3 / 4                 | Future-proof |
+| **Test Infrastructure**              | None                                          | Shared Testcontainers (3-node cluster + Postgres)    | Ready for integration testing |
+| **Metrics & Observability**          | Basic                                         | Optional metrics controller + Near-Cache health Actuator endpoint | Production monitoring ready |
+
+**In short:**  
+Spring Boot gives you the foundation.  
+**hazelcat-toolkit** gives you the complete, production-grade Hazelcast experience with almost zero boilerplate.
 
 ---
 
-## Quick Start
+## Quick Start (Spring Boot 3)
+
+```yaml
+hazelcast:
+  client:
+    cluster-name: dev
+    network:
+      cluster-members:
+        - 127.0.0.1:5701
+  toolkit:
+    compact:
+      base-package: com.example.app.model   # @HzCompact classes
+    client:
+      base-name: hz.client                  # optional smart naming
+```
 
 ### 1. Add the dependency
 
@@ -151,7 +176,7 @@ hazelcast:
     hibernate:
       l2:
         enabled: true
-        extended-config: true          # apply full property set
+        extended-config: true      # apply full property set
         use-query-cache: false     # default false
         use-statistics: false      # default false
 ```
@@ -178,6 +203,69 @@ With `extended-config=false` (default), only `region.factory_class` and `hazelca
 | `extended-config` | `false` | Apply full property set using `putIfAbsent` |
 | `use-query-cache` | `false` | `hibernate.cache.use_query_cache` — `extended-config` only |
 | `use-statistics` | `false` | `hibernate.generate_statistics` — `extended-config` only |
+
+### Near-Cache Health Check — `/actuator/hazelcast-near-cache`
+
+A lightweight Actuator endpoint that verifies, in production, that the Hazelcast near-cache is functioning correctly for a JPA entity of your choice.
+
+**What it probes:**
+1. Loads the entity in a fresh `EntityManager` to populate the L2 / near-cache.
+2. Reloads it in a second fresh context — the hit must be served from the near-cache.
+3. Evicts it via `JPA Cache.evict()`, which propagates cluster-wide to all near-caches.
+4. Reloads once more — this load must reach the database (near-cache is cold).
+
+Hibernate cache statistics are used as the primary hit/miss signal when enabled; sub-millisecond timing serves as a fallback.
+
+**Enable and configure:**
+
+```yaml
+hazelcast:
+  toolkit:
+    actuator:
+      near-cache-check:
+        enabled: true
+        entity-class: com.mycompany.entity.User   # cacheable JPA entity
+        entity-id: "42"                           # must exist in the database
+    hibernate:
+      l2:
+        enabled: true
+        extended-config: true
+        use-statistics: true   # enables precise hit/miss detection
+```
+
+**Query parameters** — override defaults per request:
+
+```
+GET /actuator/hazelcast-near-cache
+GET /actuator/hazelcast-near-cache?entity=com.mycompany.entity.Product&id=99
+```
+
+**Example response:**
+
+```json
+{
+  "status": "OK",
+  "entity": "com.mycompany.entity.User",
+  "id": "42",
+  "nearCache": {
+    "hitVerified": true,
+    "invalidationVerified": true
+  },
+  "timings": {
+    "cachedLoadMs": 0,
+    "postEvictionLoadMs": 41
+  },
+  "hibernateStats": {
+    "l2HitsDeltaOnCachedLoad": 1,
+    "l2MissesDeltaAfterEviction": 1,
+    "l2HitsDeltaAfterEviction": 0
+  }
+}
+```
+
+**Requirements:** `spring-boot-actuator` and `jakarta.persistence` on the classpath. Works with all three region-factory modes (`JCACHE`, `HAZELCAST_LOCAL`, `HAZELCAST`). The endpoint is read-only except for one targeted `Cache.evict()` call on the probe entity — secure it via Spring Security.
+
+---
 
 ### Client Customization
 
@@ -238,6 +326,9 @@ Examples:
 | `hibernate.l2.extended-config` | `false` | Apply full property set (region.factory_class, query cache, statistics) |
 | `hibernate.l2.use-query-cache` | `false` | Enable Hibernate query result cache (`extended-config` only) |
 | `hibernate.l2.use-statistics` | `false` | Enable Hibernate cache statistics (`extended-config` only) |
+| `actuator.near-cache-check.enabled` | `false` | Register the `/actuator/hazelcast-near-cache` endpoint |
+| `actuator.near-cache-check.entity-class` | _(empty)_ | Fully-qualified JPA entity class used as probe |
+| `actuator.near-cache-check.entity-id` | _(empty)_ | Primary-key value of the probe entity (as String) |
 
 ---
 
