@@ -9,6 +9,7 @@ import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientConfigCus
 import io.github.javaquasar.hazelcast.toolkit.spring.test.l2.SharedTestCachedEntity;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
 
 /**
  * Test infrastructure for Hazelcast L2 cache tests.
@@ -23,8 +24,10 @@ import org.springframework.context.annotation.Bean;
 public class L2CacheTestConfiguration {
 
     @Bean
-    public HazelcastClientConfigCustomizer l2NearCacheCustomizer() {
-        return this::customizeNearCache;
+    public HazelcastClientConfigCustomizer l2NearCacheCustomizer(Environment environment) {
+        boolean nearCacheEnabled = environment.getProperty("test.hazelcast.near-cache.enabled", Boolean.class, true);
+        return nearCacheEnabled ? this::customizeNearCache : clientConfig -> {
+        };
     }
 
     private void customizeNearCache(ClientConfig clientConfig) {
