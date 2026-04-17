@@ -350,7 +350,7 @@ Examples:
 
 - **Hibernate 5 composite-key issue**: If you use Hibernate 5 and JPA entities with composite keys, Hazelcast's L2 cache key conversion may fail. See [`docs/hibernate-l2-cachekey-converter-issue.md`](docs/hibernate-l2-cachekey-converter-issue.md) for root cause analysis and workarounds.
 
-- **Boot 4 partial support**: `toolkit-spring-boot4` provides the core `HazelcastInstance` bean and listener registration. JCache and Hibernate L2 auto-configuration parity with Boot 3 is planned but not yet complete. The Boot 4 module is opt-in: pass `-PenableBoot4=true` to Gradle.
+- **Boot 4 conditional support**: `toolkit-spring-boot4` is functionally equivalent to the Boot 3 module — it includes JCache, Hibernate L2, and Actuator auto-configurations. Each auto-configuration is guarded by `@ConditionalOnClass` against the relevant type (`HibernatePropertiesCustomizer`, `@Endpoint`, `EntityManagerFactory`). In Spring Boot 4.0.0 these types are not yet published, so the extra configurations remain inactive until Boot 4 ships JPA/Actuator support. The module is opt-in: pass `-PenableBoot4=true` to Gradle.
 
 ---
 
@@ -366,7 +366,7 @@ Examples:
 | `toolkit-metrics-spring` | Yes | Optional `HzToolkitMetricsController` |
 | `toolkit-spring-boot2` | Yes | Spring Boot 2 auto-configuration |
 | `toolkit-spring-boot3` | Yes | Spring Boot 3 auto-configuration (primary) |
-| `toolkit-spring-boot4` | No | Spring Boot 4 auto-configuration (opt-in, in progress) |
+| `toolkit-spring-boot4` | No | Spring Boot 4 auto-configuration (opt-in; full JCache, Hibernate L2, and Actuator parity; enabled when JPA/Actuator land in Boot 4) |
 | `toolkit-testcontainers` | No | Shared Hazelcast + Postgres test infrastructure |
 | `example-spring-boot3` | No | Runnable sample app with `@HzCompact`, `@HzIMapListener`, and Hibernate L2 profiles |
 

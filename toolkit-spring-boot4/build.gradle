@@ -1,3 +1,17 @@
+def boot4TestRunId = providers.provider { Long.toString(System.currentTimeMillis()) }
+
+configurations {
+    // Compile-time stubs from Boot 3 for types absent in Boot 4.0.0:
+    // - HibernatePropertiesCustomizer (spring-boot-autoconfigure)
+    // - @Endpoint, @ReadOperation (spring-boot-actuator)
+    // These jars are added directly to the compile/test classpaths without going through
+    // Gradle's version conflict resolution (which would otherwise pick Boot 4 for all
+    // spring-boot-* artifacts). At runtime, @ConditionalOnClass guards ensure neither
+    // HazelcastHibernateL2AutoConfiguration nor HazelcastActuatorAutoConfiguration
+    // activates unless the owning types are present.
+    boot3Stubs
+}
+
 dependencies {
     api project(':toolkit-core')
     api project(':toolkit-runtime')
@@ -10,4 +24,34 @@ dependencies {
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor:${springBoot4Version}"
     compileOnly 'org.springframework:spring-web:6.2.12'
     compileOnly 'javax.cache:cache-api:1.1.1'
+    compileOnly 'org.springframework:spring-context-support:6.2.12'
+    compileOnly 'jakarta.persistence:jakarta.persistence-api:3.1.0'
+    compileOnly 'org.hibernate.orm:hibernate-core:6.6.33.Final'
+
+    // Boot 3 compile-time stubs (no transitives — only the artifact itself is needed)
+    boot3Stubs("org.springframework.boot:spring-boot-autoconfigure:${springBoot3Version}") { transitive = false }
+    boot3Stubs("org.springframework.boot:spring-boot-actuator:${springBoot3Version}") { transitive = false }
+
+    testImplementation testFixtures(project(':toolkit-spring-common'))
+    testImplementation "org.springframework.boot:spring-boot-starter-test:${springBoot3Version}"
+    testImplementation "org.springframework.boot:spring-boot-starter-data-jpa:${springBoot3Version}"
+    testImplementation 'org.springframework:spring-context-support:6.2.12'
+    testImplementation "org.hibernate.orm:hibernate-jcache:6.6.33.Final"
+    testImplementation "org.springframework.boot:spring-boot-actuator:${springBoot3Version}"
+    testRuntimeOnly 'com.h2database:h2:2.2.224'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+// Append Boot 3 stubs to the compile classpaths (both main and test) so that
+// HibernatePropertiesCustomizer and @Endpoint are resolvable during javac without
+// forcing Boot 3 artifacts through Gradle's conflict resolution.
+tasks.named('compileJava') {
+    classpath += configurations.boot3Stubs
+}
+tasks.named('compileTestJava') {
+    classpath += configurations.boot3Stubs
+}
+tasks.withType(Test).configureEach {
+    classpath += configurations.boot3Stubs
+    binaryResultsDirectory = layout.buildDirectory.dir(boot4TestRunId.map { "test-results/${name}/binary-${it}" })
 }
