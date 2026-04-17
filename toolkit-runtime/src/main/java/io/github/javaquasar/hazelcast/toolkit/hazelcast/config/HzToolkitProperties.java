@@ -19,6 +19,7 @@ package io.github.javaquasar.hazelcast.toolkit.hazelcast.config;
  *     hibernate:
  *       l2:
  *         enabled: true
+ *         extended-config: true
  * }</pre>
  *
  * @since 0.1.0
@@ -110,8 +111,8 @@ public class HzToolkitProperties {
 
     /**
      * Hibernate second-level cache settings managed by the toolkit.
-     * <p>
-     * Activate with {@code hazelcast.toolkit.hibernate.l2.enabled=true}.
+     *
+     * <p>Activate with {@code hazelcast.toolkit.hibernate.l2.enabled=true}.
      */
     public static class Hibernate {
         private L2 l2 = new L2();
@@ -124,13 +125,82 @@ public class HzToolkitProperties {
             this.l2 = l2;
         }
 
+        /**
+         * Second-level cache configuration properties ({@code hazelcast.toolkit.hibernate.l2.*}).
+         *
+         * <p><b>Design philosophy:</b> by default the toolkit is non-intrusive.
+         * It enables Hibernate's L2 cache mechanism but deliberately avoids dictating
+         * <em>how</em> that cache is wired.  Applications that already manage their own
+         * Hibernate cache configuration will not be affected.  Opt into the extended
+         * property set only when you want the toolkit to handle the full wiring.
+         *
+         * <h2>Minimal mode — {@code extended-config=false} (default)</h2>
+         * <p>The toolkit sets only what is strictly necessary:
+         * <ul>
+         *   <li><b>JCACHE mode</b> — sets {@code hibernate.cache.use_second_level_cache=true} only.
+         *       All JCache provider and factory-class wiring is left to the application.</li>
+         *   <li><b>HAZELCAST_LOCAL / HAZELCAST modes</b> — additionally sets
+         *       {@code hibernate.cache.region.factory_class} and {@code hazelcast.instance.name}.
+         *       Both are skipped (with a WARN) if {@code region.factory_class} is already present.</li>
+         * </ul>
+         * All other Hibernate cache properties ({@code use_query_cache}, {@code generate_statistics},
+         * etc.) are untouched — configure them directly via {@code spring.jpa.properties.*}
+         * if needed.
+         *
+         * <h2>Extended configuration mode — {@code extended-config=true}</h2>
+         * <p>The toolkit applies the complete property set using {@code putIfAbsent}, so
+         * any value already present in {@code spring.jpa.properties.*} always takes precedence.
+         * In JCACHE mode this additionally wires {@code region.factory_class}, the Hazelcast
+         * JCache provider, and the {@code CacheManager} instance binding.
+         * {@code use-query-cache} and {@code use-statistics} are also applied (both default
+         * to {@code false}).
+         *
+         * <p><b>Migration note:</b> if you relied on {@code enabled=true} alone to configure the
+         * full JCACHE path in a previous version of this library, add
+         * {@code extended-config=true} to restore that behaviour.
+         */
         public static class L2 {
+
             /**
-             * When {@code true} the toolkit registers a {@code HibernatePropertiesCustomizer}
-             * that wires Hibernate's second-level cache to the toolkit-managed JCache
-             * {@code CacheManager}.
+             * Master switch. Set to {@code true} to activate Hibernate second-level cache
+             * auto-configuration.
              */
             private boolean enabled = false;
+
+            /**
+             * Selects the Hibernate {@code RegionFactory} implementation.
+             * Defaults to {@link RegionFactoryType#JCACHE} — the safest choice when a
+             * toolkit-managed {@code CacheManager} is present.
+             */
+            private RegionFactoryType regionFactory = RegionFactoryType.JCACHE;
+
+            /**
+             * When {@code true}, applies the full set of Hibernate cache properties
+             * ({@code region.factory_class}, {@code use_query_cache}, {@code generate_statistics},
+             * and — for JCACHE mode — the JCache provider and {@code CacheManager} binding).
+             *
+             * <p>All properties are written with {@code putIfAbsent}: values already present
+             * in {@code spring.jpa.properties.*} are never overwritten.
+             *
+             * <p>Defaults to {@code false} — the toolkit is non-intrusive by default.
+             */
+            private boolean extendedConfig = false;
+
+            /**
+             * Whether Hibernate's query result cache is enabled.
+             * Applied only when {@link #isExtendedConfig()} is {@code true}.
+             *
+             * <p>Defaults to {@code false}. Enable explicitly when query caching is needed.
+             */
+            private boolean useQueryCache = false;
+
+            /**
+             * Whether Hibernate cache statistics are collected.
+             * Applied only when {@link #isExtendedConfig()} is {@code true}.
+             *
+             * <p>Defaults to {@code false} to avoid performance overhead in production.
+             */
+            private boolean useStatistics = false;
 
             public boolean isEnabled() {
                 return enabled;
@@ -138,6 +208,98 @@ public class HzToolkitProperties {
 
             public void setEnabled(boolean enabled) {
                 this.enabled = enabled;
+            }
+
+            public RegionFactoryType getRegionFactory() {
+                return regionFactory;
+            }
+
+            public void setRegionFactory(RegionFactoryType regionFactory) {
+                this.regionFactory = regionFactory;
+            }
+
+            public boolean isExtendedConfig() {
+                return extendedConfig;
+            }
+
+            public void setExtendedConfig(boolean extendedConfig) {
+                this.extendedConfig = extendedConfig;
+            }
+
+            public boolean isUseQueryCache() {
+                return useQueryCache;
+            }
+
+            public void setUseQueryCache(boolean useQueryCache) {
+                this.useQueryCache = useQueryCache;
+            }
+
+            public boolean isUseStatistics() {
+                return useStatistics;
+            }
+
+            public void setUseStatistics(boolean useStatistics) {
+                this.useStatistics = useStatistics;
+            }
+
+            /**
+             * Selects the Hibernate second-level cache {@code RegionFactory} implementation.
+             *
+             * <p><b>Which one should I use?</b>
+             * <ul>
+             *   <li>Start with {@link #JCACHE} — it is the safest default and requires no
+             *       extra dependency.</li>
+             *   <li>If you need a pure Hazelcast-native cache path (no JCache layer),
+             *       use {@link #HAZELCAST_LOCAL} — it is the recommended choice for most
+             *       Hazelcast client applications.</li>
+             *   <li>Use {@link #HAZELCAST} only when you have a specific requirement for
+             *       strong cluster-wide consistency with no near-cache.</li>
+             * </ul>
+             */
+            public enum RegionFactoryType {
+
+                /**
+                 * <b>Default — recommended for most applications.</b>
+                 *
+                 * <p>Uses the toolkit-managed {@code javax.cache.CacheManager} via Hazelcast's
+                 * JCache provider.  No extra dependency required beyond the toolkit module itself.
+                 *
+                 * <p>With {@code extended-config=false} (default): only
+                 * {@code hibernate.cache.use_second_level_cache=true} is set — the application
+                 * retains full control over JCache wiring.
+                 * With {@code extended-config=true}: the toolkit additionally sets
+                 * {@code region.factory_class}, the Hazelcast JCache provider, the
+                 * {@code CacheManager} binding, {@code use_query_cache}, and
+                 * {@code generate_statistics}.
+                 */
+                JCACHE,
+
+                /**
+                 * <b>Recommended native mode for Hazelcast client applications.</b>
+                 *
+                 * <p>Uses {@code com.hazelcast.hibernate.HazelcastLocalCacheRegionFactory},
+                 * which maintains a local near-cache on the client JVM for fast reads while
+                 * propagating writes and invalidations through the cluster.  This avoids the
+                 * JCache abstraction layer and gives Hibernate direct access to Hazelcast maps.
+                 *
+                 * <p>Requires {@code com.hazelcast:hazelcast-hibernate} on the classpath.
+                 * The toolkit validates this at startup and throws {@link IllegalStateException}
+                 * with dependency instructions if the class is not found.
+                 */
+                HAZELCAST_LOCAL,
+
+                /**
+                 * <b>Advanced — full distributed mode without a local near-cache.</b>
+                 *
+                 * <p>Uses {@code com.hazelcast.hibernate.HazelcastCacheRegionFactory}.
+                 * Every cache read and write goes directly to the Hazelcast cluster.
+                 * Choose this mode only when strong consistency across all cluster members
+                 * is required and the additional network round-trip per cache access is
+                 * acceptable.
+                 *
+                 * <p>Requires {@code com.hazelcast:hazelcast-hibernate} on the classpath.
+                 */
+                HAZELCAST
             }
         }
     }

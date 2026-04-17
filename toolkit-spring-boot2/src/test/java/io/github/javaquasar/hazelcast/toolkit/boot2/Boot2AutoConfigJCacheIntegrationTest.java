@@ -65,6 +65,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
                 "spring.jpa.open-in-view=false",
                 // Activate the toolkit JCache + Hibernate L2 auto-configuration — this is the key under test
                 "hazelcast.toolkit.hibernate.l2.enabled=true",
+                // extended-config=true: apply full JCache wiring (region.factory_class, CacheManager binding, etc.)
+                // Required so that Hibernate's L2 region factory is wired and entity caching is verified end-to-end.
+                "hazelcast.toolkit.hibernate.l2.extended-config=true",
                 // Satisfy @ConfigurationProperties binding; actual connection uses Boot2L2CacheTestConfiguration
                 "hazelcast.client.instance-name=boot2-autoconfig-client",
                 "hazelcast.client.cluster-name=boot2-l2-test-cluster",

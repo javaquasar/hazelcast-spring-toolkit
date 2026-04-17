@@ -50,10 +50,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @SpringBootTest(
         classes = SharedTestApplication.class,
         properties = {
-                "spring.jpa.hibernate.ddl-auto=create-drop",
+                "spring.jpa.hibernate.ddl-auto=create",
                 "spring.jpa.open-in-view=false",
                 // Activate the toolkit JCache + Hibernate L2 auto-configuration — this is the key under test
                 "hazelcast.toolkit.hibernate.l2.enabled=true",
+                // extended-config=true: apply full JCache wiring (region.factory_class, CacheManager binding, etc.)
+                // Required so that the customizer actually sets region.factory_class and cache_manager,
+                // which is what this test verifies.
+                "hazelcast.toolkit.hibernate.l2.extended-config=true",
                 // Unique client name prevents InvalidConfigurationException when multiple test contexts
                 // start in the same JVM (Hazelcast forbids duplicate instance names per JVM)
                 "hazelcast.client.instance-name=boot3-autoconfig-jcache-test"

@@ -33,10 +33,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @SpringBootTest(
         classes = Boot3L2CacheKeyIssueTestApplication.class,
         properties = {
-                "spring.jpa.hibernate.ddl-auto=create-drop",
+                "spring.jpa.hibernate.ddl-auto=create",
                 "spring.jpa.open-in-view=false",
                 // L2CacheTestConfiguration no longer provides HibernatePropertiesCustomizer; delegate to auto-config
                 "hazelcast.toolkit.hibernate.l2.enabled=true",
+                // extended-config=true: apply full JCache wiring (region.factory_class, CacheManager binding, etc.)
+                "hazelcast.toolkit.hibernate.l2.extended-config=true",
+                "hazelcast.toolkit.hibernate.l2.use-statistics=true",
                 // Unique client name prevents InvalidConfigurationException when multiple test contexts
                 // start in the same JVM (Hazelcast forbids duplicate instance names per JVM)
                 "hazelcast.client.instance-name=boot3-l2-issue-test"

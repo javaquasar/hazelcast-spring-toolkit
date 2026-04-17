@@ -39,7 +39,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
                 "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
                 "spring.jpa.hibernate.ddl-auto=create-drop",
                 "spring.jpa.open-in-view=false",
-                "hazelcast.toolkit.hibernate.l2.enabled=true"
+                "hazelcast.toolkit.hibernate.l2.enabled=true",
+                // extended-config=true: apply full JCache wiring so Hibernate serializes composite keys via L2 cache,
+                // which is required to trigger the Hibernate 5 CacheKeyImplementation serialization failure.
+                "hazelcast.toolkit.hibernate.l2.extended-config=true",
+                // use-statistics=true: enable Hibernate cache statistics so getSecondLevelCacheHitCount() is tracked.
+                "hazelcast.toolkit.hibernate.l2.use-statistics=true"
         }
 )
 @Import(Boot2L2CacheTestConfiguration.class)
@@ -90,7 +95,11 @@ class Boot2HibernateL2CacheKeyIssueIntegrationTest {
     @Test
     void succeedsForCompositeKeyWithoutConverterOnHibernate5() {
         Long userId = persistUser("legacy-b");
-        transactionTemplate.executeWithoutResult(status -> entityManager.persist(
+        // Hibernate 5 + L2 cache: persist() throws PersistentObjectException for new entities with a
+        // serializable @EmbeddedId because isTransient() returns null (L2 cache miss) and Hibernate 5
+        // falls back to "non-null ID = detached". merge() is the correct workaround — it handles both
+        // new and detached entities and does not suffer from this state-detection issue.
+        transactionTemplate.executeWithoutResult(status -> entityManager.merge(
                 new LegacyIssueUserGroupScalarNoConverter(
                         new LegacyIssueUserGroupPkScalarNoConverter(userId, LegacyIssueUserGroupType.REGULAR),
                         "legacy-scalar-no-converter"

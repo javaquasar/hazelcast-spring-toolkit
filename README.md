@@ -129,7 +129,10 @@ Listeners are registered after all Spring singletons are initialized (`SmartInit
 
 ### Hibernate Second-Level Cache
 
-Activate with one property:
+The toolkit is non-intrusive by default. Enable it and then choose how much it configures.
+
+**Minimal mode** (default) — only `hibernate.cache.use_second_level_cache=true` is set.
+You configure the rest via `spring.jpa.properties.*`:
 
 ```yaml
 hazelcast:
@@ -139,7 +142,42 @@ hazelcast:
         enabled: true
 ```
 
-The toolkit registers a `HibernatePropertiesCustomizer` that configures Hibernate 6's `JCacheRegionFactory` to use the toolkit-managed `CacheManager`. No manual wiring of `HazelcastCachingProvider` or instance names is required.
+**Full wiring mode** — the toolkit also sets `region.factory_class`, the JCache provider binding,
+`use_query_cache`, and `generate_statistics`. Existing `spring.jpa.properties.*` values always win (`putIfAbsent`):
+
+```yaml
+hazelcast:
+  toolkit:
+    hibernate:
+      l2:
+        enabled: true
+        extended-config: true          # apply full property set
+        use-query-cache: false     # default false
+        use-statistics: false      # default false
+```
+
+**Native Hazelcast RegionFactory** (advanced) — bypasses JCache entirely.
+`HAZELCAST_LOCAL` is recommended for client applications (near-cache on the client side):
+
+```yaml
+hazelcast:
+  toolkit:
+    hibernate:
+      l2:
+        enabled: true
+        region-factory: HAZELCAST_LOCAL   # or HAZELCAST for full distributed mode
+```
+
+Requires `com.hazelcast:hazelcast-hibernate` on the classpath.
+With `extended-config=false` (default), only `region.factory_class` and `hazelcast.instance.name` are set in addition to `use_second_level_cache=true`.
+
+| Property | Default | Description |
+|---|---|---|
+| `enabled` | `false` | Master switch |
+| `region-factory` | `JCACHE` | `JCACHE` \| `HAZELCAST_LOCAL` \| `HAZELCAST` |
+| `extended-config` | `false` | Apply full property set using `putIfAbsent` |
+| `use-query-cache` | `false` | `hibernate.cache.use_query_cache` — `extended-config` only |
+| `use-statistics` | `false` | `hibernate.generate_statistics` — `extended-config` only |
 
 ### Client Customization
 
@@ -195,7 +233,11 @@ Examples:
 | `client.base-name` | _(empty)_ | Base name for client naming (takes precedence over `instance-name`) |
 | `compact.base-package` | _(empty)_ | Root package to scan for `@HzCompact` classes |
 | `metrics.enabled` | `false` | Enable the optional metrics REST controller |
-| `hibernate.l2.enabled` | `false` | Activate Hibernate second-level cache via JCache |
+| `hibernate.l2.enabled` | `false` | Activate Hibernate second-level cache support |
+| `hibernate.l2.region-factory` | `JCACHE` | RegionFactory type: `JCACHE` \| `HAZELCAST_LOCAL` \| `HAZELCAST` |
+| `hibernate.l2.extended-config` | `false` | Apply full property set (region.factory_class, query cache, statistics) |
+| `hibernate.l2.use-query-cache` | `false` | Enable Hibernate query result cache (`extended-config` only) |
+| `hibernate.l2.use-statistics` | `false` | Enable Hibernate cache statistics (`extended-config` only) |
 
 ---
 
