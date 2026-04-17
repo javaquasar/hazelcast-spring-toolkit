@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: example-spring-boot3
+  datasource:
+    url: jdbc:h2:mem:hazelcast-example;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,hazelcastNearCache
+
+hazelcast:
+  client:
+    cluster-name: dev
+    network:
+      cluster-members:
+        - 127.0.0.1:5701
+      smart-routing: false
+  toolkit:
+    compact:
+      base-package: io.github.javaquasar.hazelcast.toolkit.example.boot3.model
+    client:
+      base-name: hz.example
+    hibernate:
+      l2:
+        enabled: true
+        extended-config: true
+        use-statistics: true
+    actuator:
+      near-cache-check:
+        enabled: true
+        entity-class: io.github.javaquasar.hazelcast.toolkit.example.boot3.model.ExampleBookEntity
+        entity-id: "1"

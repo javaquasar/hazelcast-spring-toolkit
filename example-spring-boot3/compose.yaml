@@ -1,0 +1,18 @@
+services:
+  hazelcast:
+    image: hazelcast/hazelcast:5.5.0
+    container_name: hazelcast-toolkit-example
+    ports:
+      - "5701:5701"
+    environment:
+      HZ_CLUSTERNAME: dev
+  management-center:
+    image: hazelcast/management-center:5.5.0
+    container_name: hazelcast-toolkit-management-center
+    depends_on:
+      - hazelcast
+    ports:
+      - "8081:8080"
+    environment:
+      MC_DEFAULT_CLUSTER: dev
+      MC_DEFAULT_CLUSTER_MEMBERS: hazelcast:5701

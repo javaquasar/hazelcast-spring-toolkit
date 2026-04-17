@@ -103,6 +103,12 @@ public class UserListener implements EntryAddedListener<String, UserProfile> {
 
 That is all the code you need. The toolkit bootstraps the `HazelcastInstance`, scans `com.example.app.model` for `@HzCompact` types, and registers the listener bean against the `users` IMap.
 
+### Runnable Example
+
+If you want a minimal end-to-end sample with `@HzCompact`, `@HzIMapListener`,
+Hibernate L2, and switchable `JCACHE` / `HAZELCAST_LOCAL` profiles, see
+[`example-spring-boot3`](example-spring-boot3/README.md).
+
 ---
 
 ## Features
@@ -362,6 +368,7 @@ Examples:
 | `toolkit-spring-boot3` | Yes | Spring Boot 3 auto-configuration (primary) |
 | `toolkit-spring-boot4` | No | Spring Boot 4 auto-configuration (opt-in, in progress) |
 | `toolkit-testcontainers` | No | Shared Hazelcast + Postgres test infrastructure |
+| `example-spring-boot3` | No | Runnable sample app with `@HzCompact`, `@HzIMapListener`, and Hibernate L2 profiles |
 
 ---
 

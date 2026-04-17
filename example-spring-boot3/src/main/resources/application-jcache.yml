@@ -1,0 +1,5 @@
+hazelcast:
+  toolkit:
+    hibernate:
+      l2:
+        region-factory: JCACHE

@@ -10,6 +10,7 @@ include 'toolkit-metrics-spring'
 include 'toolkit-spring-common'
 include 'toolkit-spring-boot2'
 include 'toolkit-spring-boot3'
+include 'example-spring-boot3'
 if (enableBoot4) {
     include 'toolkit-spring-boot4'
 }
