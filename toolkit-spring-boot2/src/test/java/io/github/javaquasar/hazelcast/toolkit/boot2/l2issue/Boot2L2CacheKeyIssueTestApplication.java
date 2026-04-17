@@ -7,9 +7,9 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 @EntityScan(basePackageClasses = {
         LegacyIssueUser.class,
         LegacyIssueUserGroupWithConverter.class,
-        LegacyIssueUserGroupManyToOneNoConverter.class
+        LegacyIssueUserGroupScalarNoConverter.class,
+        LegacyIssueUserGroupManyToOneNoConverter.class,
+        LegacyIssueSimpleConvertedEntity.class
 })
 public class Boot2L2CacheKeyIssueTestApplication {
 }
-
-

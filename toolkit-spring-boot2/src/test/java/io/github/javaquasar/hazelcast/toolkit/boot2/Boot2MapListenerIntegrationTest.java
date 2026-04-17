@@ -1,6 +1,8 @@
 package io.github.javaquasar.hazelcast.toolkit.boot2;
 
 import com.hazelcast.core.HazelcastInstance;
+import io.github.javaquasar.hazelcast.toolkit.spring.test.boot.EmbeddedHazelcastTestConfiguration;
+import io.github.javaquasar.hazelcast.toolkit.spring.test.boot.ListenerTestConfiguration;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

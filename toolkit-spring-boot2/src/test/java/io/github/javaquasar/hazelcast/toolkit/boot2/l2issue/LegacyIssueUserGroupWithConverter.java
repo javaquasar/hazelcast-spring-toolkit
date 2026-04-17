@@ -10,9 +10,9 @@ import javax.persistence.Entity;
 import javax.persistence.Table;
 
 @Entity
-@Table(name = "legacy_l2_issue_group_with_converter")
+@Table(name = "l2_issue_group_with_converter")
 @Cacheable
-@Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "legacy-l2-issue-group-with-converter")
+@Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "l2-issue-group-with-converter")
 public class LegacyIssueUserGroupWithConverter {
 
     @EmbeddedId
@@ -28,6 +28,12 @@ public class LegacyIssueUserGroupWithConverter {
         this.id = id;
         this.label = label;
     }
+
+    public LegacyIssueUserGroupPkWithConverter getId() {
+        return id;
+    }
+
+    public String getLabel() {
+        return label;
+    }
 }
-
-

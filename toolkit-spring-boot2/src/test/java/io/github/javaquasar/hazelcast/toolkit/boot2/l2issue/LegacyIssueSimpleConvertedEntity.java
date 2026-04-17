@@ -13,9 +13,9 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 
 @Entity
-@Table(name = "legacy_l2_issue_simple_converted")
+@Table(name = "l2_issue_simple_converted")
 @Cacheable
-@Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "legacy-l2-issue-simple-converted")
+@Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "l2-issue-simple-converted")
 public class LegacyIssueSimpleConvertedEntity {
 
     @Id
@@ -40,6 +40,8 @@ public class LegacyIssueSimpleConvertedEntity {
     public Long getId() {
         return id;
     }
+
+    public LegacyIssueUserGroupType getType() {
+        return type;
+    }
 }
-
-

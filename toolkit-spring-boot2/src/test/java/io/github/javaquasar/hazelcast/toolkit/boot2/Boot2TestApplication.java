@@ -1,5 +1,7 @@
 package io.github.javaquasar.hazelcast.toolkit.boot2;
 
+import io.github.javaquasar.hazelcast.toolkit.spring.test.boot.EmbeddedHazelcastTestConfiguration;
+import io.github.javaquasar.hazelcast.toolkit.spring.test.boot.ListenerTestConfiguration;
 import io.github.javaquasar.hazelcast.toolkit.spring.test.l2.SharedTestCachedEntity;
 import io.github.javaquasar.hazelcast.toolkit.spring.test.l2.SharedTestCachedEntityRepository;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

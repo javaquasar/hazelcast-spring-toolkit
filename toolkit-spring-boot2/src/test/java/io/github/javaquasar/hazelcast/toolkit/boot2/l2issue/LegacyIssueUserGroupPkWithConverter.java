@@ -28,6 +28,14 @@ public class LegacyIssueUserGroupPkWithConverter implements Serializable {
         this.type = type;
     }
 
+    public LegacyIssueUser getUser() {
+        return user;
+    }
+
+    public LegacyIssueUserGroupType getType() {
+        return type;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -45,5 +53,3 @@ public class LegacyIssueUserGroupPkWithConverter implements Serializable {
         return Objects.hash(user == null ? null : user.getId(), type);
     }
 }
-
-

@@ -10,9 +10,9 @@ import javax.persistence.Entity;
 import javax.persistence.Table;
 
 @Entity
-@Table(name = "legacy_l2_issue_group_m2o_no_converter")
+@Table(name = "l2_issue_group_many_to_one_no_converter")
 @Cacheable
-@Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "legacy-l2-issue-group-m2o-no-converter")
+@Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "l2-issue-group-many-to-one-no-converter")
 public class LegacyIssueUserGroupManyToOneNoConverter {
 
     @EmbeddedId
@@ -28,6 +28,8 @@ public class LegacyIssueUserGroupManyToOneNoConverter {
         this.id = id;
         this.label = label;
     }
+
+    public LegacyIssueUserGroupPkManyToOneNoConverter getId() {
+        return id;
+    }
 }
-
-

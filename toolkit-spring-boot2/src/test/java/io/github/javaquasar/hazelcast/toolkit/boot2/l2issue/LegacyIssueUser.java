@@ -12,9 +12,9 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 
 @Entity
-@Table(name = "legacy_l2_issue_user")
+@Table(name = "l2_issue_user")
 @Cacheable
-@Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "legacy-l2-issue-user")
+@Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "l2-issue-user")
 public class LegacyIssueUser {
 
     @Id
@@ -34,6 +34,8 @@ public class LegacyIssueUser {
     public Long getId() {
         return id;
     }
+
+    public String getUsername() {
+        return username;
+    }
 }
-
-

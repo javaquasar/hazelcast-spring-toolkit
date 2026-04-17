@@ -17,5 +17,3 @@ public class LegacyIssueUserGroupTypeConverter implements AttributeConverter<Leg
         return LegacyIssueUserGroupType.fromInt(dbData);
     }
 }
-
-

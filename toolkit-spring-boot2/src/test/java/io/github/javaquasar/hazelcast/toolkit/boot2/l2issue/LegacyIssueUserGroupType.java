@@ -26,5 +26,3 @@ public enum LegacyIssueUserGroupType {
         throw new IllegalArgumentException("Unknown LegacyIssueUserGroupType id: " + value);
     }
 }
-
-

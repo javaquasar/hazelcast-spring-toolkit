@@ -204,6 +204,12 @@ With `extended-config=false` (default), only `region.factory_class` and `hazelca
 | `use-query-cache` | `false` | `hibernate.cache.use_query_cache` — `extended-config` only |
 | `use-statistics` | `false` | `hibernate.generate_statistics` — `extended-config` only |
 
+#### Local Performance Notes
+
+A local multi-run characterization of `JCACHE` vs `HAZELCAST_LOCAL`, with and
+without client near-cache, is documented in [docs/performance.md](docs/performance.md).
+Treat those numbers as engineering guidance, not as a universal benchmark.
+
 ### Near-Cache Health Check — `/actuator/hazelcast-near-cache`
 
 A lightweight Actuator endpoint that verifies, in production, that the Hazelcast near-cache is functioning correctly for a JPA entity of your choice.

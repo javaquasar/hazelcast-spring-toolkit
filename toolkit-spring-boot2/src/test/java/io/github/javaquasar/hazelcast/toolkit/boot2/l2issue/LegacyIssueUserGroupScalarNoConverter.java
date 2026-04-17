@@ -10,9 +10,9 @@ import javax.persistence.Entity;
 import javax.persistence.Table;
 
 @Entity
-@Table(name = "legacy_l2_issue_group_scalar_no_converter")
+@Table(name = "l2_issue_group_scalar_no_converter")
 @Cacheable
-@Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "legacy-l2-issue-group-scalar-no-converter")
+@Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "l2-issue-group-scalar-no-converter")
 public class LegacyIssueUserGroupScalarNoConverter {
 
     @EmbeddedId
@@ -28,6 +28,8 @@ public class LegacyIssueUserGroupScalarNoConverter {
         this.id = id;
         this.label = label;
     }
+
+    public LegacyIssueUserGroupPkScalarNoConverter getId() {
+        return id;
+    }
 }
-
-

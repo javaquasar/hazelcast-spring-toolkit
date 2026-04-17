@@ -32,12 +32,13 @@ public class Boot2L2CacheTestConfiguration {
     private static final int MEMBER_PORT = findFreePort();
     public static final String MEMBER_ADDRESS = "127.0.0.1:" + MEMBER_PORT;
 
-    private static final HazelcastInstance HAZELCAST_MEMBER = startMember();
+    private static volatile HazelcastInstance hazelcastMember = startMember();
 
     @Bean(destroyMethod = "shutdown")
     @Primary
     public HazelcastInstance hazelcastInstance(ObjectProvider<HazelcastClientConfigCustomizer> customizers,
                                                Environment environment) {
+        ensureMemberRunning();
         String baseInstanceName = environment.getProperty("hazelcast.client.instance-name", "boot2-l2-client");
         String uniqueInstanceName = baseInstanceName + "-" + UUID.randomUUID();
         return new HazelcastClientFactory(new CompactClassesScanner(), customizers.orderedStream().toList())
@@ -45,13 +46,18 @@ public class Boot2L2CacheTestConfiguration {
     }
 
     @Bean
-    public HazelcastClientConfigCustomizer l2NearCacheCustomizer() {
-        return this::customizeNearCache;
+    public HazelcastClientConfigCustomizer l2NearCacheCustomizer(Environment environment) {
+        boolean nearCacheEnabled = environment.getProperty("test.hazelcast.near-cache.enabled", Boolean.class, true);
+        return nearCacheEnabled ? this::customizeNearCache : clientConfig -> {
+        };
     }
 
     @PreDestroy
     void shutdownMember() {
-        HAZELCAST_MEMBER.shutdown();
+        HazelcastInstance member = hazelcastMember;
+        if (member != null && member.getLifecycleService().isRunning()) {
+            member.shutdown();
+        }
     }
 
     private void customizeNearCache(ClientConfig clientConfig) {
@@ -75,6 +81,12 @@ public class Boot2L2CacheTestConfiguration {
         networkConfig.setPort(MEMBER_PORT);
         networkConfig.setPortAutoIncrement(false);
         return Hazelcast.newHazelcastInstance(config);
+    }
+
+    private static synchronized void ensureMemberRunning() {
+        if (hazelcastMember == null || !hazelcastMember.getLifecycleService().isRunning()) {
+            hazelcastMember = startMember();
+        }
     }
 
     private static int findFreePort() {

@@ -46,5 +46,3 @@ public class LegacyIssueUserGroupPkManyToOneNoConverter implements Serializable 
         return Objects.hash(user == null ? null : user.getId(), type);
     }
 }
-
-
