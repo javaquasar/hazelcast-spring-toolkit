@@ -13,10 +13,15 @@ dependencies {
     testFixturesCompileOnly 'org.springframework:spring-context:6.2.12'
     testFixturesCompileOnly 'org.springframework:spring-beans:6.2.12'
     testFixturesCompileOnly 'org.springframework:spring-aop:6.2.12'
+    testFixturesCompileOnly 'org.springframework:spring-jdbc:6.2.12'
+    testFixturesCompileOnly 'org.springframework:spring-tx:6.2.12'
+    testFixturesCompileOnly 'javax.cache:cache-api:1.1.1'
     testFixturesCompileOnly "org.springframework.boot:spring-boot-autoconfigure:${springBoot3Version}"
+    testFixturesCompileOnly "org.springframework.boot:spring-boot:${springBoot3Version}"
     testFixturesCompileOnly "org.springframework.boot:spring-boot-test:${springBoot3Version}"
     testFixturesCompileOnly 'org.springframework.data:spring-data-jpa:3.5.5'
     testFixturesCompileOnly 'org.hibernate.orm:hibernate-core:6.6.33.Final'
     testFixturesCompileOnly 'javax.persistence:javax.persistence-api:2.2'
     testFixturesCompileOnly 'jakarta.persistence:jakarta.persistence-api:3.1.0'
+    testFixturesCompileOnly 'org.junit.jupiter:junit-jupiter-api:5.12.2'
 }

@@ -23,6 +23,8 @@ toolkit-spring-common         (HzListenersAutoRegistrar; test-fixtures shared in
 toolkit-metrics-spring        (HzToolkitMetricsController - optional REST stats)
    |
 toolkit-spring-boot2/3/4      (Spring Boot auto-configuration entry points)
+example-spring-boot3          (runnable sample app with compact types, listeners,
+   |                           Hibernate L2, near-cache, HTTP flow, Management Center demo)
 toolkit-testcontainers        (shared Hazelcast + Postgres containers - NOT published)
 ```
 
@@ -92,8 +94,26 @@ Boot 2 mirrors Boot 3 conceptually but uses the Boot 2 registration style
 
 ### toolkit-spring-boot4
 
-Boot 4 is currently incomplete. Only the main Hazelcast toolkit auto-configuration
-is registered; JCache and Hibernate L2 parity are still pending.
+Boot 4 now includes the same main auto-configuration areas as Boot 3:
+
+- `HazelcastToolkitAutoConfiguration`
+- `HazelcastJCacheAutoConfiguration`
+- `HazelcastHibernateL2AutoConfiguration`
+- `HazelcastActuatorAutoConfiguration`
+
+The remaining gap is mostly in test parity and longer-tail validation, not in the
+presence of the main starter classes.
+
+### example-spring-boot3
+
+The runnable example is now a real integration sample, not a placeholder.
+It demonstrates:
+
+- explicit `@HzCompact(serializer = ...)` with nested DTO serialization
+- reflective `@HzCompact` on a second map-backed read model
+- `@HzIMapListener` event handling on multiple maps
+- Hibernate L2 plus near-cache diagnostics
+- a real HTTP flow, Actuator near-cache probe, and Management Center demo setup
 
 ## Auto-Configuration Registration
 
@@ -101,7 +121,7 @@ is registered; JCache and Hibernate L2 parity are still pending.
 |---|---|---|
 | Boot 2 | `spring.factories` | `EnableAutoConfiguration=` entries |
 | Boot 3 | `AutoConfiguration.imports` | Three classes listed |
-| Boot 4 | `AutoConfiguration.imports` | Only main class listed |
+| Boot 4 | `AutoConfiguration.imports` | Four classes listed: main, JCache, Hibernate L2, Actuator |
 
 ## Configuration Model
 
@@ -139,6 +159,7 @@ name source is present, the fallback remains `app-hz-client`.
 - Explicit `CompactSerializer` instances are registered before reflective compact classes.
 - `HazelcastClientConfigCustomizer` beans are applied in Spring `@Order`.
 - Shared test resources live in `toolkit-spring-common/src/testFixtures`.
+- Shared L2 performance-characterization logic now lives in a common test harness under `toolkit-spring-common/src/testFixtures`.
 - `toolkit-testcontainers` is test-only and not published.
 - Boot 4 is opt-in via `-PenableBoot4=true`.
 
@@ -150,6 +171,7 @@ name source is present, the fallback remains `app-hz-client`.
 - `EmbeddedHazelcastTestConfiguration` - in-process Hazelcast member for tests
 - `ListenerTestConfiguration` - test listener with event counting
 - `HazelcastAutoConfigurationSmokeTestSupport` - shared bean-wiring assertions
+- `AbstractHibernateL2PerformanceComparisonSupport` - shared L2 warm-read measurement harness used by Boot-specific tests
 - L2 test entities and repositories for cache scenarios
 
 ### Testcontainers
@@ -158,3 +180,8 @@ name source is present, the fallback remains `app-hz-client`.
 - Cluster name is `"core"`
 - Hazelcast containers currently rely on port-open, not cluster-ready, waiting
 - `registerSpringProperties(registry)` wires datasource and Hazelcast endpoints into tests
+
+### Example App Verification
+
+- `example-spring-boot3` has smoke tests plus a real HTTP integration test
+- the example includes `compose.yaml`, `http/demo.http`, and Management Center support for visual verification

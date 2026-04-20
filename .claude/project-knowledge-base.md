@@ -17,6 +17,12 @@ registration, IMap listener wiring, and Hibernate L2 cache setup.
 
 Group: `io.github.javaquasar` | Java 17 | Hazelcast 5.5.0 | Spring Boot 2/3/4
 
+Current status:
+
+- Boot 2 and Boot 3 starters have strong integration and performance characterization coverage
+- Boot 4 starter auto-configuration exists, but test parity with Boot 2/3 is not complete yet
+- `example-spring-boot3` is now the main runnable end-to-end sample for adoption and demos
+
 ## Read These Files
 
 - [architecture.md](architecture.md) - module graph, key classes, auto-configuration flow, configuration model, conventions, test infrastructure

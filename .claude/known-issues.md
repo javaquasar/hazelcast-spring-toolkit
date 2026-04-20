@@ -34,8 +34,10 @@ and resolved history that should not be confused with the active roadmap.
    `EmbeddedHazelcastTestConfiguration` and `ListenerTestConfiguration` exist both in
    shared fixtures and in local Boot 3 test sources; the local copies look stale.
 
-8. **`toolkit-spring-boot4` is still incomplete.**
-   JCache and Hibernate L2 auto-configuration are not yet registered there.
+8. **Boot 4 test coverage is still behind Boot 2 / Boot 3.**
+   The Boot 4 starter classes and auto-configuration imports exist, but parity is
+   still missing for the broader test matrix, especially performance characterization
+   coverage and some longer-tail integration scenarios.
 
 ## Test And Runtime Caveats
 
@@ -100,3 +102,5 @@ These items are historical improvements and should not be listed as active backl
 - Hibernate L2 auto-config redesign with conservative defaults
 - Test fixes for the new L2 design and Hibernate 5 merge workaround
 - Testcontainers shutdown cleanup via `ddl-auto=create`
+- Runnable `example-spring-boot3` with explicit and reflective compact types, listeners, near-cache demo, and Management Center flow
+- Shared Hibernate L2 performance harness extracted into `toolkit-spring-common` test fixtures for Boot-specific reuse

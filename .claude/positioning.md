@@ -39,8 +39,8 @@ of manual `ClientConfig`, listener registration, or Hibernate cache plumbing.
 ## Current Weaknesses
 
 - Limited property-driven configuration compared with more configuration-heavy starters
-- No small example application yet
-- Boot 4 support still incomplete
+- Boot 4 test parity still trails Boot 2 / Boot 3
+- The runnable example is currently Boot 3 only
 - Observability capabilities are not yet a strong outward-facing selling point
 
 ## Messaging Guidance
