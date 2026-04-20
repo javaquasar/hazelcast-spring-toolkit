@@ -4,6 +4,7 @@ import io.github.javaquasar.hazelcast.toolkit.scan.api.ClassScanner;
 import org.reflections.Reflections;
 import org.reflections.scanners.Scanners;
 import org.reflections.util.ConfigurationBuilder;
+import org.reflections.util.FilterBuilder;
 
 import java.lang.annotation.Annotation;
 import java.util.Set;
@@ -17,6 +18,7 @@ public class ReflectionsClassScanner implements ClassScanner {
     public Set<Class<?>> findAnnotated(String basePackage, Class<? extends Annotation> annotation) {
         Reflections reflections = new Reflections(new ConfigurationBuilder()
                 .forPackage(basePackage)
+                .filterInputsBy(new FilterBuilder().includePackage(basePackage))
                 .setScanners(Scanners.TypesAnnotated));
 
         return reflections.getTypesAnnotatedWith(annotation);
@@ -26,6 +28,7 @@ public class ReflectionsClassScanner implements ClassScanner {
     public <T> Set<Class<? extends T>> findSubTypes(String basePackage, Class<T> superType) {
         Reflections reflections = new Reflections(new ConfigurationBuilder()
                 .forPackage(basePackage)
+                .filterInputsBy(new FilterBuilder().includePackage(basePackage))
                 .setScanners(Scanners.SubTypes));
 
         return reflections.getSubTypesOf(superType);

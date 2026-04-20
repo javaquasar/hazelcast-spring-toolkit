@@ -8,7 +8,8 @@ import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperti
 import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HazelcastNearCacheMetricsBinder;
 import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HibernateL2MetricsBinder;
 import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HzToolkitMetricsController;
-import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.CompactClassesScanner;
+import io.github.javaquasar.hazelcast.toolkit.scan.api.ClassScanner;
+import io.github.javaquasar.hazelcast.toolkit.scan.reflections.ReflectionsClassScanner;
 import io.github.javaquasar.hazelcast.toolkit.spring.listener.HzListenersAutoRegistrar;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.ListableBeanFactory;
@@ -60,13 +61,13 @@ public class HazelcastToolkitAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public CompactClassesScanner compactClassesScanner() {
-        return new CompactClassesScanner();
+    public ClassScanner classScanner() {
+        return new ReflectionsClassScanner();
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public HazelcastClientFactory hazelcastClientFactory(CompactClassesScanner scanner,
+    public HazelcastClientFactory hazelcastClientFactory(ClassScanner scanner,
                                                          ObjectProvider<HazelcastClientConfigCustomizer> customizers) {
         return new HazelcastClientFactory(scanner, customizers.orderedStream().toList());
     }

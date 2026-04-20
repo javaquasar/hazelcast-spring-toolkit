@@ -18,6 +18,7 @@ dependencies {
     runtimeOnly 'org.hibernate.orm:hibernate-jcache:6.6.33.Final'
     runtimeOnly 'com.hazelcast:hazelcast-hibernate53:2.2.1'
 
+    testImplementation project(':toolkit-scan-reflections')
     testImplementation "org.springframework.boot:spring-boot-starter-test:${springBoot3Version}"
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }

@@ -5,7 +5,7 @@ import com.hazelcast.client.config.ClientConfig;
 import com.hazelcast.client.impl.connection.tcp.RoutingMode;
 import com.hazelcast.core.HazelcastInstance;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.compact.CompactClientConfigSupport;
-import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.CompactClassesScanner;
+import io.github.javaquasar.hazelcast.toolkit.scan.api.ClassScanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,13 +44,13 @@ public class HazelcastClientFactory {
     private final CompactClientConfigSupport compactSupport;
     private final List<HazelcastClientConfigCustomizer> customizers;
 
-    public HazelcastClientFactory(CompactClassesScanner compactScanner) {
-        this(new CompactClientConfigSupport(compactScanner), List.of());
+    public HazelcastClientFactory(ClassScanner classScanner) {
+        this(new CompactClientConfigSupport(classScanner), List.of());
     }
 
-    public HazelcastClientFactory(CompactClassesScanner compactScanner,
+    public HazelcastClientFactory(ClassScanner classScanner,
                                   List<HazelcastClientConfigCustomizer> customizers) {
-        this(new CompactClientConfigSupport(compactScanner), customizers);
+        this(new CompactClientConfigSupport(classScanner), customizers);
     }
 
     public HazelcastClientFactory(CompactClientConfigSupport compactSupport,

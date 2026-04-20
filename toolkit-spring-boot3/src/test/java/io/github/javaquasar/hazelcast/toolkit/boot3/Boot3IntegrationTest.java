@@ -21,7 +21,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @Disabled("Temporarily disabled: Boot 3 Testcontainers connectivity test still hangs during full module build")
 @Testcontainers(disabledWithoutDocker = true)
-@SpringBootTest(classes = TestApplication.class)
+@SpringBootTest(
+        classes = TestApplication.class,
+        properties = {
+                "hazelcast.client.instance-name=boot3-integration-test"
+        }
+)
 class Boot3IntegrationTest extends TestcontainersEnvironment {
 
     @Autowired

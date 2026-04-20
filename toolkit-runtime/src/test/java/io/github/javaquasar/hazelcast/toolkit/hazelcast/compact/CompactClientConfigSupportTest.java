@@ -4,7 +4,7 @@ import com.hazelcast.config.CompactSerializationConfig;
 import com.hazelcast.config.SerializationConfig;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.compacttest.TestHzCompactEntity;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.compacttest.TestHzCompactExplicitEntity;
-import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.CompactClassesScanner;
+import io.github.javaquasar.hazelcast.toolkit.scan.reflections.ReflectionsClassScanner;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
@@ -19,7 +19,7 @@ class CompactClientConfigSupportTest {
     void registersReflectiveCompactClassesAndExplicitSerializers() throws Exception {
         SerializationConfig serializationConfig = new SerializationConfig();
 
-        new CompactClientConfigSupport(new CompactClassesScanner())
+        new CompactClientConfigSupport(new ReflectionsClassScanner())
                 .registerCompactTypes(serializationConfig, "io.github.javaquasar.hazelcast.toolkit.hazelcast.compacttest");
 
         CompactSerializationConfig compactConfig = serializationConfig.getCompactSerializationConfig();

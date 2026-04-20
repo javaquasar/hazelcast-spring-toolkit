@@ -6,7 +6,7 @@ import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.nearcache.NearCacheStats;
 import io.github.javaquasar.hazelcast.toolkit.boot3.l2.L2CacheTestConfiguration;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientFactory;
-import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.CompactClassesScanner;
+import io.github.javaquasar.hazelcast.toolkit.scan.reflections.ReflectionsClassScanner;
 import io.github.javaquasar.hazelcast.toolkit.spring.test.boot.SharedTestApplication;
 import io.github.javaquasar.hazelcast.toolkit.spring.test.l2.SharedTestCachedEntity;
 import io.github.javaquasar.hazelcast.toolkit.spring.test.l2.SharedTestCachedEntityRepository;
@@ -197,7 +197,7 @@ class Boot3JpaL2CacheIntegrationTest extends TestcontainersEnvironment {
     }
 
     private RemoteCacheAccess openRemoteCacheAccess() {
-        HazelcastInstance remoteHazelcastClient = new HazelcastClientFactory(new CompactClassesScanner(), List.of()).createClient(
+        HazelcastInstance remoteHazelcastClient = new HazelcastClientFactory(new ReflectionsClassScanner(), List.of()).createClient(
                 "boot3-l2-remote-client",
                 hazelcastClusterName(),
                 hazelcastMembers(),

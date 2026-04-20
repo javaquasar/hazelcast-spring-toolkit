@@ -8,7 +8,7 @@ import com.hazelcast.config.NearCacheConfig;
 import com.hazelcast.core.HazelcastInstance;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientConfigCustomizer;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientFactory;
-import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.CompactClassesScanner;
+import io.github.javaquasar.hazelcast.toolkit.scan.reflections.ReflectionsClassScanner;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
@@ -48,7 +48,7 @@ public abstract class AbstractEmbeddedMemberL2CacheTestConfiguration {
         ensureTestMemberRunning();
         String baseInstanceName = environment.getProperty("hazelcast.client.instance-name", "test-l2-client");
         String uniqueInstanceName = baseInstanceName + "-" + UUID.randomUUID();
-        return new HazelcastClientFactory(new CompactClassesScanner(), customizers.orderedStream().toList())
+        return new HazelcastClientFactory(new ReflectionsClassScanner(), customizers.orderedStream().toList())
                 .createClient(uniqueInstanceName, clusterName(), List.of(memberAddress()), false, null);
     }
 

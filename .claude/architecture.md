@@ -28,9 +28,12 @@ example-spring-boot3          (runnable sample app with compact types, listeners
 toolkit-testcontainers        (shared Hazelcast + Postgres containers - NOT published)
 ```
 
-All `toolkit-spring-boot*` modules declare `api` on core, runtime,
-scan-reflections, metrics-spring, and spring-common, so consumers receive the
-main integration pieces transitively.
+All `toolkit-spring-boot*` modules declare `api` on core, runtime, metrics-spring,
+and spring-common, so consumers receive the main integration pieces transitively.
+`toolkit-scan-reflections` is declared as `implementation` in boot starters — it is
+an internal scanning engine, not part of the public module surface.
+`toolkit-runtime` depends only on `toolkit-scan-api` (the `ClassScanner` interface);
+it has no dependency on `toolkit-scan-reflections` at all.
 
 ## Key Classes And Responsibilities
 

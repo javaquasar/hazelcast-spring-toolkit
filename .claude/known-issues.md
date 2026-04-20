@@ -7,9 +7,7 @@ and resolved history that should not be confused with the active roadmap.
 
 ## Current Known Issues / Technical Debt
 
-1. **`toolkit-runtime` exposes `toolkit-scan-reflections` via `api`.**
-   That leaks a concrete scanner implementation into the public module boundary,
-   which weakens the intended `ClassScanner` abstraction.
+1. ~~**`toolkit-runtime` exposes `toolkit-scan-reflections` via `api`.**~~ _Resolved (April 2026)_ — See resolved section below.
 
 2. **`toolkit-spring-common` compiles against Spring 6 while Boot 2 runs on Spring 5.**
    Test fixtures inherit the Spring 6 compile dependency, which could become a real
@@ -82,6 +80,12 @@ second-level caching, but full wiring happens only when explicitly requested.
 | `JCACHE` | Safest and least opinionated default |
 | `HAZELCAST_LOCAL` | Recommended native option for most client applications |
 | `HAZELCAST` | Use only when stronger cluster-wide consistency justifies the trade-off |
+
+## Resolved In April 2026 (third pass)
+
+- Scanner abstraction boundary restored: `toolkit-runtime` no longer depends on `toolkit-scan-reflections` at all. `CompactClientConfigSupport` and `HazelcastClientFactory` now take `ClassScanner` (from `toolkit-scan-api`). Boot starters wire `ReflectionsClassScanner` as the `ClassScanner` bean and declare `toolkit-scan-reflections` as `implementation` (hidden from consumers). Discovered and fixed a pre-existing bug in `ReflectionsClassScanner`: `ConfigurationBuilder.forPackage()` in Reflections 0.10.2 does not add a package filter; explicit `filterInputsBy(FilterBuilder().includePackage())` call added.
+- `toolkit-spring-common` testFixtures now declare `testFixturesImplementation project(':toolkit-scan-reflections')` explicitly (was previously leaking in transitively via `toolkit-runtime`).
+- Example app's `ExampleSpringBoot3CompactScanningTest` now has an explicit `testImplementation project(':toolkit-scan-reflections')` dependency instead of relying on transitive exposure.
 
 ## Resolved In April 2026 (second pass)
 

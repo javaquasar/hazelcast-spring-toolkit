@@ -10,6 +10,7 @@ dependencies {
     compileOnly 'org.hibernate.orm:hibernate-core:6.6.33.Final'
     implementation "com.hazelcast:hazelcast:${hazelcastVersion}"
 
+    testFixturesImplementation project(':toolkit-scan-reflections')
     testFixturesCompileOnly 'org.springframework:spring-context:6.2.12'
     testFixturesCompileOnly 'org.springframework:spring-beans:6.2.12'
     testFixturesCompileOnly 'org.springframework:spring-aop:6.2.12'

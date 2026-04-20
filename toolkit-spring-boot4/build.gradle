@@ -15,7 +15,7 @@ configurations {
 dependencies {
     api project(':toolkit-core')
     api project(':toolkit-runtime')
-    api project(':toolkit-scan-reflections')
+    implementation project(':toolkit-scan-reflections')
     api project(':toolkit-metrics-spring')
     api project(':toolkit-spring-common')
 

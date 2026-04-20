@@ -4,7 +4,7 @@ import com.hazelcast.client.config.ClientConfig;
 import com.hazelcast.config.CompactSerializationConfig;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientFactory;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientNameBuilder;
-import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.CompactClassesScanner;
+import io.github.javaquasar.hazelcast.toolkit.scan.reflections.ReflectionsClassScanner;
 import io.github.javaquasar.hazelcast.toolkit.springboot3.config.compact.invalid.BrokenCompactType;
 import io.github.javaquasar.hazelcast.toolkit.springboot3.config.compact.valid.CustomizerCompactType;
 import io.github.javaquasar.hazelcast.toolkit.springboot3.config.compact.valid.TestClientLimitEntryCache;
@@ -24,7 +24,7 @@ class HazelcastClientFactoryTest {
     @Test
     void createClientConfigRegistersReflectiveAndExplicitCompactTypesAndAppliesCustomizers() throws Exception {
         HazelcastClientFactory factory = new HazelcastClientFactory(
-                new CompactClassesScanner(),
+                new ReflectionsClassScanner(),
                 List.of(clientConfig -> {
                     clientConfig.setProperty("test.customizer.applied", "true");
                     clientConfig.getSerializationConfig().getCompactSerializationConfig().addClass(CustomizerCompactType.class);
@@ -66,7 +66,7 @@ class HazelcastClientFactoryTest {
 
     @Test
     void createClientConfigUsesSanitizedApplicationNameInInstanceName() {
-        HazelcastClientFactory factory = new HazelcastClientFactory(new CompactClassesScanner());
+        HazelcastClientFactory factory = new HazelcastClientFactory(new ReflectionsClassScanner());
 
         ClientConfig clientConfig = factory.createClientConfig(
                 "hz.client",
@@ -82,7 +82,7 @@ class HazelcastClientFactoryTest {
 
     @Test
     void createClientConfigRejectsMismatchedExplicitSerializer() {
-        HazelcastClientFactory factory = new HazelcastClientFactory(new CompactClassesScanner());
+        HazelcastClientFactory factory = new HazelcastClientFactory(new ReflectionsClassScanner());
 
         IllegalStateException exception = assertThrows(
                 IllegalStateException.class,

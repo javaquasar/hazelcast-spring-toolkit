@@ -3,7 +3,7 @@ def boot2TestRunId = providers.provider { Long.toString(System.currentTimeMillis
 dependencies {
     api project(':toolkit-core')
     api project(':toolkit-runtime')
-    api project(':toolkit-scan-reflections')
+    implementation project(':toolkit-scan-reflections')
     api project(':toolkit-metrics-spring')
     api project(':toolkit-spring-common')
 
