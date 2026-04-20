@@ -10,7 +10,7 @@
 ./gradlew :toolkit-spring-boot3:test
 
 # Run a single test class
-./gradlew :toolkit-runtime:test --tests io.github.javaquasar.hazelcast.toolkit.hazelcast.CompactRegistrationTest
+./gradlew :toolkit-runtime:test --tests io.github.javaquasar.hazelcast.toolkit.hazelcast.compact.CompactClientConfigSupportTest
 ./gradlew :toolkit-spring-boot3:test --tests io.github.javaquasar.hazelcast.toolkit.springboot3.config.HazelcastClientFactoryTest
 
 # Build with optional Boot 4 module

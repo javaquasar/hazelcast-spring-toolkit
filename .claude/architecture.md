@@ -61,8 +61,7 @@ main integration pieces transitively.
 |---|---|
 | `HazelcastClientFactory` | Creates `ClientConfig` and `HazelcastInstance`, applying compact registrations and ordered customizers. |
 | `HazelcastClientNameBuilder` | Builds the final instance name from `baseName` plus `applicationName`, with sanitization. |
-| `CompactClientConfigSupport` | Applies explicit serializers first, then reflective compact classes. |
-| `CompactRegistration` | Older utility that only handles reflective compact registration and is now partially superseded. |
+| `CompactClientConfigSupport` | Canonical compact-registration path: applies explicit serializers first, then reflective compact classes. |
 | `HazelcastClientConfigCustomizer` | Extension point for client config tuning, typically used as ordered Spring beans. |
 | `HazelcastClientProperties` | `@ConfigurationProperties("hazelcast.client")` for client name, cluster name, and network settings. |
 | `HzToolkitProperties` | `@ConfigurationProperties("hazelcast.toolkit")` for compact scan, metrics, client naming, and Hibernate L2 features. |

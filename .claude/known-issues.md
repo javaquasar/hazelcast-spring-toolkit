@@ -7,30 +7,26 @@ and resolved history that should not be confused with the active roadmap.
 
 ## Current Known Issues / Technical Debt
 
-1. **`CompactRegistration` in `toolkit-runtime` is incomplete / redundant.**
-   It handles only reflective compact classes and does not cover explicit serializers.
-   `CompactClientConfigSupport` is the full implementation used by the runtime.
-
-2. **`toolkit-runtime` exposes `toolkit-scan-reflections` via `api`.**
+1. **`toolkit-runtime` exposes `toolkit-scan-reflections` via `api`.**
    That leaks a concrete scanner implementation into the public module boundary,
    which weakens the intended `ClassScanner` abstraction.
 
-3. **`toolkit-spring-common` compiles against Spring 6 while Boot 2 runs on Spring 5.**
+2. **`toolkit-spring-common` compiles against Spring 6 while Boot 2 runs on Spring 5.**
    Test fixtures inherit the Spring 6 compile dependency, which could become a real
    compatibility issue if fixtures begin to use Spring 6-only APIs.
 
-4. **`HazelcastClientProperties.instanceName` still defaults to `"app-hz-client"`.**
+3. **`HazelcastClientProperties.instanceName` still defaults to `"app-hz-client"`.**
    That is convenient for demos but can be risky when multiple applications share a JVM.
 
-5. **`Boot3IntegrationTest` remains `@Disabled` with a stale reason.**
+4. **`Boot3IntegrationTest` remains `@Disabled` with a stale reason.**
    The original hang was related to duplicate instance naming; the test now needs a
    proper unique instance-name setup and revalidation.
 
-6. **`invalidatesNearCacheWhenAnotherClientUpdatesL2CacheEntry` is still disabled in Boot 2 and Boot 3.**
+5. **`invalidatesNearCacheWhenAnotherClientUpdatesL2CacheEntry` is still disabled in Boot 2 and Boot 3.**
    The scenario is flaky because of a type mismatch between a raw remote put and the
    Hibernate-serialized `CacheEntry` value format.
 
-7. **Public docs still under-explain the observability split between Micrometer metrics and the diagnostic endpoint.**
+6. **Public docs still under-explain the observability split between Micrometer metrics and the diagnostic endpoint.**
    The implementation now separates production meters from manual troubleshooting,
    but README / docs still need a concise operator-facing explanation of when to use
    which surface.
@@ -101,6 +97,7 @@ These items are historical improvements and should not be listed as active backl
 - Runnable `example-spring-boot3` with explicit and reflective compact types, listeners, near-cache demo, and Management Center flow
 - Shared Hibernate L2 performance harness extracted into `toolkit-spring-common` test fixtures for Boot-specific reuse
 - Micrometer near-cache and Hibernate L2 binders with runtime cache/map auto-registration, while keeping `HzToolkitMetricsController` as a diagnostic endpoint
+- `CompactRegistration` removed before first public release; `CompactClientConfigSupport` is now the single compact-registration path
 
 ## Resolved In April 2026 (first pass — earlier in month)
 
