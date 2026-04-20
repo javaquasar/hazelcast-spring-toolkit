@@ -18,11 +18,6 @@ and resolved history that should not be confused with the active roadmap.
    The scenario is flaky because of a type mismatch between a raw remote put and the
    Hibernate-serialized `CacheEntry` value format.
 
-4. **Public docs still under-explain the observability split between Micrometer metrics and the diagnostic endpoint.**
-   The implementation now separates production meters from manual troubleshooting,
-   but README / docs still need a concise operator-facing explanation of when to use
-   which surface.
-
 ## Test And Runtime Caveats
 
 ### Multi-Context Naming Rule
@@ -81,6 +76,7 @@ second-level caching, but full wiring happens only when explicitly requested.
 - `toolkit-spring-common` testFixtures now declare `testFixturesImplementation project(':toolkit-scan-reflections')` explicitly (was previously leaking in transitively via `toolkit-runtime`).
 - Example app's `ExampleSpringBoot3CompactScanningTest` now has an explicit `testImplementation project(':toolkit-scan-reflections')` dependency instead of relying on transitive exposure.
 - `Boot3IntegrationTest` re-enabled and stabilized. The old disabled note was stale: the real hang came from unnecessarily bootstrapping JPA/Hibernate L2 for a test that only validates Hazelcast client connectivity plus the Postgres `DataSource`. The test now uses a lightweight non-web context, disables JPA auto-configuration, keeps `hazelcast.toolkit.hibernate.l2.enabled=false`, and sets a unique `hazelcast.client.instance-name`.
+- Public docs now explain the observability split clearly and document the Hibernate L2 / JCACHE corner case: use Micrometer for production monitoring, `/hz-toolkit` for diagnostics, and prefer `extended-config=true` when binding Hibernate L2 to the toolkit-managed JCache path.
 
 ## Resolved In April 2026 (second pass)
 

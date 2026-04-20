@@ -112,6 +112,30 @@ It is **not** the primary production monitoring API.
 - Use **`/hz-toolkit` diagnostic endpoints** for manual inspection when debugging a cache issue.
 - Use **`/actuator/hazelcast-near-cache`** when you want to actively probe whether near-cache invalidation and L2 behavior are working for a specific entity.
 
+## JPA And JCache Corner Case
+
+If Hibernate L2 is enabled with `region-factory: JCACHE`, make sure Hibernate is
+bound to the toolkit-managed `javax.cache.CacheManager`.
+
+Recommended setup:
+
+```yaml
+hazelcast:
+  toolkit:
+    hibernate:
+      l2:
+        enabled: true
+        extended-config: true
+```
+
+Why this matters:
+
+- this keeps Hibernate on the same Hazelcast-backed JCache manager that the toolkit already created
+- it avoids Hibernate's fallback path where `JCacheRegionFactory` tries to bootstrap its own default cache manager
+- that fallback may create a separate internal Hazelcast client, which is harder to monitor and can be surprising during debugging
+
+If you want to avoid the JCache layer entirely, prefer `region-factory: HAZELCAST_LOCAL`.
+
 ## Minimal Example
 
 ```yaml

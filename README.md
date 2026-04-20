@@ -210,6 +210,34 @@ With `extended-config=false` (default), only `region.factory_class` and `hazelca
 | `use-query-cache` | `false` | `hibernate.cache.use_query_cache` — `extended-config` only |
 | `use-statistics` | `false` | `hibernate.generate_statistics` — `extended-config` only |
 
+#### JPA / JCache Corner Cases
+
+When Hibernate L2 uses `region-factory: JCACHE`, prefer the fully managed path:
+
+```yaml
+hazelcast:
+  toolkit:
+    hibernate:
+      l2:
+        enabled: true
+        extended-config: true
+```
+
+This matters because `extended-config: true` binds Hibernate to the toolkit-managed
+Hazelcast-backed `javax.cache.CacheManager`.
+
+Without that binding, Hibernate's `JCacheRegionFactory` may fall back to its own
+default-cache-manager bootstrap path and create a separate internal Hazelcast client
+instead of reusing the toolkit-managed one. In logs or thread dumps this may appear
+as an internal client name such as `_hzinstance_jcache_shared`.
+
+Use these rules in real applications:
+
+- If you do not need Hibernate L2, keep `hazelcast.toolkit.hibernate.l2.enabled=false`
+- If you want `JCACHE`, prefer `enabled=true` plus `extended-config=true`
+- If you want to avoid the JCache layer entirely, use `region-factory: HAZELCAST_LOCAL`
+- In tests or multi-context applications, always set a unique `hazelcast.client.instance-name`
+
 #### Local Performance Notes
 
 A local multi-run characterization of `JCACHE` vs `HAZELCAST_LOCAL`, with and
