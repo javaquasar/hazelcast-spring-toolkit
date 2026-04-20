@@ -1,4 +1,4 @@
-package io.github.javaquasar.hazelcast.toolkit.boot3.l2issue;
+package io.github.javaquasar.hazelcast.toolkit.spring.test.l2issue;
 
 import jakarta.persistence.Cacheable;
 import jakarta.persistence.Column;
@@ -12,23 +12,23 @@ import org.hibernate.annotations.CacheConcurrencyStrategy;
 @Table(name = "l2_issue_group_with_converter")
 @Cacheable
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "l2-issue-group-with-converter")
-public class IssueUserGroupWithConverter {
+public class SharedIssueUserGroupWithConverter {
 
     @EmbeddedId
-    private IssueUserGroupPkWithConverter id;
+    private SharedIssueUserGroupPkWithConverter id;
 
     @Column(name = "label", nullable = false)
     private String label;
 
-    protected IssueUserGroupWithConverter() {
+    protected SharedIssueUserGroupWithConverter() {
     }
 
-    public IssueUserGroupWithConverter(IssueUserGroupPkWithConverter id, String label) {
+    public SharedIssueUserGroupWithConverter(SharedIssueUserGroupPkWithConverter id, String label) {
         this.id = id;
         this.label = label;
     }
 
-    public IssueUserGroupPkWithConverter getId() {
+    public SharedIssueUserGroupPkWithConverter getId() {
         return id;
     }
 
@@ -36,6 +36,3 @@ public class IssueUserGroupWithConverter {
         return label;
     }
 }
-
-
-

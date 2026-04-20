@@ -94,15 +94,19 @@ Boot 2 mirrors Boot 3 conceptually but uses the Boot 2 registration style
 
 ### toolkit-spring-boot4
 
-Boot 4 now includes the same main auto-configuration areas as Boot 3:
+Boot 4 includes the same main auto-configuration areas as Boot 3:
 
 - `HazelcastToolkitAutoConfiguration`
 - `HazelcastJCacheAutoConfiguration`
 - `HazelcastHibernateL2AutoConfiguration`
 - `HazelcastActuatorAutoConfiguration`
 
-The remaining gap is mostly in test parity and longer-tail validation, not in the
-presence of the main starter classes.
+Boot 4 test coverage now matches Boot 3 across all major test areas:
+auto-config smoke, JCache integration, JPA L2 cache, map listener, actuator near-cache,
+L2 cache key-issue (composite keys, converters), and performance characterization.
+Boot 4 uses H2 + in-process Hazelcast member (no Testcontainers) whereas Boot 3 uses
+PostgreSQL via Testcontainers — this is an intentional infrastructure difference,
+not a parity gap.
 
 ### example-spring-boot3
 
@@ -168,11 +172,14 @@ name source is present, the fallback remains `app-hz-client`.
 ### Shared Test Fixtures
 
 - `SharedTestApplication` - shared `@SpringBootApplication` and entity scan setup
-- `EmbeddedHazelcastTestConfiguration` - in-process Hazelcast member for tests
-- `ListenerTestConfiguration` - test listener with event counting
+- `EmbeddedHazelcastTestConfiguration` - in-process Hazelcast member for listener tests
+- `ListenerTestConfiguration` - test listener with event counting (`RecordingEntryListener`)
 - `HazelcastAutoConfigurationSmokeTestSupport` - shared bean-wiring assertions
-- `AbstractHibernateL2PerformanceComparisonSupport` - shared L2 warm-read measurement harness used by Boot-specific tests
-- L2 test entities and repositories for cache scenarios
+- `AbstractHibernateL2PerformanceComparisonSupport` - shared L2 warm-read measurement harness used by all three Boot-specific performance tests
+- `AbstractEmbeddedMemberL2CacheTestConfiguration` - shared base for Boot 2 / Boot 4 embedded-member L2 test configurations; concrete subclasses provide cluster name, member address, and lifecycle annotations
+- `SharedTestCachedEntity` / `SharedTestCachedEntityRepository` - L2 cache test entities (dual javax+jakarta annotations for Boot 2 / 3 / 4 reuse)
+- `l2issue/` package - shared L2 cache key-issue entities (`SharedIssueUser`, composite-key entity variants, `SharedIssueSimpleConvertedEntity`, converter, enum) used by Boot 3 and Boot 4 L2 key-issue tests; Jakarta-only annotations (Boot 2 has its own `LegacyIssue*` copies)
+- `SharedL2CacheKeyIssueTestApplication` - shared `@SpringBootApplication` + `@EntityScan` entry point for L2 key-issue tests
 
 ### Testcontainers
 

@@ -1,6 +1,6 @@
-package io.github.javaquasar.hazelcast.toolkit.boot3;
+package io.github.javaquasar.hazelcast.toolkit.boot4;
 
-import io.github.javaquasar.hazelcast.toolkit.boot3.l2.L2CacheTestConfiguration;
+import io.github.javaquasar.hazelcast.toolkit.boot4.l2.Boot4L2CacheTestConfiguration;
 import io.github.javaquasar.hazelcast.toolkit.spring.test.l2issue.SharedIssueSimpleConvertedEntity;
 import io.github.javaquasar.hazelcast.toolkit.spring.test.l2issue.SharedIssueUser;
 import io.github.javaquasar.hazelcast.toolkit.spring.test.l2issue.SharedIssueUserGroupManyToOneNoConverter;
@@ -11,7 +11,6 @@ import io.github.javaquasar.hazelcast.toolkit.spring.test.l2issue.SharedIssueUse
 import io.github.javaquasar.hazelcast.toolkit.spring.test.l2issue.SharedIssueUserGroupType;
 import io.github.javaquasar.hazelcast.toolkit.spring.test.l2issue.SharedIssueUserGroupWithConverter;
 import io.github.javaquasar.hazelcast.toolkit.spring.test.l2issue.SharedL2CacheKeyIssueTestApplication;
-import io.github.javaquasar.hazelcast.toolkit.testcontainers.TestcontainersEnvironment;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import org.hibernate.SessionFactory;
@@ -21,28 +20,45 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@Testcontainers(disabledWithoutDocker = true)
+/**
+ * Integration test verifying that Hibernate L2 cache key scenarios work correctly
+ * under the Boot 4 auto-configuration stack with Hibernate 6.
+ *
+ * <p>Uses an in-process Hazelcast member (via {@link Boot4L2CacheTestConfiguration}) and an
+ * H2 in-memory database — no Testcontainers required.
+ *
+ * <p>Covers: composite key with {@code @Convert}-annotated field, scalar composite key without
+ * converter, {@code @ManyToOne} composite key, and simple entity with converted primary key.
+ *
+ * <p>Boot 3 exercises the same entity set against PostgreSQL via Testcontainers;
+ * Boot 4 uses H2 as a deliberate infrastructure simplification — the Hibernate 6 L2 behaviour
+ * under test is the same regardless of the underlying database.
+ */
 @SpringBootTest(
         classes = SharedL2CacheKeyIssueTestApplication.class,
         properties = {
+                "spring.datasource.url=jdbc:h2:mem:boot4l2issue;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
+                "spring.datasource.driver-class-name=org.h2.Driver",
+                "spring.datasource.username=sa",
+                "spring.datasource.password=",
+                "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
                 "spring.jpa.hibernate.ddl-auto=create",
                 "spring.jpa.open-in-view=false",
                 "hazelcast.toolkit.hibernate.l2.enabled=true",
                 "hazelcast.toolkit.hibernate.l2.extended-config=true",
                 "hazelcast.toolkit.hibernate.l2.use-statistics=true",
-                "hazelcast.client.instance-name=boot3-l2-issue-test"
+                "hazelcast.client.instance-name=boot4-l2-issue-test",
+                "hazelcast.client.cluster-name=" + Boot4L2CacheTestConfiguration.CLUSTER_NAME,
+                "hazelcast.client.network.smart-routing=false"
         }
 )
-@Import(L2CacheTestConfiguration.class)
-class Boot3HibernateL2CacheKeyIssueIntegrationTest extends TestcontainersEnvironment {
+@Import(Boot4L2CacheTestConfiguration.class)
+class Boot4HibernateL2CacheKeyIssueIntegrationTest {
 
     @Autowired
     private TransactionTemplate transactionTemplate;
@@ -54,11 +70,6 @@ class Boot3HibernateL2CacheKeyIssueIntegrationTest extends TestcontainersEnviron
     private EntityManagerFactory entityManagerFactory;
 
     private Statistics statistics;
-
-    @DynamicPropertySource
-    static void registerProperties(DynamicPropertyRegistry registry) {
-        TestcontainersEnvironment.registerSpringProperties(registry);
-    }
 
     @BeforeEach
     void resetStatistics() {

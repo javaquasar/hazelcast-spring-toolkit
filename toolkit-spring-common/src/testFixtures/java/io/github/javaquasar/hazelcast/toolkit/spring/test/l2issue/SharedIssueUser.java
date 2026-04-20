@@ -1,4 +1,4 @@
-package io.github.javaquasar.hazelcast.toolkit.boot3.l2issue;
+package io.github.javaquasar.hazelcast.toolkit.spring.test.l2issue;
 
 import jakarta.persistence.Cacheable;
 import jakarta.persistence.Column;
@@ -14,7 +14,7 @@ import org.hibernate.annotations.CacheConcurrencyStrategy;
 @Table(name = "l2_issue_user")
 @Cacheable
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "l2-issue-user")
-public class IssueUser {
+public class SharedIssueUser {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,10 +23,10 @@ public class IssueUser {
     @Column(name = "username", nullable = false)
     private String username;
 
-    protected IssueUser() {
+    protected SharedIssueUser() {
     }
 
-    public IssueUser(String username) {
+    public SharedIssueUser(String username) {
         this.username = username;
     }
 
@@ -38,6 +38,3 @@ public class IssueUser {
         return username;
     }
 }
-
-
-

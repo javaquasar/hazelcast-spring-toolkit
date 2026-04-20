@@ -1,32 +1,17 @@
 package io.github.javaquasar.hazelcast.toolkit.boot2.l2;
 
-import com.hazelcast.client.config.ClientConfig;
 import com.hazelcast.config.Config;
-import com.hazelcast.config.EvictionConfig;
-import com.hazelcast.config.EvictionPolicy;
-import com.hazelcast.config.MaxSizePolicy;
 import com.hazelcast.config.NetworkConfig;
-import com.hazelcast.config.NearCacheConfig;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
-import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientConfigCustomizer;
-import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientFactory;
-import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.CompactClassesScanner;
-import io.github.javaquasar.hazelcast.toolkit.spring.test.l2.SharedTestCachedEntity;
-import org.springframework.beans.factory.ObjectProvider;
+import io.github.javaquasar.hazelcast.toolkit.spring.test.l2.AbstractEmbeddedMemberL2CacheTestConfiguration;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
-import org.springframework.core.env.Environment;
 
-import javax.annotation.PreDestroy;
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.util.List;
-import java.util.UUID;
 
 @TestConfiguration
-public class Boot2L2CacheTestConfiguration {
+public class Boot2L2CacheTestConfiguration extends AbstractEmbeddedMemberL2CacheTestConfiguration {
 
     public static final String CLUSTER_NAME = "boot2-l2-test-cluster";
     private static final int MEMBER_PORT = findFreePort();
@@ -34,25 +19,22 @@ public class Boot2L2CacheTestConfiguration {
 
     private static volatile HazelcastInstance hazelcastMember = startMember();
 
-    @Bean(destroyMethod = "shutdown")
-    @Primary
-    public HazelcastInstance hazelcastInstance(ObjectProvider<HazelcastClientConfigCustomizer> customizers,
-                                               Environment environment) {
-        ensureMemberRunning();
-        String baseInstanceName = environment.getProperty("hazelcast.client.instance-name", "boot2-l2-client");
-        String uniqueInstanceName = baseInstanceName + "-" + UUID.randomUUID();
-        return new HazelcastClientFactory(new CompactClassesScanner(), customizers.orderedStream().toList())
-                .createClient(uniqueInstanceName, CLUSTER_NAME, List.of(MEMBER_ADDRESS), false, null);
+    @Override
+    protected String clusterName() {
+        return CLUSTER_NAME;
     }
 
-    @Bean
-    public HazelcastClientConfigCustomizer l2NearCacheCustomizer(Environment environment) {
-        boolean nearCacheEnabled = environment.getProperty("test.hazelcast.near-cache.enabled", Boolean.class, true);
-        return nearCacheEnabled ? this::customizeNearCache : clientConfig -> {
-        };
+    @Override
+    protected String memberAddress() {
+        return MEMBER_ADDRESS;
     }
 
-    @PreDestroy
+    @Override
+    protected void ensureTestMemberRunning() {
+        doEnsureMemberRunning();
+    }
+
+    @javax.annotation.PreDestroy
     void shutdownMember() {
         HazelcastInstance member = hazelcastMember;
         if (member != null && member.getLifecycleService().isRunning()) {
@@ -60,17 +42,10 @@ public class Boot2L2CacheTestConfiguration {
         }
     }
 
-    private void customizeNearCache(ClientConfig clientConfig) {
-        NearCacheConfig nearCacheConfig = new NearCacheConfig(SharedTestCachedEntity.CACHE_REGION);
-        nearCacheConfig.setInvalidateOnChange(true);
-        nearCacheConfig.setTimeToLiveSeconds(0);
-        nearCacheConfig.setMaxIdleSeconds(0);
-        nearCacheConfig.setEvictionConfig(new EvictionConfig()
-                .setEvictionPolicy(EvictionPolicy.LRU)
-                .setMaxSizePolicy(MaxSizePolicy.ENTRY_COUNT)
-                .setSize(10_000));
-
-        clientConfig.addNearCacheConfig(nearCacheConfig);
+    private static synchronized void doEnsureMemberRunning() {
+        if (hazelcastMember == null || !hazelcastMember.getLifecycleService().isRunning()) {
+            hazelcastMember = startMember();
+        }
     }
 
     private static HazelcastInstance startMember() {
@@ -81,12 +56,6 @@ public class Boot2L2CacheTestConfiguration {
         networkConfig.setPort(MEMBER_PORT);
         networkConfig.setPortAutoIncrement(false);
         return Hazelcast.newHazelcastInstance(config);
-    }
-
-    private static synchronized void ensureMemberRunning() {
-        if (hazelcastMember == null || !hazelcastMember.getLifecycleService().isRunning()) {
-            hazelcastMember = startMember();
-        }
     }
 
     private static int findFreePort() {

@@ -37,6 +37,7 @@ dependencies {
     testImplementation "org.springframework.boot:spring-boot-starter-data-jpa:${springBoot3Version}"
     testImplementation 'org.springframework:spring-context-support:6.2.12'
     testImplementation "org.hibernate.orm:hibernate-jcache:6.6.33.Final"
+    testImplementation 'com.hazelcast:hazelcast-hibernate53:2.2.1'
     testImplementation "org.springframework.boot:spring-boot-actuator:${springBoot3Version}"
     testRuntimeOnly 'com.h2database:h2:2.2.224'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'

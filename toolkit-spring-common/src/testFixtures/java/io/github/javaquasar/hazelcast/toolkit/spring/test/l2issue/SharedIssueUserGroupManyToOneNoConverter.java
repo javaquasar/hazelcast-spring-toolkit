@@ -1,4 +1,4 @@
-package io.github.javaquasar.hazelcast.toolkit.boot3.l2issue;
+package io.github.javaquasar.hazelcast.toolkit.spring.test.l2issue;
 
 import jakarta.persistence.Cacheable;
 import jakarta.persistence.Column;
@@ -12,26 +12,23 @@ import org.hibernate.annotations.CacheConcurrencyStrategy;
 @Table(name = "l2_issue_group_many_to_one_no_converter")
 @Cacheable
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "l2-issue-group-many-to-one-no-converter")
-public class IssueUserGroupManyToOneNoConverter {
+public class SharedIssueUserGroupManyToOneNoConverter {
 
     @EmbeddedId
-    private IssueUserGroupPkManyToOneNoConverter id;
+    private SharedIssueUserGroupPkManyToOneNoConverter id;
 
     @Column(name = "label", nullable = false)
     private String label;
 
-    protected IssueUserGroupManyToOneNoConverter() {
+    protected SharedIssueUserGroupManyToOneNoConverter() {
     }
 
-    public IssueUserGroupManyToOneNoConverter(IssueUserGroupPkManyToOneNoConverter id, String label) {
+    public SharedIssueUserGroupManyToOneNoConverter(SharedIssueUserGroupPkManyToOneNoConverter id, String label) {
         this.id = id;
         this.label = label;
     }
 
-    public IssueUserGroupPkManyToOneNoConverter getId() {
+    public SharedIssueUserGroupPkManyToOneNoConverter getId() {
         return id;
     }
 }
-
-
-

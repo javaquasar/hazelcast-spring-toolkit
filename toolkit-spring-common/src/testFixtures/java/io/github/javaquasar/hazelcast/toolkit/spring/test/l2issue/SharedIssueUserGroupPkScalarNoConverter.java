@@ -1,4 +1,4 @@
-package io.github.javaquasar.hazelcast.toolkit.boot3.l2issue;
+package io.github.javaquasar.hazelcast.toolkit.spring.test.l2issue;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
@@ -9,19 +9,19 @@ import java.io.Serializable;
 import java.util.Objects;
 
 @Embeddable
-public class IssueUserGroupPkScalarNoConverter implements Serializable {
+public class SharedIssueUserGroupPkScalarNoConverter implements Serializable {
 
     @Column(name = "user_id", nullable = false, updatable = false)
     private Long userId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type_code", nullable = false)
-    private IssueUserGroupType type;
+    private SharedIssueUserGroupType type;
 
-    protected IssueUserGroupPkScalarNoConverter() {
+    protected SharedIssueUserGroupPkScalarNoConverter() {
     }
 
-    public IssueUserGroupPkScalarNoConverter(Long userId, IssueUserGroupType type) {
+    public SharedIssueUserGroupPkScalarNoConverter(Long userId, SharedIssueUserGroupType type) {
         this.userId = userId;
         this.type = type;
     }
@@ -31,7 +31,7 @@ public class IssueUserGroupPkScalarNoConverter implements Serializable {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof IssueUserGroupPkScalarNoConverter that)) {
+        if (!(o instanceof SharedIssueUserGroupPkScalarNoConverter that)) {
             return false;
         }
         return Objects.equals(userId, that.userId) && type == that.type;
@@ -42,5 +42,3 @@ public class IssueUserGroupPkScalarNoConverter implements Serializable {
         return Objects.hash(userId, type);
     }
 }
-
-

@@ -30,15 +30,6 @@ and resolved history that should not be confused with the active roadmap.
    The scenario is flaky because of a type mismatch between a raw remote put and the
    Hibernate-serialized `CacheEntry` value format.
 
-7. **Some Boot 3 local test classes appear duplicated relative to shared test fixtures.**
-   `EmbeddedHazelcastTestConfiguration` and `ListenerTestConfiguration` exist both in
-   shared fixtures and in local Boot 3 test sources; the local copies look stale.
-
-8. **Boot 4 test coverage is still behind Boot 2 / Boot 3.**
-   The Boot 4 starter classes and auto-configuration imports exist, but parity is
-   still missing for the broader test matrix, especially performance characterization
-   coverage and some longer-tail integration scenarios.
-
 ## Test And Runtime Caveats
 
 ### Multi-Context Naming Rule
@@ -91,7 +82,7 @@ second-level caching, but full wiring happens only when explicitly requested.
 | `HAZELCAST_LOCAL` | Recommended native option for most client applications |
 | `HAZELCAST` | Use only when stronger cluster-wide consistency justifies the trade-off |
 
-## Resolved In April 2026
+## Resolved In April 2026 (second pass)
 
 These items are historical improvements and should not be listed as active backlog:
 
@@ -104,3 +95,13 @@ These items are historical improvements and should not be listed as active backl
 - Testcontainers shutdown cleanup via `ddl-auto=create`
 - Runnable `example-spring-boot3` with explicit and reflective compact types, listeners, near-cache demo, and Management Center flow
 - Shared Hibernate L2 performance harness extracted into `toolkit-spring-common` test fixtures for Boot-specific reuse
+
+## Resolved In April 2026 (first pass — earlier in month)
+
+These items were tracked as active issues and are now resolved:
+
+- Stale Boot 3 local duplicates of `EmbeddedHazelcastTestConfiguration` and `ListenerTestConfiguration` removed; Boot 3 was already using the shared fixtures
+- Boot 3 local `l2issue` entity classes moved to shared `toolkit-spring-common` testFixtures (`SharedIssue*` with Jakarta-only annotations) so Boot 3 and Boot 4 share the same entity set
+- `AbstractEmbeddedMemberL2CacheTestConfiguration` extracted to shared testFixtures; `Boot2L2CacheTestConfiguration` and `Boot4L2CacheTestConfiguration` are now thin adapters
+- Boot 4 test parity with Boot 3 now complete: smoke test, JCache integration, JPA L2 cache, map listener, actuator near-cache, L2 cache key-issue, and performance characterization all present
+- `hazelcast-hibernate53` added to Boot 4 test dependencies to enable the `HAZELCAST_LOCAL` scenario in the performance test

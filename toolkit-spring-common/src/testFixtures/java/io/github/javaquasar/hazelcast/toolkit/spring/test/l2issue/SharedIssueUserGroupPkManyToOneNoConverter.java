@@ -1,8 +1,9 @@
-package io.github.javaquasar.hazelcast.toolkit.boot3.l2issue;
+package io.github.javaquasar.hazelcast.toolkit.spring.test.l2issue;
 
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
 import jakarta.persistence.Embeddable;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -11,30 +12,22 @@ import java.io.Serializable;
 import java.util.Objects;
 
 @Embeddable
-public class IssueUserGroupPkWithConverter implements Serializable {
+public class SharedIssueUserGroupPkManyToOneNoConverter implements Serializable {
 
     @ManyToOne(optional = false, fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = false, updatable = false)
-    private IssueUser user;
+    private SharedIssueUser user;
 
-    @Column(name = "type_id", nullable = false)
-    @Convert(converter = IssueUserGroupTypeConverter.class)
-    private IssueUserGroupType type;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type_code", nullable = false)
+    private SharedIssueUserGroupType type;
 
-    protected IssueUserGroupPkWithConverter() {
+    protected SharedIssueUserGroupPkManyToOneNoConverter() {
     }
 
-    public IssueUserGroupPkWithConverter(IssueUser user, IssueUserGroupType type) {
+    public SharedIssueUserGroupPkManyToOneNoConverter(SharedIssueUser user, SharedIssueUserGroupType type) {
         this.user = user;
         this.type = type;
-    }
-
-    public IssueUser getUser() {
-        return user;
-    }
-
-    public IssueUserGroupType getType() {
-        return type;
     }
 
     @Override
@@ -42,7 +35,7 @@ public class IssueUserGroupPkWithConverter implements Serializable {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof IssueUserGroupPkWithConverter that)) {
+        if (!(o instanceof SharedIssueUserGroupPkManyToOneNoConverter that)) {
             return false;
         }
         return Objects.equals(user == null ? null : user.getId(), that.user == null ? null : that.user.getId())
@@ -54,6 +47,3 @@ public class IssueUserGroupPkWithConverter implements Serializable {
         return Objects.hash(user == null ? null : user.getId(), type);
     }
 }
-
-
-
