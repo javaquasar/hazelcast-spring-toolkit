@@ -1,0 +1,49 @@
+@baseUrl = http://localhost:8080
+
+### Seeded book should already exist after startup
+GET {{baseUrl}}/api/books/1
+
+### Create a new book
+POST {{baseUrl}}/api/books
+Content-Type: application/json
+
+{
+  "title": "Hazelcast Patterns",
+  "author": "Example Author",
+  "isbn": "978-1-99999-100-1",
+  "genre": "Architecture"
+}
+
+### Read the entity twice to warm Hibernate L2
+GET {{baseUrl}}/api/books/2
+
+###
+GET {{baseUrl}}/api/books/2
+
+### Read the explicit-serializer compact DTO
+GET {{baseUrl}}/api/books/cache/2
+
+### Read the reflective compact DTO
+GET {{baseUrl}}/api/books/recommendations/2
+
+### Update the entity and push an updated cache entry + recommendation
+PUT {{baseUrl}}/api/books/2
+Content-Type: application/json
+
+{
+  "title": "Hazelcast Patterns Revised",
+  "author": "Example Author",
+  "genre": "Cloud Architecture"
+}
+
+### Near-cache demo endpoint
+GET {{baseUrl}}/api/books/2/near-cache-demo
+
+### Built-in actuator near-cache probe
+GET {{baseUrl}}/actuator/hazelcastNearCache?entity=io.github.javaquasar.hazelcast.toolkit.example.boot3.model.ExampleBookEntity&id=2
+
+### Inspect cache stats
+GET {{baseUrl}}/api/books/stats
+
+### Delete the entity and evict Hazelcast map entries
+DELETE {{baseUrl}}/api/books/2
