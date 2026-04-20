@@ -27,7 +27,7 @@ While Spring Boot provides basic Hazelcast auto-configuration, it is intentional
 | **Configuration Style**              | Properties + XML/YAML files only              | Annotations + properties + type-safe customizers     | Developer-friendly and type-safe |
 | **Multi Boot Version Support**       | Single implementation                         | Dedicated modules for Boot 2 / 3 / 4                 | Future-proof |
 | **Test Infrastructure**              | None                                          | Shared Testcontainers (3-node cluster + Postgres)    | Ready for integration testing |
-| **Metrics & Observability**          | Basic                                         | Optional metrics controller + Near-Cache health Actuator endpoint | Production monitoring ready |
+| **Metrics & Observability**          | Basic                                         | Micrometer near-cache + Hibernate L2 meters, diagnostic controller, and Near-Cache health Actuator endpoint | Production monitoring ready |
 
 **In short:**  
 Spring Boot gives you the foundation.  
@@ -216,6 +216,36 @@ A local multi-run characterization of `JCACHE` vs `HAZELCAST_LOCAL`, with and
 without client near-cache, is documented in [docs/performance.md](docs/performance.md).
 Treat those numbers as engineering guidance, not as a universal benchmark.
 
+### Observability
+
+The toolkit exposes observability through three complementary surfaces:
+
+1. **Micrometer meters** for production monitoring
+2. **`/hz-toolkit/...` diagnostic endpoints** for manual inspection
+3. **`/actuator/hazelcast-near-cache`** for an active near-cache probe
+
+Enable Micrometer binders:
+
+```yaml
+hazelcast:
+  toolkit:
+    metrics:
+      enabled: true
+```
+
+Enable the diagnostic HTTP controller separately:
+
+```yaml
+hazelcast:
+  toolkit:
+    metrics:
+      diagnostic-endpoint:
+        enabled: true
+```
+
+Documented meter names, tags, and usage guidance live in
+[docs/observability.md](docs/observability.md).
+
 ### Near-Cache Health Check — `/actuator/hazelcast-near-cache`
 
 A lightweight Actuator endpoint that verifies, in production, that the Hazelcast near-cache is functioning correctly for a JPA entity of your choice.
@@ -332,7 +362,8 @@ Examples:
 |---|---|---|
 | `client.base-name` | _(empty)_ | Base name for client naming (takes precedence over `instance-name`) |
 | `compact.base-package` | _(empty)_ | Root package to scan for `@HzCompact` classes |
-| `metrics.enabled` | `false` | Enable the optional metrics REST controller |
+| `metrics.enabled` | `false` | Enable Micrometer near-cache and Hibernate L2 binders |
+| `metrics.diagnostic-endpoint.enabled` | `false` | Enable the optional `/hz-toolkit/...` diagnostic controller |
 | `hibernate.l2.enabled` | `false` | Activate Hibernate second-level cache support |
 | `hibernate.l2.region-factory` | `JCACHE` | RegionFactory type: `JCACHE` \| `HAZELCAST_LOCAL` \| `HAZELCAST` |
 | `hibernate.l2.extended-config` | `false` | Apply full property set (region.factory_class, query cache, statistics) |

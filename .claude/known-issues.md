@@ -30,6 +30,11 @@ and resolved history that should not be confused with the active roadmap.
    The scenario is flaky because of a type mismatch between a raw remote put and the
    Hibernate-serialized `CacheEntry` value format.
 
+7. **Public docs still under-explain the observability split between Micrometer metrics and the diagnostic endpoint.**
+   The implementation now separates production meters from manual troubleshooting,
+   but README / docs still need a concise operator-facing explanation of when to use
+   which surface.
+
 ## Test And Runtime Caveats
 
 ### Multi-Context Naming Rule
@@ -95,6 +100,7 @@ These items are historical improvements and should not be listed as active backl
 - Testcontainers shutdown cleanup via `ddl-auto=create`
 - Runnable `example-spring-boot3` with explicit and reflective compact types, listeners, near-cache demo, and Management Center flow
 - Shared Hibernate L2 performance harness extracted into `toolkit-spring-common` test fixtures for Boot-specific reuse
+- Micrometer near-cache and Hibernate L2 binders with runtime cache/map auto-registration, while keeping `HzToolkitMetricsController` as a diagnostic endpoint
 
 ## Resolved In April 2026 (first pass — earlier in month)
 

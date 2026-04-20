@@ -92,6 +92,7 @@ public class HzToolkitProperties {
      */
     public static class Metrics {
         private boolean enabled = false;
+        private DiagnosticEndpoint diagnosticEndpoint = new DiagnosticEndpoint();
 
         public boolean isEnabled() {
             return enabled;
@@ -99,6 +100,33 @@ public class HzToolkitProperties {
 
         public void setEnabled(boolean enabled) {
             this.enabled = enabled;
+        }
+
+        public DiagnosticEndpoint getDiagnosticEndpoint() {
+            return diagnosticEndpoint;
+        }
+
+        public void setDiagnosticEndpoint(DiagnosticEndpoint diagnosticEndpoint) {
+            this.diagnosticEndpoint = diagnosticEndpoint;
+        }
+
+        /**
+         * Lightweight diagnostic HTTP endpoint settings.
+         *
+         * <p>This is intentionally separate from Micrometer metrics publishing.
+         * Use it for local inspection and troubleshooting, not as the primary
+         * production metrics API.
+         */
+        public static class DiagnosticEndpoint {
+            private boolean enabled = false;
+
+            public boolean isEnabled() {
+                return enabled;
+            }
+
+            public void setEnabled(boolean enabled) {
+                this.enabled = enabled;
+            }
         }
     }
 

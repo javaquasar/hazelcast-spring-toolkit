@@ -20,9 +20,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Lightweight HTTP endpoints for inspecting Hazelcast maps/caches and Near Cache stats.
+ * Lightweight HTTP diagnostics endpoints for inspecting Hazelcast maps, caches,
+ * and near-cache state.
  *
- * Designed for debugging and local profiling. You can secure or disable it in your application.
+ * <p>This controller is intentionally positioned as a diagnostic / debugging tool,
+ * not as the primary production metrics API. For production monitoring, prefer the
+ * Micrometer binders exposed by the toolkit.
  */
 @RestController
 @RequestMapping(value = "/hz-toolkit", produces = MediaType.APPLICATION_JSON_VALUE)

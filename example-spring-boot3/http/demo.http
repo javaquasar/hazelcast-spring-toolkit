@@ -42,6 +42,18 @@ GET {{baseUrl}}/api/books/2/near-cache-demo
 ### Built-in actuator near-cache probe
 GET {{baseUrl}}/actuator/hazelcastNearCache?entity=io.github.javaquasar.hazelcast.toolkit.example.boot3.model.ExampleBookEntity&id=2
 
+### Diagnostic endpoint: list Hazelcast distributed objects
+GET {{baseUrl}}/hz-toolkit/hz/objects
+
+### Diagnostic endpoint: inspect JCache near-cache stats for the Hibernate region
+GET {{baseUrl}}/hz-toolkit/hz/jcache/near-stats/test-entity-region
+
+### Micrometer endpoint: inspect Hibernate L2 hit counter
+GET {{baseUrl}}/actuator/metrics/hazelcast.toolkit.hibernate.l2.hit.count
+
+### Micrometer endpoint: inspect near-cache hits for the Hibernate region
+GET {{baseUrl}}/actuator/metrics/hazelcast.toolkit.near.cache.hits?tag=cache:test-entity-region&tag=kind:jcache
+
 ### Inspect cache stats
 GET {{baseUrl}}/api/books/stats
 

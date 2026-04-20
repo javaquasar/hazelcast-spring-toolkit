@@ -10,6 +10,7 @@ dependencies {
     compileOnly "org.springframework.boot:spring-boot-autoconfigure:${springBoot2Version}"
     compileOnly "org.springframework.boot:spring-boot:${springBoot2Version}"
     compileOnly "org.springframework.boot:spring-boot-actuator:${springBoot2Version}"
+    compileOnly 'io.micrometer:micrometer-core:1.12.13'
     compileOnly "org.springframework:spring-context-support:5.3.34"
     compileOnly "org.springframework:spring-web:5.3.34"
     compileOnly 'javax.cache:cache-api:1.1.1'
@@ -21,6 +22,7 @@ dependencies {
     testImplementation "org.springframework.boot:spring-boot-autoconfigure:${springBoot2Version}"
     testImplementation "org.springframework.boot:spring-boot:${springBoot2Version}"
     testImplementation "org.springframework.boot:spring-boot-starter-test:${springBoot2Version}"
+    testImplementation 'io.micrometer:micrometer-core:1.12.13'
     testImplementation "org.springframework.boot:spring-boot-starter-jdbc:${springBoot2Version}"
     testImplementation "org.springframework.boot:spring-boot-starter-data-jpa:${springBoot2Version}"
     testImplementation 'org.awaitility:awaitility:4.2.2'

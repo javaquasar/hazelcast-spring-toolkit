@@ -5,13 +5,17 @@ import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientConfigCus
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientFactory;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HazelcastClientProperties;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties;
+import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HazelcastNearCacheMetricsBinder;
+import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HibernateL2MetricsBinder;
 import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HzToolkitMetricsController;
 import io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat.CompactClassesScanner;
 import io.github.javaquasar.hazelcast.toolkit.spring.listener.HzListenersAutoRegistrar;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -19,6 +23,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 
 import javax.cache.CacheManager;
+import jakarta.persistence.EntityManagerFactory;
 
 @AutoConfiguration
 public class HazelcastToolkitAutoConfiguration {
@@ -74,10 +79,36 @@ public class HazelcastToolkitAutoConfiguration {
 
     @Bean
     @ConditionalOnClass({HzToolkitMetricsController.class, CacheManager.class})
-    @ConditionalOnProperty(prefix = "hazelcast.toolkit.metrics", name = "enabled", havingValue = "true")
+    @ConditionalOnProperty(prefix = "hazelcast.toolkit.metrics.diagnostic-endpoint", name = "enabled", havingValue = "true")
     public HzToolkitMetricsController hzToolkitMetricsController(CacheManager cacheManager,
                                                                  HazelcastInstance hazelcastInstance) {
         return new HzToolkitMetricsController(cacheManager, hazelcastInstance);
+    }
+
+    @Bean
+    @ConditionalOnClass({HazelcastNearCacheMetricsBinder.class, MeterRegistry.class, CacheManager.class})
+    @ConditionalOnProperty(prefix = "hazelcast.toolkit.metrics", name = "enabled", havingValue = "true")
+    @ConditionalOnMissingBean
+    public HazelcastNearCacheMetricsBinder hazelcastNearCacheMetricsBinder(
+            MeterRegistry meterRegistry,
+            CacheManager cacheManager,
+            HazelcastInstance hazelcastInstance) {
+        HazelcastNearCacheMetricsBinder binder = new HazelcastNearCacheMetricsBinder(cacheManager, hazelcastInstance);
+        binder.bindTo(meterRegistry);
+        return binder;
+    }
+
+    @Bean
+    @ConditionalOnClass({HibernateL2MetricsBinder.class, MeterRegistry.class, EntityManagerFactory.class})
+    @ConditionalOnProperty(prefix = "hazelcast.toolkit.metrics", name = "enabled", havingValue = "true")
+    @ConditionalOnMissingBean
+    public HibernateL2MetricsBinder hibernateL2MetricsBinder(
+            MeterRegistry meterRegistry,
+            EntityManagerFactory entityManagerFactory,
+            HzToolkitProperties properties) {
+        HibernateL2MetricsBinder binder = new HibernateL2MetricsBinder(entityManagerFactory, properties);
+        binder.bindTo(meterRegistry);
+        return binder;
     }
 
     private static String resolveClientBaseName(HazelcastClientProperties props, HzToolkitProperties toolkitProps) {

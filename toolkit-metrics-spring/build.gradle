@@ -1,11 +1,13 @@
 dependencies {
     api project(':toolkit-core')
 
+    compileOnly project(':toolkit-runtime')
     compileOnly 'org.springframework:spring-web:6.2.0'
     compileOnly 'org.springframework:spring-context:6.2.0'
 
     compileOnly 'javax.cache:cache-api:1.1.1'
     compileOnly "com.hazelcast:hazelcast:${hazelcastVersion}"
+    compileOnly 'io.micrometer:micrometer-core:1.12.13'
 
     implementation "org.slf4j:slf4j-api:${slf4jVersion}"
 }

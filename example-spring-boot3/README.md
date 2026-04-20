@@ -7,6 +7,7 @@ Runnable example for `hazelcast-toolkit` that demonstrates:
 - `@HzIMapListener` for create / update / delete map events
 - Hibernate L2 with `jcache` and `hazelcast-local` profiles
 - client near-cache configuration plus both REST and Actuator probe flows
+- Micrometer observability plus `/hz-toolkit` diagnostics
 - ready-to-run local setup with `compose.yaml` and [http/demo.http](http/demo.http)
 
 ## What This Example Contains
@@ -46,10 +47,22 @@ The example exposes:
 
 - `GET /api/books/{id}/near-cache-demo`
 - `GET /actuator/hazelcastNearCache`
+- `GET /actuator/metrics/...`
+- `GET /hz-toolkit/...`
 - visual inspection through Hazelcast Management Center on `http://localhost:8081`
 
 Both are useful when you want to prove that L2 + near-cache is actually working
 instead of assuming it is.
+
+### 5. Observability flow
+
+The example also demonstrates the new observability split:
+
+- Micrometer meters via `GET /actuator/metrics/...`
+- diagnostic endpoints via `GET /hz-toolkit/...`
+
+Use the Micrometer endpoints for production-style monitoring checks and the
+`/hz-toolkit` endpoints for manual inspection while debugging.
 
 ## Run Hazelcast
 
@@ -105,6 +118,8 @@ That file walks through:
 - update
 - near-cache demo
 - Actuator near-cache probe
+- diagnostic object / cache inspection
+- Micrometer metric lookup
 - delete
 
 ## Key Endpoints
@@ -120,6 +135,10 @@ That file walks through:
 | `GET /api/books/stats` | inspect Hibernate L2 counters |
 | `GET /api/books/{id}/near-cache-demo` | app-level near-cache demonstration |
 | `GET /actuator/hazelcastNearCache` | toolkit Actuator probe |
+| `GET /actuator/metrics/hazelcast.toolkit.hibernate.l2.hit.count` | inspect Micrometer Hibernate L2 meter |
+| `GET /actuator/metrics/hazelcast.toolkit.near.cache.hits?...` | inspect Micrometer near-cache meter with tags |
+| `GET /hz-toolkit/hz/objects` | diagnostic distributed object listing |
+| `GET /hz-toolkit/hz/jcache/near-stats/{cacheName}` | diagnostic JCache near-cache inspection |
 
 ## Sequence
 
@@ -187,6 +206,18 @@ The example enables:
 
 The app-level demo endpoint returns timings plus L2 deltas. The Actuator endpoint
 is closer to how you would verify this in production.
+
+For observability:
+
+- `GET /actuator/metrics/hazelcast.toolkit.hibernate.l2.hit.count`
+- `GET /actuator/metrics/hazelcast.toolkit.near.cache.hits?tag=cache:test-entity-region&tag=kind:jcache`
+- `GET /hz-toolkit/hz/jcache/near-stats/test-entity-region`
+
+These three calls give you a practical side-by-side view of:
+
+- exported production metrics
+- tagged near-cache counters
+- raw diagnostic cache state
 
 Management Center is useful for visual confirmation of:
 

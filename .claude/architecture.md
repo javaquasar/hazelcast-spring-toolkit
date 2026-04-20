@@ -20,7 +20,7 @@ toolkit-runtime               (HazelcastClientFactory, HazelcastClientNameBuilde
    |
 toolkit-spring-common         (HzListenersAutoRegistrar; test-fixtures shared infra)
    |
-toolkit-metrics-spring        (HzToolkitMetricsController - optional REST stats)
+toolkit-metrics-spring        (Micrometer binders + diagnostic REST endpoints)
    |
 toolkit-spring-boot2/3/4      (Spring Boot auto-configuration entry points)
 example-spring-boot3          (runnable sample app with compact types, listeners,
@@ -77,7 +77,9 @@ main integration pieces transitively.
 
 | Class | Role |
 |---|---|
-| `HzToolkitMetricsController` | Optional REST controller at `/hz-toolkit` exposing object, map, and near-cache metrics endpoints. |
+| `HzToolkitMetricsController` | Optional diagnostic REST controller at `/hz-toolkit` for manual inspection of distributed objects, maps, and near-cache state. |
+| `HazelcastNearCacheMetricsBinder` | Micrometer binder for near-cache counters and gauges on `IMap` and JCache objects, including runtime-created maps/caches. |
+| `HibernateL2MetricsBinder` | Micrometer binder exposing global Hibernate L2 and query-cache statistics via reflective SessionFactory access. |
 
 ### toolkit-spring-boot3
 
@@ -164,6 +166,7 @@ name source is present, the fallback remains `app-hz-client`.
 - `HazelcastClientConfigCustomizer` beans are applied in Spring `@Order`.
 - Shared test resources live in `toolkit-spring-common/src/testFixtures`.
 - Shared L2 performance-characterization logic now lives in a common test harness under `toolkit-spring-common/src/testFixtures`.
+- Observability is split into Micrometer meters for production monitoring and a separate diagnostic HTTP controller for manual troubleshooting.
 - `toolkit-testcontainers` is test-only and not published.
 - Boot 4 is opt-in via `-PenableBoot4=true`.
 

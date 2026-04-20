@@ -15,7 +15,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,hazelcastNearCache
+        include: health,info,metrics,hazelcastNearCache
 
 hazelcast:
   client:
@@ -25,6 +25,10 @@ hazelcast:
         - 127.0.0.1:5701
       smart-routing: false
   toolkit:
+    metrics:
+      enabled: true
+      diagnostic-endpoint:
+        enabled: true
     compact:
       base-package: io.github.javaquasar.hazelcast.toolkit.example.boot3.model
     client:
