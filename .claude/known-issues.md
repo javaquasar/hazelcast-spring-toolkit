@@ -11,10 +11,7 @@ and resolved history that should not be confused with the active roadmap.
    Test fixtures inherit the Spring 6 compile dependency, which could become a real
    compatibility issue if fixtures begin to use Spring 6-only APIs.
 
-2. **`HazelcastClientProperties.instanceName` still defaults to `"app-hz-client"`.**
-   That is convenient for demos but can be risky when multiple applications share a JVM.
-
-3. **`invalidatesNearCacheWhenAnotherClientUpdatesL2CacheEntry` is still disabled in Boot 2 and Boot 3.**
+2. **`invalidatesNearCacheWhenAnotherClientUpdatesL2CacheEntry` is still disabled in Boot 2 and Boot 3.**
    The scenario is flaky because of a type mismatch between a raw remote put and the
    Hibernate-serialized `CacheEntry` value format.
 
@@ -77,6 +74,7 @@ second-level caching, but full wiring happens only when explicitly requested.
 - Example app's `ExampleSpringBoot3CompactScanningTest` now has an explicit `testImplementation project(':toolkit-scan-reflections')` dependency instead of relying on transitive exposure.
 - `Boot3IntegrationTest` re-enabled and stabilized. The old disabled note was stale: the real hang came from unnecessarily bootstrapping JPA/Hibernate L2 for a test that only validates Hazelcast client connectivity plus the Postgres `DataSource`. The test now uses a lightweight non-web context, disables JPA auto-configuration, keeps `hazelcast.toolkit.hibernate.l2.enabled=false`, and sets a unique `hazelcast.client.instance-name`.
 - Public docs now explain the observability split clearly and document the Hibernate L2 / JCACHE corner case: use Micrometer for production monitoring, `/hz-toolkit` for diagnostics, and prefer `extended-config=true` when binding Hibernate L2 to the toolkit-managed JCache path.
+- Hazelcast client naming is now safer by default. `hazelcast.toolkit.client.base-name` remains the toolkit naming prefix, `hazelcast.client.instance-name` is treated as an explicit direct name when no toolkit base-name is configured, `spring.application.name` becomes the fallback naming source, and the old shared default `app-hz-client` has been removed in favor of a generated unique fallback.
 
 ## Resolved In April 2026 (second pass)
 

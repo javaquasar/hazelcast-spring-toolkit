@@ -63,7 +63,8 @@ public class HazelcastToolkitAutoConfiguration {
                                                HzToolkitProperties toolkitProps,
                                                Environment environment) {
         return factory.createClient(
-                resolveClientBaseName(props, toolkitProps),
+                resolveClientBaseName(toolkitProps),
+                resolveExplicitInstanceName(props, toolkitProps),
                 environment.getProperty("spring.application.name"),
                 props.getClusterName(),
                 props.getNetwork().getClusterMembers(),
@@ -112,10 +113,14 @@ public class HazelcastToolkitAutoConfiguration {
         return binder;
     }
 
-    private static String resolveClientBaseName(HazelcastClientProperties props, HzToolkitProperties toolkitProps) {
+    private static String resolveClientBaseName(HzToolkitProperties toolkitProps) {
+        return toolkitProps.getClient().getBaseName();
+    }
+
+    private static String resolveExplicitInstanceName(HazelcastClientProperties props, HzToolkitProperties toolkitProps) {
         String configuredBaseName = toolkitProps.getClient().getBaseName();
         if (configuredBaseName != null && !configuredBaseName.isBlank()) {
-            return configuredBaseName;
+            return null;
         }
         return props.getInstanceName();
     }

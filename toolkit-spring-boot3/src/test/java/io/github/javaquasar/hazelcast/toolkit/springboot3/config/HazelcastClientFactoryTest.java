@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -65,6 +66,32 @@ class HazelcastClientFactoryTest {
     }
 
     @Test
+    void buildClientNameUsesExplicitInstanceNameWhenNoBaseNameExists() {
+        assertEquals(
+                "legacy-client",
+                HazelcastClientNameBuilder.build(null, "legacy-client", "Billing Service")
+        );
+    }
+
+    @Test
+    void buildClientNameUsesApplicationNameWhenNoBaseNameOrExplicitInstanceNameExists() {
+        assertEquals(
+                "billing-service",
+                HazelcastClientNameBuilder.build(null, null, "Billing Service")
+        );
+    }
+
+    @Test
+    void buildClientNameGeneratesUniqueFallbackWhenNoNamingInputsExist() {
+        String first = HazelcastClientNameBuilder.build(null, null, null);
+        String second = HazelcastClientNameBuilder.build(null, null, null);
+
+        assertTrue(first.startsWith("hz-client-"));
+        assertTrue(second.startsWith("hz-client-"));
+        assertNotEquals(first, second);
+    }
+
+    @Test
     void createClientConfigUsesSanitizedApplicationNameInInstanceName() {
         HazelcastClientFactory factory = new HazelcastClientFactory(new ReflectionsClassScanner());
 
@@ -78,6 +105,57 @@ class HazelcastClientFactoryTest {
         );
 
         assertEquals("hz-client-billing-api-eu", clientConfig.getInstanceName());
+    }
+
+    @Test
+    void createClientConfigUsesExplicitInstanceNameWhenNoBaseNameExists() {
+        HazelcastClientFactory factory = new HazelcastClientFactory(new ReflectionsClassScanner());
+
+        ClientConfig clientConfig = factory.createClientConfig(
+                null,
+                "legacy-client",
+                " Billing/API @ EU ",
+                "test-cluster",
+                List.of("127.0.0.1:5701"),
+                true,
+                null
+        );
+
+        assertEquals("legacy-client", clientConfig.getInstanceName());
+    }
+
+    @Test
+    void createClientConfigUsesApplicationNameWhenNoBaseNameOrExplicitInstanceNameExists() {
+        HazelcastClientFactory factory = new HazelcastClientFactory(new ReflectionsClassScanner());
+
+        ClientConfig clientConfig = factory.createClientConfig(
+                null,
+                null,
+                " Billing/API @ EU ",
+                "test-cluster",
+                List.of("127.0.0.1:5701"),
+                true,
+                null
+        );
+
+        assertEquals("billing-api-eu", clientConfig.getInstanceName());
+    }
+
+    @Test
+    void createClientConfigGeneratesFallbackWhenNoNamingInputsExist() {
+        HazelcastClientFactory factory = new HazelcastClientFactory(new ReflectionsClassScanner());
+
+        ClientConfig clientConfig = factory.createClientConfig(
+                null,
+                null,
+                null,
+                "test-cluster",
+                List.of("127.0.0.1:5701"),
+                true,
+                null
+        );
+
+        assertTrue(clientConfig.getInstanceName().startsWith("hz-client-"));
     }
 
     @Test

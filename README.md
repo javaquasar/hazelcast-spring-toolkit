@@ -354,22 +354,34 @@ All detected customizers are applied in `@Order` sequence before the client is c
 
 ### Client Naming
 
-The final Hazelcast instance name is derived from two optional properties:
+The final Hazelcast instance name is derived from up to three inputs:
 
 | Property | Default |
 |---|---|
-| `hazelcast.toolkit.client.base-name` | falls back to `hazelcast.client.instance-name` |
+| `hazelcast.toolkit.client.base-name` | _(empty)_ |
+| `hazelcast.client.instance-name` | _(empty)_ |
 | `spring.application.name` | (empty) |
 
-When both are set, the name becomes `<base-name>-<sanitized-application-name>`. Application names are lowercased and reduced to `[a-z0-9-]`.
+Resolution order:
+
+1. If `hazelcast.toolkit.client.base-name` is set, it acts as the naming prefix.
+   If `spring.application.name` is also set, the result is
+   `<base-name>-<sanitized-application-name>`.
+2. Otherwise, if `hazelcast.client.instance-name` is set, it is used as-is.
+3. Otherwise, if `spring.application.name` is set, the sanitized application name is used.
+4. Otherwise, the toolkit generates a unique fallback such as `hz-client-<random-suffix>`.
+
+Application names and `base-name` values are lowercased and reduced to `[a-z0-9-]`.
 
 Examples:
 
-| base-name | application-name | Result |
-|---|---|---|
-| `hz.client` | `my-service` | `hz.client-my-service` |
-| `hz.client` | `Billing/API @ EU` | `hz.client-billing-api-eu` |
-| `app-hz-client` | _(absent)_ | `app-hz-client` |
+| base-name | instance-name | application-name | Result |
+|---|---|---|---|
+| `hz.client` | `legacy-name` | `my-service` | `hz-client-my-service` |
+| `hz.client` | `legacy-name` | `Billing/API @ EU` | `hz-client-billing-api-eu` |
+| _(empty)_ | `legacy-name` | `my-service` | `legacy-name` |
+| _(empty)_ | _(empty)_ | `my-service` | `my-service` |
+| _(empty)_ | _(empty)_ | _(empty)_ | generated unique fallback |
 
 ---
 
@@ -379,7 +391,7 @@ Examples:
 
 | Property | Default | Description |
 |---|---|---|
-| `instance-name` | `app-hz-client` | Fallback client instance name |
+| `instance-name` | _(empty)_ | Explicit Hazelcast client instance name when toolkit naming policy is not configured |
 | `cluster-name` | `dev` | Hazelcast cluster name |
 | `network.cluster-members` | `[]` | Cluster member addresses (`host:port`) |
 | `network.smart-routing` | `true` | Route operations to owner partition member |
@@ -388,7 +400,7 @@ Examples:
 
 | Property | Default | Description |
 |---|---|---|
-| `client.base-name` | _(empty)_ | Base name for client naming (takes precedence over `instance-name`) |
+| `client.base-name` | _(empty)_ | Toolkit naming prefix; when combined with `spring.application.name`, produces `<base-name>-<app-name>` |
 | `compact.base-package` | _(empty)_ | Root package to scan for `@HzCompact` classes |
 | `metrics.enabled` | `false` | Enable Micrometer near-cache and Hibernate L2 binders |
 | `metrics.diagnostic-endpoint.enabled` | `false` | Enable the optional `/hz-toolkit/...` diagnostic controller |

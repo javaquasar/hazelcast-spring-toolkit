@@ -13,29 +13,6 @@ import java.util.List;
 
 /**
  * Builds and returns a configured {@link HazelcastInstance} Hazelcast client.
- *
- * <p>Construction order for each client:
- * <ol>
- *   <li>A fresh {@link ClientConfig} is created and populated with cluster name,
- *       instance name (via {@link HazelcastClientNameBuilder}), network addresses,
- *       and routing mode.
- *   <li>Compact serialization types discovered by {@link CompactClientConfigSupport}
- *       are registered on the serialization config.
- *   <li>Each {@link HazelcastClientConfigCustomizer} is applied in order, allowing
- *       further overrides (TLS, connection retry, etc.).
- *   <li>{@link HazelcastClient#newHazelcastClient(ClientConfig)} creates and returns
- *       the live instance.
- * </ol>
- *
- * <p>The instance name is derived from {@code baseName} and {@code applicationName}
- * following the rules in {@link HazelcastClientNameBuilder}.  Within a single JVM,
- * Hazelcast forbids two clients with the same instance name — ensure each
- * Spring application context uses a unique name (important in test suites that
- * spin up multiple contexts).
- *
- * @see HazelcastClientConfigCustomizer
- * @see HazelcastClientNameBuilder
- * @since 0.1.0
  */
 public class HazelcastClientFactory {
 
@@ -64,7 +41,27 @@ public class HazelcastClientFactory {
                                           List<String> clusterMembers,
                                           boolean smartRouting,
                                           String compactBasePackage) {
-        return createClient(instanceName, null, clusterName, clusterMembers, smartRouting, compactBasePackage);
+        ClientConfig config = createClientConfig(instanceName, clusterName, clusterMembers, smartRouting, compactBasePackage);
+        return startClient(config);
+    }
+
+    public HazelcastInstance createClient(String baseName,
+                                          String explicitInstanceName,
+                                          String applicationName,
+                                          String clusterName,
+                                          List<String> clusterMembers,
+                                          boolean smartRouting,
+                                          String compactBasePackage) {
+        ClientConfig config = createClientConfig(
+                baseName,
+                explicitInstanceName,
+                applicationName,
+                clusterName,
+                clusterMembers,
+                smartRouting,
+                compactBasePackage
+        );
+        return startClient(config);
     }
 
     public HazelcastInstance createClient(String baseName,
@@ -73,16 +70,7 @@ public class HazelcastClientFactory {
                                           List<String> clusterMembers,
                                           boolean smartRouting,
                                           String compactBasePackage) {
-        ClientConfig config = createClientConfig(baseName, applicationName, clusterName, clusterMembers, smartRouting, compactBasePackage);
-        HazelcastInstance instance = HazelcastClient.newHazelcastClient(config);
-        logger.info(
-                "Hazelcast client started — configured instance name: '{}', actual instance name: '{}', cluster: '{}', labels: {}",
-                config.getInstanceName(),
-                instance.getName(),
-                config.getClusterName(),
-                config.getLabels()
-        );
-        return instance;
+        return createClient(baseName, null, applicationName, clusterName, clusterMembers, smartRouting, compactBasePackage);
     }
 
     public ClientConfig createClientConfig(String instanceName,
@@ -90,7 +78,21 @@ public class HazelcastClientFactory {
                                            List<String> clusterMembers,
                                            boolean smartRouting,
                                            String compactBasePackage) {
-        return createClientConfig(instanceName, null, clusterName, clusterMembers, smartRouting, compactBasePackage);
+        ClientConfig clientConfig = baseClientConfig(clusterName, clusterMembers, smartRouting, compactBasePackage);
+        clientConfig.setInstanceName(instanceName);
+        return clientConfig;
+    }
+
+    public ClientConfig createClientConfig(String baseName,
+                                           String explicitInstanceName,
+                                           String applicationName,
+                                           String clusterName,
+                                           List<String> clusterMembers,
+                                           boolean smartRouting,
+                                           String compactBasePackage) {
+        ClientConfig clientConfig = baseClientConfig(clusterName, clusterMembers, smartRouting, compactBasePackage);
+        clientConfig.setInstanceName(HazelcastClientNameBuilder.build(baseName, explicitInstanceName, applicationName));
+        return clientConfig;
     }
 
     public ClientConfig createClientConfig(String baseName,
@@ -99,9 +101,15 @@ public class HazelcastClientFactory {
                                            List<String> clusterMembers,
                                            boolean smartRouting,
                                            String compactBasePackage) {
+        return createClientConfig(baseName, null, applicationName, clusterName, clusterMembers, smartRouting, compactBasePackage);
+    }
+
+    private ClientConfig baseClientConfig(String clusterName,
+                                          List<String> clusterMembers,
+                                          boolean smartRouting,
+                                          String compactBasePackage) {
         ClientConfig clientConfig = new ClientConfig();
         clientConfig.setClusterName(clusterName);
-        clientConfig.setInstanceName(HazelcastClientNameBuilder.build(baseName, applicationName));
         clientConfig.getNetworkConfig().setAddresses(clusterMembers);
         if (!smartRouting) {
             clientConfig.getNetworkConfig().getClusterRoutingConfig().setRoutingMode(RoutingMode.SINGLE_MEMBER);
@@ -110,5 +118,17 @@ public class HazelcastClientFactory {
         compactSupport.registerCompactTypes(clientConfig.getSerializationConfig(), compactBasePackage);
         customizers.forEach(customizer -> customizer.customize(clientConfig));
         return clientConfig;
+    }
+
+    private HazelcastInstance startClient(ClientConfig config) {
+        HazelcastInstance instance = HazelcastClient.newHazelcastClient(config);
+        logger.info(
+                "Hazelcast client started - configured instance name: '{}', actual instance name: '{}', cluster: '{}', labels: {}",
+                config.getInstanceName(),
+                instance.getName(),
+                config.getClusterName(),
+                config.getLabels()
+        );
+        return instance;
     }
 }

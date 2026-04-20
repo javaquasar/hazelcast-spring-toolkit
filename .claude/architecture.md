@@ -136,7 +136,7 @@ It demonstrates:
 ```yaml
 hazelcast:
   client:
-    instance-name: app-hz-client
+    instance-name: ""
     cluster-name: dev
     network:
       cluster-members: [127.0.0.1:5701]
@@ -157,8 +157,12 @@ hazelcast:
         use-statistics: false
 ```
 
-Client name derivation is `<base-name sanitized>-<app-name sanitized>`. If neither
-name source is present, the fallback remains `app-hz-client`.
+Client name derivation follows this order:
+
+- `hazelcast.toolkit.client.base-name` + optional sanitized `spring.application.name`
+- explicit `hazelcast.client.instance-name` as-is when no toolkit base-name is configured
+- sanitized `spring.application.name` alone when it is the only naming source
+- generated unique fallback when no naming source is configured
 
 ## Conventions
 

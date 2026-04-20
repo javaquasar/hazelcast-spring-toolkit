@@ -28,7 +28,7 @@ import java.util.List;
  */
 public class HazelcastClientProperties {
 
-    private String instanceName = "app-hz-client";
+    private String instanceName = "";
     private String clusterName = "dev";
     private Network network = new Network();
 

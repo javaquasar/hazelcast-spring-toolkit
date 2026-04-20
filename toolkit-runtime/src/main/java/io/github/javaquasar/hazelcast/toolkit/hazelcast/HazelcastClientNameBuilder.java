@@ -1,59 +1,65 @@
 package io.github.javaquasar.hazelcast.toolkit.hazelcast;
 
 import java.util.Locale;
+import java.util.UUID;
 
 /**
- * Builds a deterministic, DNS-safe Hazelcast client instance name from an optional
- * base name and an optional Spring application name.
+ * Builds a Hazelcast client instance name from the toolkit naming policy,
+ * an optional explicit Hazelcast instance name, and an optional Spring
+ * application name.
  *
  * <h2>Naming rules</h2>
  * <ol>
- *   <li>Each component is trimmed, lower-cased, and reduced to {@code [a-z0-9-]}
- *       (consecutive non-alphanumeric characters become a single {@code -}; leading
- *       and trailing dashes are stripped).
- *   <li>If {@code baseName} is blank or {@code null} after sanitization, the default
- *       {@value #DEFAULT_BASE_NAME} is used.
- *   <li>If {@code applicationName} is blank or {@code null} after sanitization, the
- *       final name equals the sanitized base name alone.
- *   <li>Otherwise the final name is {@code <baseName>-<applicationName>}.
+ *   <li>Each toolkit-managed component is trimmed, lower-cased, and reduced to
+ *       {@code [a-z0-9-]} (consecutive non-alphanumeric characters become a
+ *       single {@code -}; leading and trailing dashes are stripped).</li>
+ *   <li>If {@code baseName} is present after sanitization, it acts as the naming
+ *       policy prefix. When {@code applicationName} is also present, the final
+ *       name is {@code <baseName>-<applicationName>}; otherwise the final name
+ *       equals the sanitized base name alone.</li>
+ *   <li>If no toolkit {@code baseName} is configured but an explicit Hazelcast
+ *       {@code instanceName} is set, that explicit name is used as-is.</li>
+ *   <li>If neither toolkit {@code baseName} nor explicit {@code instanceName} is
+ *       set, but {@code applicationName} is present, the final name equals the
+ *       sanitized application name.</li>
+ *   <li>If no naming input is configured, a unique fallback is generated instead
+ *       of reusing a JVM-wide shared default.</li>
  * </ol>
- *
- * <h2>Examples</h2>
- * <pre>
- * build("MyClient", "Order Service")  → "myclient-order-service"
- * build(null,       "Order Service")  → "app-hz-client-order-service"
- * build("MyClient", null)             → "myclient"
- * build(null,       null)             → "app-hz-client"
- * </pre>
- *
- * <p>The resulting name is used as the Hazelcast instance name, which must be unique
- * within a JVM.  In test environments with multiple Spring contexts, ensure each
- * context receives a distinct {@code hazelcast.client.instance-name} property to
- * avoid {@code HazelcastClientInstance with name '...' already exists} errors.
- *
- * @since 0.1.0
  */
 public final class HazelcastClientNameBuilder {
 
-    private static final String DEFAULT_BASE_NAME = "app-hz-client";
+    private static final String GENERATED_FALLBACK_PREFIX = "hz-client";
 
     private HazelcastClientNameBuilder() {
     }
 
     public static String build(String baseName, String applicationName) {
-        String safeBaseName = sanitizeBaseName(baseName);
-        String safeApplicationName = sanitizeApplicationName(applicationName);
+        return build(baseName, null, applicationName);
+    }
 
-        if (safeApplicationName.isBlank()) {
-            return safeBaseName;
+    public static String build(String baseName, String explicitInstanceName, String applicationName) {
+        String safeBaseName = sanitizeBaseName(baseName);
+        if (!safeBaseName.isBlank()) {
+            String safeApplicationName = sanitizeApplicationName(applicationName);
+            return safeApplicationName.isBlank()
+                    ? safeBaseName
+                    : safeBaseName + "-" + safeApplicationName;
         }
 
-        return safeBaseName + "-" + safeApplicationName;
+        if (explicitInstanceName != null && !explicitInstanceName.isBlank()) {
+            return explicitInstanceName;
+        }
+
+        String safeApplicationName = sanitizeApplicationName(applicationName);
+        if (!safeApplicationName.isBlank()) {
+            return safeApplicationName;
+        }
+
+        return generateFallbackName();
     }
 
     static String sanitizeBaseName(String baseName) {
-        String sanitized = sanitize(baseName);
-        return sanitized.isBlank() ? DEFAULT_BASE_NAME : sanitized;
+        return sanitize(baseName);
     }
 
     static String sanitizeApplicationName(String applicationName) {
@@ -71,5 +77,9 @@ public final class HazelcastClientNameBuilder {
                 .replaceAll("[^a-z0-9]+", "-")
                 .replaceAll("^-+", "")
                 .replaceAll("-+$", "");
+    }
+
+    private static String generateFallbackName() {
+        return GENERATED_FALLBACK_PREFIX + "-" + UUID.randomUUID().toString().substring(0, 8);
     }
 }
