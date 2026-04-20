@@ -172,6 +172,7 @@ Client name derivation follows this order:
 - `HazelcastClientConfigCustomizer` beans are applied in Spring `@Order`.
 - Shared test resources live in `toolkit-spring-common/src/testFixtures`.
 - Shared L2 performance-characterization logic now lives in a common test harness under `toolkit-spring-common/src/testFixtures`.
+- `toolkit-spring-common` testFixtures intentionally compile against Spring 5 / Boot 2-compatible APIs. If a shared helper requires Spring 6-only behavior, it should not remain in the cross-version fixture layer.
 - Observability is split into Micrometer meters for production monitoring and a separate diagnostic HTTP controller for manual troubleshooting.
 - `toolkit-testcontainers` is test-only and not published.
 - Boot 4 is opt-in via `-PenableBoot4=true`.
