@@ -7,24 +7,18 @@ and resolved history that should not be confused with the active roadmap.
 
 ## Current Known Issues / Technical Debt
 
-1. ~~**`toolkit-runtime` exposes `toolkit-scan-reflections` via `api`.**~~ _Resolved (April 2026)_ — See resolved section below.
-
-2. **`toolkit-spring-common` compiles against Spring 6 while Boot 2 runs on Spring 5.**
+1. **`toolkit-spring-common` compiles against Spring 6 while Boot 2 runs on Spring 5.**
    Test fixtures inherit the Spring 6 compile dependency, which could become a real
    compatibility issue if fixtures begin to use Spring 6-only APIs.
 
-3. **`HazelcastClientProperties.instanceName` still defaults to `"app-hz-client"`.**
+2. **`HazelcastClientProperties.instanceName` still defaults to `"app-hz-client"`.**
    That is convenient for demos but can be risky when multiple applications share a JVM.
 
-4. **`Boot3IntegrationTest` remains `@Disabled` with a stale reason.**
-   The original hang was related to duplicate instance naming; the test now needs a
-   proper unique instance-name setup and revalidation.
-
-5. **`invalidatesNearCacheWhenAnotherClientUpdatesL2CacheEntry` is still disabled in Boot 2 and Boot 3.**
+3. **`invalidatesNearCacheWhenAnotherClientUpdatesL2CacheEntry` is still disabled in Boot 2 and Boot 3.**
    The scenario is flaky because of a type mismatch between a raw remote put and the
    Hibernate-serialized `CacheEntry` value format.
 
-6. **Public docs still under-explain the observability split between Micrometer metrics and the diagnostic endpoint.**
+4. **Public docs still under-explain the observability split between Micrometer metrics and the diagnostic endpoint.**
    The implementation now separates production meters from manual troubleshooting,
    but README / docs still need a concise operator-facing explanation of when to use
    which surface.
@@ -86,6 +80,7 @@ second-level caching, but full wiring happens only when explicitly requested.
 - Scanner abstraction boundary restored: `toolkit-runtime` no longer depends on `toolkit-scan-reflections` at all. `CompactClientConfigSupport` and `HazelcastClientFactory` now take `ClassScanner` (from `toolkit-scan-api`). Boot starters wire `ReflectionsClassScanner` as the `ClassScanner` bean and declare `toolkit-scan-reflections` as `implementation` (hidden from consumers). Discovered and fixed a pre-existing bug in `ReflectionsClassScanner`: `ConfigurationBuilder.forPackage()` in Reflections 0.10.2 does not add a package filter; explicit `filterInputsBy(FilterBuilder().includePackage())` call added.
 - `toolkit-spring-common` testFixtures now declare `testFixturesImplementation project(':toolkit-scan-reflections')` explicitly (was previously leaking in transitively via `toolkit-runtime`).
 - Example app's `ExampleSpringBoot3CompactScanningTest` now has an explicit `testImplementation project(':toolkit-scan-reflections')` dependency instead of relying on transitive exposure.
+- `Boot3IntegrationTest` re-enabled and stabilized. The old disabled note was stale: the real hang came from unnecessarily bootstrapping JPA/Hibernate L2 for a test that only validates Hazelcast client connectivity plus the Postgres `DataSource`. The test now uses a lightweight non-web context, disables JPA auto-configuration, keeps `hazelcast.toolkit.hibernate.l2.enabled=false`, and sets a unique `hazelcast.client.instance-name`.
 
 ## Resolved In April 2026 (second pass)
 

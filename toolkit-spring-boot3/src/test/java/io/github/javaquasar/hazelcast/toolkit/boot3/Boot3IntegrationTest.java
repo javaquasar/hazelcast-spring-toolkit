@@ -2,7 +2,6 @@ package io.github.javaquasar.hazelcast.toolkit.boot3;
 
 import com.hazelcast.core.HazelcastInstance;
 import io.github.javaquasar.hazelcast.toolkit.testcontainers.TestcontainersEnvironment;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,11 +18,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-@Disabled("Temporarily disabled: Boot 3 Testcontainers connectivity test still hangs during full module build")
 @Testcontainers(disabledWithoutDocker = true)
 @SpringBootTest(
         classes = TestApplication.class,
         properties = {
+                "spring.main.web-application-type=none",
+                "spring.autoconfigure.exclude=" +
+                        "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration," +
+                        "org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration",
+                "hazelcast.toolkit.hibernate.l2.enabled=false",
                 "hazelcast.client.instance-name=boot3-integration-test"
         }
 )
