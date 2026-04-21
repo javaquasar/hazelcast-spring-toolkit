@@ -1,6 +1,7 @@
 package io.github.javaquasar.hazelcast.toolkit.springboot4.config;
 
 import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.spi.properties.ClusterProperty;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientConfigCustomizer;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientFactory;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HazelcastClientProperties;
@@ -54,6 +55,17 @@ public class HazelcastToolkitAutoConfiguration {
     public HazelcastClientFactory hazelcastClientFactory(ClassScanner scanner,
                                                          ObjectProvider<HazelcastClientConfigCustomizer> customizers) {
         return new HazelcastClientFactory(scanner, customizers.orderedStream().toList());
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "hazelcast.client", name = "enterprise-license-key")
+    public HazelcastClientConfigCustomizer hazelcastEnterpriseLicenseKeyCustomizer(HazelcastClientProperties props) {
+        return clientConfig -> {
+            String licenseKey = props.getEnterpriseLicenseKey();
+            if (licenseKey != null && !licenseKey.isBlank()) {
+                clientConfig.setProperty(ClusterProperty.ENTERPRISE_LICENSE_KEY.getName(), licenseKey);
+            }
+        };
     }
 
     @Bean

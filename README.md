@@ -41,6 +41,7 @@ Spring Boot gives you the foundation.
 hazelcast:
   client:
     cluster-name: dev
+    enterprise-license-key: ${HZ_ENTERPRISE_LICENSE_KEY:}   # optional, Hazelcast Enterprise only
     network:
       cluster-members:
         - 127.0.0.1:5701
@@ -392,6 +393,7 @@ Examples:
 | Property | Default | Description |
 |---|---|---|
 | `instance-name` | _(empty)_ | Explicit Hazelcast client instance name when toolkit naming policy is not configured |
+| `enterprise-license-key` | _(empty)_ | Optional Hazelcast Enterprise license key applied to the client config |
 | `cluster-name` | `dev` | Hazelcast cluster name |
 | `network.cluster-members` | `[]` | Cluster member addresses (`host:port`) |
 | `network.smart-routing` | `true` | Route operations to owner partition member |

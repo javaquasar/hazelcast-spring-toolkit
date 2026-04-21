@@ -15,6 +15,7 @@ import java.util.List;
  * hazelcast:
  *   client:
  *     instance-name: my-service-hz
+ *     enterprise-license-key: ${HZ_ENTERPRISE_LICENSE_KEY:}
  *     cluster-name: production
  *     network:
  *       cluster-members:
@@ -29,6 +30,7 @@ import java.util.List;
 public class HazelcastClientProperties {
 
     private String instanceName = "";
+    private String enterpriseLicenseKey = "";
     private String clusterName = "dev";
     private Network network = new Network();
 
@@ -38,6 +40,14 @@ public class HazelcastClientProperties {
 
     public void setInstanceName(String instanceName) {
         this.instanceName = instanceName;
+    }
+
+    public String getEnterpriseLicenseKey() {
+        return enterpriseLicenseKey;
+    }
+
+    public void setEnterpriseLicenseKey(String enterpriseLicenseKey) {
+        this.enterpriseLicenseKey = enterpriseLicenseKey;
     }
 
     public String getClusterName() {

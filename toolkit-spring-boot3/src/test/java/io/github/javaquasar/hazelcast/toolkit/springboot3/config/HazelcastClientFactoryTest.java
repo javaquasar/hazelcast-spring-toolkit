@@ -2,6 +2,7 @@ package io.github.javaquasar.hazelcast.toolkit.springboot3.config;
 
 import com.hazelcast.client.config.ClientConfig;
 import com.hazelcast.config.CompactSerializationConfig;
+import com.hazelcast.spi.properties.ClusterProperty;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientFactory;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientNameBuilder;
 import io.github.javaquasar.hazelcast.toolkit.scan.reflections.ReflectionsClassScanner;
@@ -156,6 +157,25 @@ class HazelcastClientFactoryTest {
         );
 
         assertTrue(clientConfig.getInstanceName().startsWith("hz-client-"));
+    }
+
+    @Test
+    void createClientConfigCustomizersCanApplyEnterpriseLicenseKeyProperty() {
+        HazelcastClientFactory factory = new HazelcastClientFactory(
+                new ReflectionsClassScanner(),
+                List.of(clientConfig -> clientConfig.setProperty(ClusterProperty.ENTERPRISE_LICENSE_KEY.getName(), "enterprise-key"))
+        );
+
+        ClientConfig clientConfig = factory.createClientConfig(
+                "hz.client",
+                "billing-service",
+                "test-cluster",
+                List.of("127.0.0.1:5701"),
+                true,
+                null
+        );
+
+        assertEquals("enterprise-key", clientConfig.getProperty(ClusterProperty.ENTERPRISE_LICENSE_KEY.getName()));
     }
 
     @Test
