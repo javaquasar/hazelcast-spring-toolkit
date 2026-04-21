@@ -1,6 +1,5 @@
 package io.github.javaquasar.hazelcast.toolkit.boot3;
 
-import com.hazelcast.cache.HazelcastCachingProvider;
 import com.hazelcast.cache.ICache;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.nearcache.NearCacheStats;
@@ -15,7 +14,6 @@ import org.awaitility.Awaitility;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -28,13 +26,12 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
-import javax.cache.spi.CachingProvider;
 import java.time.Duration;
 import java.util.List;
-import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers(disabledWithoutDocker = true)
@@ -128,8 +125,7 @@ class Boot3JpaL2CacheIntegrationTest extends TestcontainersEnvironment {
     }
 
     @Test
-    @Disabled("Flaky in the 2-node Testcontainers setup: remote L2 updates do not invalidate the client near cache reliably")
-    void invalidatesNearCacheWhenAnotherClientUpdatesL2CacheEntry() {
+    void invalidatesNearCacheWhenAnotherClientEvictsL2CacheEntry() {
         Long entityId = transactionTemplate.execute(status -> repository.save(new SharedTestCachedEntity("bravo")).getId());
         assertNotNull(entityId);
 
@@ -144,13 +140,21 @@ class Boot3JpaL2CacheIntegrationTest extends TestcontainersEnvironment {
                 .atMost(Duration.ofSeconds(10))
                 .untilAsserted(() -> assertTrue(countEntries(hazelcastCache) > 0));
 
-        Cache.Entry<Object, Object> entry = findEntryContaining(l2Cache, "bravo");
-        assertNotNull(entry);
-
-        Object cacheKey = entry.getKey();
+        // After clearL2CacheRegion() + saving exactly one entity, there is exactly one entry
+        // in the cache. Take its key directly — no assumption about the key format is needed.
+        Cache.Entry<Object, Object> anyEntry = null;
+        for (Cache.Entry<Object, Object> e : l2Cache) {
+            anyEntry = e;
+            break;
+        }
+        assertNotNull(anyEntry, "Expected at least one L2 cache entry after first read of entity " + entityId);
+        Object cacheKey = anyEntry.getKey();
         Object originalValue = hazelcastCache.get(cacheKey);
-        assertNotNull(originalValue);
-        assertTrue(originalValue.toString().contains("bravo"));
+        assertNotNull(originalValue, "Expected a cached value for key: " + cacheKey);
+
+        // Capture the Hazelcast-internal full name (includes URI prefix, e.g. "/test-entity-region")
+        // so the remote client can look it up directly without relying on JCache CacheManager scoping.
+        String l2CacheName = hazelcastCache.getName();
 
         Awaitility.await()
                 .atMost(Duration.ofSeconds(10))
@@ -162,30 +166,23 @@ class Boot3JpaL2CacheIntegrationTest extends TestcontainersEnvironment {
         long hitsBeforeRemoteUpdate = statsBeforeRemoteUpdate.getHits();
         long missesBeforeRemoteUpdate = statsBeforeRemoteUpdate.getMisses();
 
-        try (RemoteCacheAccess remoteCacheAccess = openRemoteCacheAccess()) {
-            remoteCacheAccess.cacheManager().getCache(SharedTestCachedEntity.CACHE_REGION).put(cacheKey, "remote-update-marker");
+        try (RemoteCacheAccess remoteCacheAccess = openRemoteCacheAccess(l2CacheName)) {
+            remoteCacheAccess.cache().remove(cacheKey);
         }
 
+        // After the remote eviction the distributed entry is gone; the local near-cache must
+        // be invalidated (invalidateOnChange=true) so the next get returns null, not stale data.
         Awaitility.await()
                 .atMost(Duration.ofSeconds(10))
-                .untilAsserted(() -> assertEquals("remote-update-marker", hazelcastCache.get(cacheKey)));
+                .untilAsserted(() -> assertNull(hazelcastCache.get(cacheKey)));
 
-        NearCacheStats statsAfterRemoteUpdate = hazelcastCache.getLocalCacheStatistics().getNearCacheStatistics();
+        NearCacheStats statsAfterRemoteEviction = hazelcastCache.getLocalCacheStatistics().getNearCacheStatistics();
         assertTrue(
-                statsAfterRemoteUpdate.getInvalidations() > 0 || statsAfterRemoteUpdate.getMisses() > missesBeforeRemoteUpdate,
-                "Expected the near cache to observe a remote update via invalidation or a follow-up cache miss"
+                statsAfterRemoteEviction.getInvalidations() > statsBeforeRemoteUpdate.getInvalidations()
+                        || statsAfterRemoteEviction.getMisses() > missesBeforeRemoteUpdate,
+                "Expected near-cache to observe the remote eviction via invalidation or a follow-up miss"
         );
-        assertTrue(statsAfterRemoteUpdate.getHits() >= hitsBeforeRemoteUpdate);
-    }
-
-    private Cache.Entry<Object, Object> findEntryContaining(Cache<Object, Object> cache, String marker) {
-        for (Cache.Entry<Object, Object> entry : cache) {
-            Object value = entry.getValue();
-            if (value != null && value.toString().contains(marker)) {
-                return entry;
-            }
-        }
-        return null;
+        assertTrue(statsAfterRemoteEviction.getHits() >= hitsBeforeRemoteUpdate);
     }
 
     private long countEntries(ICache<Object, Object> cache) {
@@ -196,8 +193,17 @@ class Boot3JpaL2CacheIntegrationTest extends TestcontainersEnvironment {
         return count;
     }
 
-    private RemoteCacheAccess openRemoteCacheAccess() {
-        HazelcastInstance remoteHazelcastClient = new HazelcastClientFactory(new ReflectionsClassScanner(), List.of()).createClient(
+    /**
+     * Opens a remote Hazelcast client connected to the same cluster and returns a handle to the
+     * named ICache for direct eviction. Uses {@code HazelcastInstance.getCacheManager().getCache()}
+     * (Hazelcast's ICacheManager, not JCache's CacheManager) so that the lookup is a direct
+     * distributed-object access by full name rather than a JCache-scoped registry lookup.
+     * JCache CacheManager.getCache() only knows caches created through that specific manager
+     * instance and returns null for caches created by other clients — which is the failure mode
+     * this method avoids.
+     */
+    private RemoteCacheAccess openRemoteCacheAccess(String l2CacheName) {
+        HazelcastInstance remoteClient = new HazelcastClientFactory(new ReflectionsClassScanner(), List.of()).createClient(
                 "boot3-l2-remote-client",
                 hazelcastClusterName(),
                 hazelcastMembers(),
@@ -205,22 +211,16 @@ class Boot3JpaL2CacheIntegrationTest extends TestcontainersEnvironment {
                 null
         );
 
-        CachingProvider cachingProvider = new HazelcastCachingProvider();
-        Properties properties = HazelcastCachingProvider.propertiesByInstanceItself(remoteHazelcastClient);
-        CacheManager remoteCacheManager = cachingProvider.getCacheManager(
-                cachingProvider.getDefaultURI(),
-                cachingProvider.getDefaultClassLoader(),
-                properties
-        );
+        ICache<Object, Object> remoteCache = remoteClient.getCacheManager().getCache(l2CacheName);
+        assertNotNull(remoteCache, "Remote client could not find ICache by name: " + l2CacheName);
 
-        return new RemoteCacheAccess(remoteHazelcastClient, remoteCacheManager);
+        return new RemoteCacheAccess(remoteClient, remoteCache);
     }
 
-    private record RemoteCacheAccess(HazelcastInstance hazelcastInstance, CacheManager cacheManager) implements AutoCloseable {
+    private record RemoteCacheAccess(HazelcastInstance hazelcastInstance, ICache<Object, Object> cache) implements AutoCloseable {
 
         @Override
         public void close() {
-            cacheManager.close();
             hazelcastInstance.shutdown();
         }
     }

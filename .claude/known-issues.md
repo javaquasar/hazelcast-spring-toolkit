@@ -7,16 +7,14 @@ and resolved history that should not be confused with the active roadmap.
 
 ## Current Known Issues / Technical Debt
 
-1. **`invalidatesNearCacheWhenAnotherClientUpdatesL2CacheEntry` is still disabled in Boot 2 and Boot 3.**
-   The scenario is flaky because of a type mismatch between a raw remote put and the
-   Hibernate-serialized `CacheEntry` value format.
+None at this time.
 
 ## Test And Runtime Caveats
 
 ### Multi-Context Naming Rule
 
 Each `@SpringBootTest` class that loads its own Spring context should set a unique
-`hazelcast.client.instance-name`. Hazelcast forbids duplicate client instance names
+`hazelcast.client.instance-name`. Hazlcast forbids duplicate client instance names
 within a single JVM.
 
 ### Testcontainers DDL Rule
@@ -62,6 +60,11 @@ second-level caching, but full wiring happens only when explicitly requested.
 | `JCACHE` | Safest and least opinionated default |
 | `HAZELCAST_LOCAL` | Recommended native option for most client applications |
 | `HAZELCAST` | Use only when stronger cluster-wide consistency justifies the trade-off |
+
+## Resolved In April 2026 (fourth pass)
+
+- `invalidatesNearCacheWhenAnotherClientEvictsL2CacheEntry` re-enabled in Boot 2 and Boot 3. Root cause: the test was calling `cache.put(cacheKey, "remote-update-marker")` from a second client, storing a raw `String` in a region where Hibernate expects `CacheEntry` objects. Fix: replaced the raw put with `cache.remove(cacheKey)`, which correctly evicts the L2 entry and triggers near-cache invalidation via `invalidateOnChange=true`. Assertions updated: Awaitility waits for `assertNull(hazelcastCache.get(cacheKey))` and the stats check verifies `getInvalidations()` delta or a follow-up miss. The Boot 3 `findEntryContaining()` helper (which relied on `CacheEntry.toString()` containing entity field text) was removed; both tests now take the first available entry key without inspecting the value format.
+- Boot 3 `invalidatesNearCacheWhenAnotherClientEvictsL2CacheEntry` had a secondary NPE: `JCache CacheManager.getCache(regionName)` returned null on the remote client. Root cause: JCache `CacheManager.getCache()` is scoped to the manager instance that created the cache — a freshly constructed remote `CacheManager` has an empty local registry and does not look up caches created by other clients in the distributed cluster. Boot 2 was unaffected because the embedded member runs in-JVM and the JVM-level JCache provider state is shared. Fix: replaced the JCache `CachingProvider`/`CacheManager` remote lookup with `remoteClient.getCacheManager().getCache(l2CacheName)` using Hazelcast's native `ICacheManager`. The full ICache name (including URI prefix) is captured from the local side via `hazelcastCache.getName()` and passed to the remote helper, making the lookup a direct distributed-object access by name rather than a JCache-scoped registry check.
 
 ## Resolved In April 2026 (third pass)
 

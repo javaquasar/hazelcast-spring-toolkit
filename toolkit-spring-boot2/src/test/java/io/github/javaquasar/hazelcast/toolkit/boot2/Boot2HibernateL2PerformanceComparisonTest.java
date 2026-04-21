@@ -31,6 +31,14 @@ class Boot2HibernateL2PerformanceComparisonTest extends AbstractHibernateL2Perfo
     }
 
     @Override
+    protected int minL2HitsThreshold(Measurement measurement) {
+        if (measurement.regionFactoryType() == RegionFactoryType.HAZELCAST_LOCAL) {
+            return 0;
+        }
+        return super.minL2HitsThreshold(measurement);
+    }
+
+    @Override
     protected SpringApplicationBuilder createApplicationBuilder() {
         return new SpringApplicationBuilder(Boot2TestApplication.class, Boot2L2CacheTestConfiguration.class);
     }

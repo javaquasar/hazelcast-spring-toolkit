@@ -13,7 +13,6 @@ import org.awaitility.Awaitility;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -31,6 +30,7 @@ import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest(
@@ -124,8 +124,7 @@ class Boot2JpaL2CacheIntegrationTest {
     }
 
     @Test
-    @Disabled("Flaky: near-cache invalidation timing + type mismatch between raw String put and Hibernate serialized CacheEntry value")
-    void invalidatesNearCacheWhenAnotherClientUpdatesL2CacheEntry() {
+    void invalidatesNearCacheWhenAnotherClientEvictsL2CacheEntry() {
         Long entityId = transactionTemplate.execute(status -> repository.save(new SharedTestCachedEntity("bravo")).getId());
         assertNotNull(entityId);
 
@@ -163,19 +162,22 @@ class Boot2JpaL2CacheIntegrationTest {
         long missesBeforeRemoteUpdate = statsBeforeRemoteUpdate.getMisses();
 
         try (RemoteCacheAccess remoteCacheAccess = openRemoteCacheAccess()) {
-            remoteCacheAccess.cacheManager().getCache(SharedTestCachedEntity.CACHE_REGION).put(cacheKey, "remote-update-marker");
+            remoteCacheAccess.cacheManager().getCache(SharedTestCachedEntity.CACHE_REGION).remove(cacheKey);
         }
 
+        // After the remote eviction the distributed entry is gone; the local near-cache must
+        // be invalidated (invalidateOnChange=true) so the next get returns null, not stale data.
         Awaitility.await()
                 .atMost(Duration.ofSeconds(10))
-                .untilAsserted(() -> assertEquals("remote-update-marker", hazelcastCache.get(cacheKey)));
+                .untilAsserted(() -> assertNull(hazelcastCache.get(cacheKey)));
 
-        NearCacheStats statsAfterRemoteUpdate = hazelcastCache.getLocalCacheStatistics().getNearCacheStatistics();
+        NearCacheStats statsAfterRemoteEviction = hazelcastCache.getLocalCacheStatistics().getNearCacheStatistics();
         assertTrue(
-                statsAfterRemoteUpdate.getInvalidations() > 0 || statsAfterRemoteUpdate.getMisses() > missesBeforeRemoteUpdate,
-                "Expected the near cache to observe a remote update via invalidation or a follow-up cache miss"
+                statsAfterRemoteEviction.getInvalidations() > statsBeforeRemoteUpdate.getInvalidations()
+                        || statsAfterRemoteEviction.getMisses() > missesBeforeRemoteUpdate,
+                "Expected near-cache to observe the remote eviction via invalidation or a follow-up miss"
         );
-        assertTrue(statsAfterRemoteUpdate.getHits() >= hitsBeforeRemoteUpdate);
+        assertTrue(statsAfterRemoteEviction.getHits() >= hitsBeforeRemoteUpdate);
     }
 
     private long countEntries(ICache<Object, Object> cache) {
