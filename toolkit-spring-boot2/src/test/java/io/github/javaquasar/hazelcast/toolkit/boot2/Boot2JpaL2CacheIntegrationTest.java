@@ -165,7 +165,14 @@ class Boot2JpaL2CacheIntegrationTest {
         long missesBeforeRemoteUpdate = statsBeforeRemoteUpdate.getMisses();
 
         try (RemoteCacheAccess remoteCacheAccess = openRemoteCacheAccess()) {
-            remoteCacheAccess.cacheManager().getCache(SharedTestCachedEntity.CACHE_REGION).remove(cacheKey);
+            Cache<Object, Object> remoteCache = remoteCacheAccess.cacheManager().getCache(SharedTestCachedEntity.CACHE_REGION);
+            assertNotNull(remoteCache, "Expected remote CacheManager to resolve the Hibernate L2 region");
+
+            Awaitility.await()
+                    .atMost(Duration.ofSeconds(10))
+                    .untilAsserted(() -> assertNotNull(remoteCache.get(cacheKey)));
+
+            remoteCache.remove(cacheKey);
 
             // Keep the remote client alive until the invalidation is observed locally.
             Awaitility.await()
