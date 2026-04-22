@@ -140,10 +140,21 @@ configure(subprojects.findAll { it.name in publishedModules }) { Project p ->
 
     signing {
         def key = p.findProperty("signingKey")
+        def keyId = p.findProperty("signingKeyId")
         def pass = p.findProperty("signingPassword")
-        required = key != null && pass != null
-        if (key && pass) {
-            useInMemoryPgpKeys(key.toString(), pass.toString())
+        def useGpgCmdFlag = p.findProperty("useGpgCmd")?.toString()?.toBoolean()
+        required = useGpgCmdFlag || (key != null && pass != null)
+        if (useGpgCmdFlag) {
+            useGpgCmd()
+        } else if (key && pass) {
+            def normalizedKey = key.toString()
+                    .replace('\\r\\n', '\r\n')
+                    .replace('\\n', '\n')
+            if (keyId) {
+                useInMemoryPgpKeys(keyId.toString(), normalizedKey, pass.toString())
+            } else {
+                useInMemoryPgpKeys(normalizedKey, pass.toString())
+            }
         }
         sign publishing.publications.mavenJava
     }
