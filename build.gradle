@@ -172,3 +172,17 @@ configure(subprojects.findAll { it.name in publishedModules }) { Project p ->
 tasks.register("centralBundleAll") {
     dependsOn publishedModules.collect { ":${it}:centralBundleZip" }
 }
+
+// Collect all generated Central Portal bundle ZIPs into a single root-level directory
+tasks.register("collectCentralBundles", Copy) {
+    dependsOn tasks.named("centralBundleAll")
+    into layout.buildDirectory.dir("central-bundles")
+    publishedModules.each { moduleName ->
+        from(project(":${moduleName}").layout.buildDirectory.dir("central")) {
+            include "*-central-bundle.zip"
+        }
+    }
+    doFirst {
+        delete layout.buildDirectory.dir("central-bundles")
+    }
+}
