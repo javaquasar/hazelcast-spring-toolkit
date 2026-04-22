@@ -3,7 +3,22 @@ plugins {
     id 'signing'
 }
 
+def projectLocalProps = new Properties()
+def projectLocalPropsFile = rootProject.file('gradle-local.properties')
+if (projectLocalPropsFile.exists()) {
+    projectLocalPropsFile.withInputStream { stream ->
+        projectLocalProps.load(stream)
+    }
+}
+
 allprojects {
+    projectLocalProps.each { key, value ->
+        def name = key.toString()
+        if (!gradle.startParameter.projectProperties.containsKey(name) && !hasProperty(name)) {
+            ext.set(name, value)
+        }
+    }
+
     group = findProperty('group')
     version = findProperty('releaseVersion') ?: findProperty('version')
 
@@ -50,6 +65,28 @@ def publishedModules = [
         'toolkit-spring-boot3',
 ]
 
+// POM display names and descriptions for each published module.
+// Kept in the root build so they are always available when the pom{} closure is evaluated,
+// regardless of subproject script evaluation order.
+def pomMeta = [
+        'toolkit-core'          : [name: 'Hazelcast Toolkit Core',
+                                   desc: 'Core annotations for Hazelcast compact serialization (@HzCompact) and IMap listener auto-registration (@HzIMapListener).'],
+        'toolkit-scan-api'      : [name: 'Hazelcast Toolkit Scan API',
+                                   desc: 'Pluggable ClassScanner abstraction used by the Hazelcast Toolkit runtime to find annotated types and subtypes.'],
+        'toolkit-scan-reflections': [name: 'Hazelcast Toolkit Scan Reflections',
+                                   desc: 'Reflections-backed ClassScanner implementation and compact-type scanning support for the Hazelcast Toolkit.'],
+        'toolkit-runtime'       : [name: 'Hazelcast Toolkit Runtime',
+                                   desc: 'Hazelcast client factory, compact serialization registration, client naming, and configuration customizer support.'],
+        'toolkit-metrics-spring': [name: 'Hazelcast Toolkit Metrics Spring',
+                                   desc: 'Micrometer binders for Hazelcast near-cache and Hibernate L2 metrics, plus a diagnostic REST controller.'],
+        'toolkit-spring-common' : [name: 'Hazelcast Toolkit Spring Common',
+                                   desc: 'Shared Spring integration components including the IMap listener auto-registrar.'],
+        'toolkit-spring-boot2'  : [name: 'Hazelcast Toolkit Spring Boot 2 Starter',
+                                   desc: 'Spring Boot 2 auto-configuration starter: compact serialization, IMap listener registration, JCache L2 cache, and Micrometer metrics.'],
+        'toolkit-spring-boot3'  : [name: 'Hazelcast Toolkit Spring Boot 3 Starter',
+                                   desc: 'Spring Boot 3 auto-configuration starter: compact serialization, IMap listener registration, JCache L2 cache, Hibernate L2, and Micrometer metrics.'],
+]
+
 configure(subprojects.findAll { it.name in publishedModules }) { Project p ->
     apply plugin: 'maven-publish'
     apply plugin: 'signing'
@@ -63,8 +100,9 @@ configure(subprojects.findAll { it.name in publishedModules }) { Project p ->
                 // artifactId = "hazelcast-toolkit-core"
 
                 pom {
-                    name = (p.findProperty('pomName') ?: p.name).toString()
-                    description = (p.findProperty('pomDescription') ?: (p.description ?: p.name)).toString()
+                    def meta = pomMeta[p.name]
+                    name = meta?.name ?: p.name
+                    description = meta?.desc ?: p.name
                     url = 'https://github.com/javaquasar/hazelcast-spring-toolkit'
 
                     licenses {
@@ -103,6 +141,7 @@ configure(subprojects.findAll { it.name in publishedModules }) { Project p ->
     signing {
         def key = p.findProperty("signingKey")
         def pass = p.findProperty("signingPassword")
+        required = key != null && pass != null
         if (key && pass) {
             useInMemoryPgpKeys(key.toString(), pass.toString())
         }

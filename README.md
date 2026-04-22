@@ -25,7 +25,7 @@ While Spring Boot provides basic Hazelcast auto-configuration, it is intentional
 | **IMap Event Listeners**             | Manual registration                           | `@HzIMapListener` on Spring beans (auto-registered) | Zero-boilerplate event-driven architecture |
 | **Hibernate 2nd-Level Cache**        | No dedicated support                          | Full auto-configuration with safe defaults + known issue documentation | Production-ready L2 caching |
 | **Configuration Style**              | Properties + XML/YAML files only              | Annotations + properties + type-safe customizers     | Developer-friendly and type-safe |
-| **Multi Boot Version Support**       | Single implementation                         | Dedicated modules for Boot 2 / 3 / 4                 | Future-proof |
+| **Multi Boot Version Support**       | Single implementation                         | Published starters for Boot 2 / 3, with Boot 4 work tracked separately in-repo | Clear release scope |
 | **Test Infrastructure**              | None                                          | Shared Testcontainers (3-node cluster + Postgres)    | Ready for integration testing |
 | **Metrics & Observability**          | Basic                                         | Micrometer near-cache + Hibernate L2 meters, diagnostic controller, and Near-Cache health Actuator endpoint | Production monitoring ready |
 
@@ -80,6 +80,7 @@ spring:
 hazelcast:
   client:
     cluster-name: dev
+    enterprise-license-key: ${HZ_ENTERPRISE_LICENSE_KEY:}   # optional, Hazelcast Enterprise only
     network:
       cluster-members:
         - 127.0.0.1:5701

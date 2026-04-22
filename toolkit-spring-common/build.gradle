@@ -1,5 +1,18 @@
 apply plugin: 'java-test-fixtures'
 
+// Test fixtures are internal test infrastructure shared across Boot modules.
+// Suppress their variant metadata from the Gradle module file and remove the
+// test-fixtures JAR artifact from the Maven publication so it is not uploaded
+// to Maven Central.
+components.java.withVariantsFromConfiguration(configurations.testFixturesApiElements) { skip() }
+components.java.withVariantsFromConfiguration(configurations.testFixturesRuntimeElements) { skip() }
+
+afterEvaluate {
+    publishing.publications.withType(MavenPublication).configureEach { pub ->
+        pub.artifacts.removeAll { it.classifier == 'test-fixtures' }
+    }
+}
+
 dependencies {
     api project(':toolkit-core')
     api project(':toolkit-runtime')
