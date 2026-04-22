@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.cache.Cache;
@@ -27,12 +28,14 @@ import javax.persistence.EntityManagerFactory;
 import java.time.Duration;
 import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 @SpringBootTest(
         classes = Boot2TestApplication.class,
         properties = {
@@ -163,13 +166,12 @@ class Boot2JpaL2CacheIntegrationTest {
 
         try (RemoteCacheAccess remoteCacheAccess = openRemoteCacheAccess()) {
             remoteCacheAccess.cacheManager().getCache(SharedTestCachedEntity.CACHE_REGION).remove(cacheKey);
-        }
 
-        // After the remote eviction the distributed entry is gone; the local near-cache must
-        // be invalidated (invalidateOnChange=true) so the next get returns null, not stale data.
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(10))
-                .untilAsserted(() -> assertNull(hazelcastCache.get(cacheKey)));
+            // Keep the remote client alive until the invalidation is observed locally.
+            Awaitility.await()
+                    .atMost(Duration.ofSeconds(10))
+                    .untilAsserted(() -> assertNull(hazelcastCache.get(cacheKey)));
+        }
 
         NearCacheStats statsAfterRemoteEviction = hazelcastCache.getLocalCacheStatistics().getNearCacheStatistics();
         assertTrue(
@@ -190,7 +192,7 @@ class Boot2JpaL2CacheIntegrationTest {
 
     private RemoteCacheAccess openRemoteCacheAccess() {
         HazelcastInstance remoteHazelcastClient = new HazelcastClientFactory(new ReflectionsClassScanner(), List.of()).createClient(
-                "boot2-l2-remote-client",
+                "boot2-l2-remote-client-" + UUID.randomUUID(),
                 Boot2L2CacheTestConfiguration.CLUSTER_NAME,
                 List.of(Boot2L2CacheTestConfiguration.MEMBER_ADDRESS),
                 false,
@@ -200,8 +202,8 @@ class Boot2JpaL2CacheIntegrationTest {
         CachingProvider cachingProvider = new HazelcastCachingProvider();
         Properties properties = HazelcastCachingProvider.propertiesByInstanceItself(remoteHazelcastClient);
         CacheManager remoteCacheManager = cachingProvider.getCacheManager(
-                cachingProvider.getDefaultURI(),
-                cachingProvider.getDefaultClassLoader(),
+                cacheManager.getURI(),
+                cacheManager.getClassLoader(),
                 properties
         );
 
