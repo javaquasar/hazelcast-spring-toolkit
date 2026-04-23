@@ -7,7 +7,12 @@ and resolved history that should not be confused with the active roadmap.
 
 ## Current Known Issues / Technical Debt
 
-None at this time.
+- Boot 2 native Hibernate L2 mode is not yet fully decoupled from JCache API presence.
+  `hazelcast.toolkit.hibernate.l2.region-factory=HAZELCAST_LOCAL` is documented as the
+  path that bypasses JCache, but legacy Boot 2 consumers can still hit
+  `NoClassDefFoundError: javax/cache/CacheManager` if always-loaded auto-configuration
+  classes expose JCache types during Spring introspection. The detailed engineering note
+  is tracked in `docs/tasks/boot2-native-hazelcast-without-jcache.md`.
 
 ## Test And Runtime Caveats
 

@@ -56,17 +56,22 @@ hazelcast:
 
 **Gradle:**
 ```groovy
-implementation 'io.github.javaquasar:toolkit-spring-boot3:0.1.0'
+implementation 'io.github.javaquasar:hazelcast-toolkit-spring-boot3:<version>'
 ```
 
 **Maven:**
 ```xml
 <dependency>
     <groupId>io.github.javaquasar</groupId>
-    <artifactId>toolkit-spring-boot3</artifactId>
-    <version>0.1.0</version>
+    <artifactId>hazelcast-toolkit-spring-boot3</artifactId>
+    <version>${version}</version>
 </dependency>
 ```
+
+Artifact naming note:
+
+- `0.1.0` was published with the original short artifact IDs such as `toolkit-spring-boot3`
+- starting with the next release, published Maven artifacts use the `hazelcast-toolkit-*` prefix for clearer discovery in Maven Central
 
 ### 2. Configure `application.yml`
 
