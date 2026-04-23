@@ -65,6 +65,17 @@ def publishedModules = [
         'toolkit-spring-boot3',
 ]
 
+def publishedArtifactIds = [
+        'toolkit-core'             : 'hazelcast-toolkit-core',
+        'toolkit-runtime'          : 'hazelcast-toolkit-runtime',
+        'toolkit-scan-api'         : 'hazelcast-toolkit-scan-api',
+        'toolkit-scan-reflections' : 'hazelcast-toolkit-scan-reflections',
+        'toolkit-metrics-spring'   : 'hazelcast-toolkit-metrics-spring',
+        'toolkit-spring-common'    : 'hazelcast-toolkit-spring-common',
+        'toolkit-spring-boot2'     : 'hazelcast-toolkit-spring-boot2',
+        'toolkit-spring-boot3'     : 'hazelcast-toolkit-spring-boot3',
+]
+
 // POM display names and descriptions for each published module.
 // Kept in the root build so they are always available when the pom{} closure is evaluated,
 // regardless of subproject script evaluation order.
@@ -95,9 +106,7 @@ configure(subprojects.findAll { it.name in publishedModules }) { Project p ->
         publications {
             mavenJava(MavenPublication) {
                 from components.java
-
-                // By default artifactId matches the module name. Override it here if needed:
-                // artifactId = "hazelcast-toolkit-core"
+                artifactId = publishedArtifactIds[p.name] ?: p.name
 
                 pom {
                     def meta = pomMeta[p.name]
