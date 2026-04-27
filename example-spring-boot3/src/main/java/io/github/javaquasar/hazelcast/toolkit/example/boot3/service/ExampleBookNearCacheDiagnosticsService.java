@@ -45,6 +45,7 @@ public class ExampleBookNearCacheDiagnosticsService {
 
         long warmReadNanos = timedFind(entity.getId());
         long hitsAfterWarmRead = statistics.getSecondLevelCacheHitCount();
+        boolean warmReadServedFromL2 = hitsAfterWarmRead > hitsAfterColdRead;
 
         entityManagerFactory.getCache().evict(ExampleBookEntity.class, entity.getId());
         long missesBeforeEvictedRead = statistics.getSecondLevelCacheMissCount();
@@ -65,7 +66,7 @@ public class ExampleBookNearCacheDiagnosticsService {
                         missesAfterEvictedRead - missesBeforeEvictedRead
                 ),
                 new NearCacheDemoResponse.Interpretation(
-                        warmReadNanos < coldReadNanos,
+                        warmReadServedFromL2 || warmReadNanos < coldReadNanos,
                         missesAfterEvictedRead > missesBeforeEvictedRead
                 )
         );

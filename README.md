@@ -12,26 +12,26 @@ Register Compact serialization types with `@HzCompact`, wire IMap listeners with
 
 ## Why this library?
 
-**hazelcat-toolkit** is a high-level, annotation-driven toolkit that brings modern Hazelcast 5+ best practices to Spring Boot applications.
+**hazelcast-toolkit** is a high-level, annotation-driven toolkit that brings modern Hazelcast 5+ best practices to Spring Boot applications.
 
-While Spring Boot provides basic Hazelcast auto-configuration, it is intentionally minimal and focused only on core `HazelcastInstance` and `Cache` integration. hazelcat-toolkit goes significantly further by eliminating boilerplate for the most common real-world use cases.
+While Spring Boot provides basic Hazelcast auto-configuration, it is intentionally minimal and focused only on core `HazelcastInstance` and `Cache` integration. hazelcast-toolkit goes significantly further by eliminating boilerplate for the most common real-world use cases.
 
 ### Key Differences from Official Spring Boot Hazelcast Support
 
-| Feature                              | Official Spring Boot                          | hazelcat-toolkit                                      | Benefit |
+| Feature                              | Official Spring Boot                          | hazelcast-toolkit                                      | Benefit |
 |--------------------------------------|-----------------------------------------------|-------------------------------------------------------|---------|
 | **Hazelcast Instance**               | Basic client/server auto-config               | Smart client with auto-naming, `HazelcastClientConfigCustomizer` | Cleaner, more maintainable configuration |
 | **Compact Serialization**            | Not supported                                 | `@HzCompact` + automatic package scanning (zero-config + explicit serializers) | Modern, efficient, cross-language ready |
 | **IMap Event Listeners**             | Manual registration                           | `@HzIMapListener` on Spring beans (auto-registered) | Zero-boilerplate event-driven architecture |
 | **Hibernate 2nd-Level Cache**        | No dedicated support                          | Full auto-configuration with safe defaults + known issue documentation | Production-ready L2 caching |
 | **Configuration Style**              | Properties + XML/YAML files only              | Annotations + properties + type-safe customizers     | Developer-friendly and type-safe |
-| **Multi Boot Version Support**       | Single implementation                         | Published starters for Boot 2 / 3, with Boot 4 work tracked separately in-repo | Clear release scope |
+| **Multi Boot Version Support**       | Single implementation                         | Published starters for Boot 2 / 3 / 4 | Clear release scope |
 | **Test Infrastructure**              | None                                          | Shared Testcontainers (3-node cluster + Postgres)    | Ready for integration testing |
 | **Metrics & Observability**          | Basic                                         | Micrometer near-cache + Hibernate L2 meters, diagnostic controller, and Near-Cache health Actuator endpoint | Production monitoring ready |
 
 **In short:**  
 Spring Boot gives you the foundation.  
-**hazelcat-toolkit** gives you the complete, production-grade Hazelcast experience with almost zero boilerplate.
+**hazelcast-toolkit** gives you the complete, production-grade Hazelcast experience with almost zero boilerplate.
 
 ---
 
@@ -68,10 +68,52 @@ implementation 'io.github.javaquasar:hazelcast-toolkit-spring-boot3:<version>'
 </dependency>
 ```
 
-Artifact naming note:
+Published Maven artifact IDs use the `hazelcast-toolkit-*` prefix, for example:
 
-- `0.1.0` was published with the original short artifact IDs such as `toolkit-spring-boot3`
-- starting with the next release, published Maven artifacts use the `hazelcast-toolkit-*` prefix for clearer discovery in Maven Central
+- `io.github.javaquasar:hazelcast-toolkit-spring-boot2`
+- `io.github.javaquasar:hazelcast-toolkit-spring-boot3`
+- `io.github.javaquasar:hazelcast-toolkit-spring-boot4`
+
+### Companion Dependencies in Real Consumer Apps
+
+For a standard Spring Boot application, the starter is the main entry point:
+
+```groovy
+implementation 'io.github.javaquasar:hazelcast-toolkit-spring-boot3:<version>'
+```
+
+In stricter enterprise builds, that may not be enough on its own. During real
+consumer verification against an external application, a few companion
+dependencies had to be declared explicitly because the host project used
+centralized dependency management, module-level exclusions, and split
+configuration across shared modules.
+
+Add these explicitly when your application layout requires them:
+
+- `com.hazelcast:hazelcast`
+  Needed when the host application pins or excludes Hazelcast centrally and does
+  not already bring the runtime transitively.
+- `io.github.javaquasar:hazelcast-toolkit-scan-reflections`
+  Needed when you rely on the Reflections-based scanner outside the simple
+  starter-only path, for example in shared library modules or tests that create
+  scanner-driven configuration directly.
+- `io.micrometer:micrometer-core`
+  Needed when toolkit metrics are enabled in an application that does not
+  already bring Micrometer through its own starter stack.
+- `com.hazelcast:hazelcast-hibernate`
+  Needed for native Hibernate L2 modes such as `HAZELCAST_LOCAL` or
+  `HAZELCAST`.
+- `javax.cache:cache-api`
+  Needed for `region-factory: JCACHE`, and currently still relevant for the
+  known Boot 2 native-mode edge case documented in the project notes.
+
+Practical rule:
+
+- start with the Boot starter only
+- if your application uses custom dependency management, excludes transitive
+  libraries, or moves Hazelcast setup into shared modules, add the companion
+  dependencies above explicitly instead of assuming the starter is a single-jar
+  distribution
 
 ### 2. Configure `application.yml`
 
@@ -429,7 +471,7 @@ Examples:
 
 - **Hibernate 5 composite-key issue**: If you use Hibernate 5 and JPA entities with composite keys, Hazelcast's L2 cache key conversion may fail. See [`docs/hibernate-l2-cachekey-converter-issue.md`](docs/hibernate-l2-cachekey-converter-issue.md) for root cause analysis and workarounds.
 
-- **Boot 4 conditional support**: `toolkit-spring-boot4` is functionally equivalent to the Boot 3 module — it includes JCache, Hibernate L2, and Actuator auto-configurations. Each auto-configuration is guarded by `@ConditionalOnClass` against the relevant type (`HibernatePropertiesCustomizer`, `@Endpoint`, `EntityManagerFactory`). In Spring Boot 4.0.0 these types are not yet published, so the extra configurations remain inactive until Boot 4 ships JPA/Actuator support. The module is opt-in: pass `-PenableBoot4=true` to Gradle.
+- **Boot 4 support**: `toolkit-spring-boot4` is part of the regular build and provides Boot 4 auto-configuration for the shared Hazelcast client, JCache wiring, Hibernate L2 integration, listener registration, metrics binders, and the Near-Cache Actuator endpoint. Some advanced auto-configurations are still guarded by `@ConditionalOnClass` and activate only when the relevant Spring Boot 4 / JPA / Actuator types are present on the application classpath.
 
 ---
 
@@ -439,13 +481,13 @@ Examples:
 |---|---|---|
 | `toolkit-core` | Yes | Public annotations: `@HzCompact`, `@HzIMapListener` |
 | `toolkit-scan-api` | Yes | `ClassScanner` interface |
-| `toolkit-scan-reflections` | Yes | `org.reflections`-based scanner implementation |
+| `toolkit-scan-reflections` | Yes | `org.reflections`-based scanner implementation; common companion dependency in shared-module integrations |
 | `toolkit-runtime` | Yes | `HazelcastClientFactory`, `HazelcastClientConfigCustomizer`, properties |
 | `toolkit-spring-common` | Yes | `HzListenersAutoRegistrar` — Spring-aware IMap listener wiring |
-| `toolkit-metrics-spring` | Yes | Optional `HzToolkitMetricsController` |
+| `toolkit-metrics-spring` | Yes | Optional `HzToolkitMetricsController`; may require explicit `micrometer-core` in stricter consumer builds |
 | `toolkit-spring-boot2` | Yes | Spring Boot 2 auto-configuration |
 | `toolkit-spring-boot3` | Yes | Spring Boot 3 auto-configuration (primary) |
-| `toolkit-spring-boot4` | No | Spring Boot 4 auto-configuration (opt-in; full JCache, Hibernate L2, and Actuator parity; enabled when JPA/Actuator land in Boot 4) |
+| `toolkit-spring-boot4` | Yes | Spring Boot 4 auto-configuration starter with shared client, JCache, Hibernate L2, Micrometer, and Actuator support |
 | `toolkit-testcontainers` | No | Shared Hazelcast + Postgres test infrastructure |
 | `example-spring-boot3` | No | Runnable sample app with `@HzCompact`, `@HzIMapListener`, and Hibernate L2 profiles |
 
@@ -460,22 +502,30 @@ Examples:
 # Run a single test class
 ./gradlew :toolkit-spring-boot3:test --tests io.github.javaquasar.hazelcast.toolkit.boot3.Boot3MapListenerIntegrationTest
 
-# Build with the optional Boot 4 module
-./gradlew -PenableBoot4=true :toolkit-spring-boot4:compileJava
+# Run the full Boot 4 starter test suite
+./gradlew :toolkit-spring-boot4:test
 ```
 
 ### Publishing to Maven Central
 
-Publish one module to a local staging repository:
+Publish all Maven publications into local staging repositories:
 
 ```bash
-./gradlew :toolkit-core:publishMavenJavaPublicationToLocalStagingRepository -PreleaseVersion=0.1.0
+./gradlew publishMavenJavaPublicationToLocalStagingRepository -PreleaseVersion=<releaseVersion>
 ```
 
 Bundle all published modules for Central Portal upload:
 
 ```bash
-./gradlew centralBundleAll -PreleaseVersion=0.1.0
+./gradlew centralBundleAll -PreleaseVersion=<releaseVersion>
 ```
 
-GPG signing requires `signingKey` and `signingPassword` in `~/.gradle/gradle.properties`. Staging repos and ZIP bundles are written to each module's `build/` directory.
+Collect all generated Central Portal bundles into one folder:
+
+```bash
+./gradlew collectCentralBundles -PreleaseVersion=<releaseVersion>
+```
+
+GPG signing can use either in-memory Gradle properties (`signingKey`, `signingPassword`, optional `signingKeyId`) or the local GPG command (`useGpgCmd=true`). Staging repositories are written under each published module's `build/staging-repo/`, and the final ZIP bundles are collected under `build/central-bundles/`.
+
+For a full release walkthrough, see [docs/release-publishing.md](docs/release-publishing.md) and the private operator notes in [SECRETS.md](SECRETS.md).

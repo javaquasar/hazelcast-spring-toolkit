@@ -58,3 +58,9 @@ tasks.withType(Test).configureEach {
     classpath += configurations.boot3Stubs
     binaryResultsDirectory = layout.buildDirectory.dir(boot4TestRunId.map { "test-results/${name}/binary-${it}" })
 }
+
+
+tasks.named('javadoc') {
+    classpath += configurations.boot3Stubs
+}
+
