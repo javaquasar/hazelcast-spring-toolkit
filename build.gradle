@@ -63,6 +63,7 @@ def publishedModules = [
         'toolkit-spring-common',
         'toolkit-spring-boot2',
         'toolkit-spring-boot3',
+        'toolkit-spring-boot4',
 ]
 
 def publishedArtifactIds = [
@@ -74,6 +75,7 @@ def publishedArtifactIds = [
         'toolkit-spring-common'    : 'hazelcast-toolkit-spring-common',
         'toolkit-spring-boot2'     : 'hazelcast-toolkit-spring-boot2',
         'toolkit-spring-boot3'     : 'hazelcast-toolkit-spring-boot3',
+        'toolkit-spring-boot4'     : 'hazelcast-toolkit-spring-boot4',
 ]
 
 // POM display names and descriptions for each published module.
@@ -95,7 +97,9 @@ def pomMeta = [
         'toolkit-spring-boot2'  : [name: 'Hazelcast Toolkit Spring Boot 2 Starter',
                                    desc: 'Spring Boot 2 auto-configuration starter: compact serialization, IMap listener registration, JCache L2 cache, and Micrometer metrics.'],
         'toolkit-spring-boot3'  : [name: 'Hazelcast Toolkit Spring Boot 3 Starter',
-                                   desc: 'Spring Boot 3 auto-configuration starter: compact serialization, IMap listener registration, JCache L2 cache, Hibernate L2, and Micrometer metrics.'],
+                                    desc: 'Spring Boot 3 auto-configuration starter: compact serialization, IMap listener registration, JCache L2 cache, Hibernate L2, and Micrometer metrics.'],
+        'toolkit-spring-boot4'  : [name: 'Hazelcast Toolkit Spring Boot 4 Starter',
+                                    desc: 'Spring Boot 4 auto-configuration starter: compact serialization, IMap listener registration, JCache L2 cache, Hibernate L2, Actuator integration, and Micrometer metrics.'],
 ]
 
 configure(subprojects.findAll { it.name in publishedModules }) { Project p ->
