@@ -133,9 +133,17 @@ Before uploading anything, run the release-confidence matrix:
 
 ```bash
 ./gradlew :toolkit-runtime:test
+```
+```bash
 ./gradlew :toolkit-spring-boot2:test
+```
+```bash
 ./gradlew :toolkit-spring-boot3:test
+```
+```bash
 ./gradlew :toolkit-spring-boot4:test
+```
+```bash
 ./gradlew :example-spring-boot3:test
 ```
 
