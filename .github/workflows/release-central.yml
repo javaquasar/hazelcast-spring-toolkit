@@ -80,6 +80,9 @@ jobs:
           test -n "${CENTRAL_PORTAL_USERNAME}" || { echo "CENTRAL_PORTAL_USERNAME is not configured." >&2; exit 1; }
           test -n "${CENTRAL_PORTAL_PASSWORD}" || { echo "CENTRAL_PORTAL_PASSWORD is not configured." >&2; exit 1; }
 
+      - name: Prepare Gradle wrapper
+        run: chmod +x ./gradlew
+
       - name: Check Docker
         run: docker info
 

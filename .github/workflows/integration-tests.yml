@@ -36,6 +36,9 @@ jobs:
       - name: Check Docker
         run: docker info
 
+      - name: Prepare Gradle wrapper
+        run: chmod +x ./gradlew
+
       - name: Run selected suite
         shell: bash
         run: |
