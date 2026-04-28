@@ -150,6 +150,14 @@ jobs:
           name: central-bundle-${{ steps.release.outputs.version }}
           path: build/central-bundles/*.zip
 
+      - name: Print failed tests
+        if: failure()
+        shell: bash
+        run: |
+          find . -path "*/build/test-results/test/*.xml" -print0 \
+            | xargs -0 grep -H -E "<failure|<error" \
+            || true
+
       - name: Save test reports
         if: failure()
         uses: actions/upload-artifact@v4

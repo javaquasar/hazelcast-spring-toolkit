@@ -46,6 +46,12 @@ subprojects {
 
     tasks.withType(Test).configureEach {
         useJUnitPlatform()
+        if (System.getenv('CI') == 'true') {
+            testLogging {
+                events "failed"
+                exceptionFormat "full"
+            }
+        }
     }
 
     tasks.withType(Javadoc).configureEach {
