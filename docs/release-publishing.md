@@ -92,7 +92,20 @@ are not ready for Maven Central upload.
 
 ## Step 3: Build The Central Portal Bundles
 
-After local staging succeeds, create uploadable ZIP bundles for all published modules:
+After local staging succeeds, create one uploadable ZIP bundle containing all
+published modules:
+
+```bash
+./gradlew collectCentralAggregateBundle "-PreleaseVersion=0.3.0"
+```
+
+Collected bundle location:
+
+```text
+build/central-bundles/hazelcast-toolkit-0.3.0-central-bundle.zip
+```
+
+If you still want separate per-module bundles for manual diagnostics, use:
 
 ```bash
 ./gradlew centralBundleAll "-PreleaseVersion=0.3.0"
@@ -104,7 +117,7 @@ This creates one ZIP per published module under:
 <module>/build/central/<module>-<version>-central-bundle.zip
 ```
 
-Each ZIP should contain the full Maven layout, including:
+Each ZIP should contain Maven repository layout entries, including:
 
 - signed JARs
 - signed `-sources.jar`
@@ -113,7 +126,7 @@ Each ZIP should contain the full Maven layout, including:
 - `.module`
 - checksums
 
-## Optional Convenience Step: Collect All Bundles Into One Folder
+## Optional Convenience Step: Collect Per-Module Bundles Into One Folder
 
 If you do not want to browse each module directory manually, use the root helper task:
 
@@ -160,6 +173,19 @@ application, including default `jcache` Spring Cache mode, explicit `native`
 Spring Cache mode, `none` mode, Hibernate L2 cache behavior, compact scanning,
 IMap listeners, and the near-cache actuator endpoint.
 
+The `Release to Maven Central` workflow runs this release-confidence matrix before
+it builds and uploads the Central Portal bundle. If these checks fail, no upload
+is attempted.
+
+You can also run the same checks outside a release with the `Integration Tests`
+workflow. It is manual by default to avoid spending CI minutes on every push.
+
+Available suites:
+
+- `docker`: runs `:toolkit-spring-boot3:test`, including Testcontainers-backed tests.
+- `release-confidence`: runs the release-confidence matrix listed above.
+- `all-tests`: runs `./gradlew test` for the whole repository.
+
 You should also verify that release notes and public documentation match the code:
 
 - `README.md`
@@ -183,29 +209,44 @@ Each command should report:
 No dependencies matching given input were found
 ```
 
-## Step 5: Upload The Bundles To Maven Central
+## Step 5: Upload The Bundle To Maven Central
 
-This repository prepares Central Portal bundle ZIP files locally. The final
-publication step is to upload those ZIPs through the Maven Central Portal workflow.
+This repository can upload the aggregate Central Portal bundle from GitHub Actions.
+The recommended first-release mode is `USER_MANAGED`: GitHub uploads the bundle,
+Central validates it, and you press Publish manually in the portal.
 
-Typical flow:
+### GitHub Actions Release Flow
 
-1. Sign in to the Central Portal.
-2. Create or open the staging publication for the release.
-3. Upload the generated `*-central-bundle.zip` files.
-4. Let Central validate the uploaded bundles.
-5. If validation succeeds, publish the release.
+Create these repository secrets:
 
-At the moment, this repository does not define a direct Gradle task that uploads
-to Maven Central for you. The Gradle side ends at signed artifact generation and
-bundle assembly.
+- `SIGNING_KEY`: ASCII-armored private signing key
+- `SIGNING_KEY_ID`: signing key id, optional but recommended
+- `SIGNING_PASSWORD`: signing key passphrase
+- `CENTRAL_PORTAL_USERNAME`: Central Portal user token username
+- `CENTRAL_PORTAL_PASSWORD`: Central Portal user token password
+
+Then either:
+
+1. Run `Release to Maven Central` manually from GitHub Actions and enter `0.3.0`.
+2. Push a release tag such as `v0.3.0`.
+
+Tag-triggered releases use `USER_MANAGED`. Manual releases can use either
+`USER_MANAGED` or `AUTOMATIC`.
+
+After a `USER_MANAGED` upload succeeds:
+
+1. Open `https://central.sonatype.com/publishing`.
+2. Wait for the deployment to reach `VALIDATED`.
+3. Publish it manually.
+
+Use `AUTOMATIC` only after at least one `USER_MANAGED` release has validated cleanly.
 
 ## Ready-To-Copy Upload Set
 
-Use the files from:
+Use the aggregate file from:
 
 ```text
-build/central-bundles/
+build/central-bundles/hazelcast-toolkit-0.3.0-central-bundle.zip
 ```
 
 Expected published modules for `0.3.0`:
