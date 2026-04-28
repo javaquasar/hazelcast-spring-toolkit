@@ -1,4 +1,5 @@
 io.github.javaquasar.hazelcast.toolkit.springboot4.config.HazelcastToolkitAutoConfiguration
 io.github.javaquasar.hazelcast.toolkit.springboot4.config.HazelcastJCacheAutoConfiguration
+io.github.javaquasar.hazelcast.toolkit.springboot4.config.HazelcastNativeSpringCacheAutoConfiguration
 io.github.javaquasar.hazelcast.toolkit.springboot4.config.HazelcastHibernateL2AutoConfiguration
 io.github.javaquasar.hazelcast.toolkit.springboot4.config.HazelcastActuatorAutoConfiguration
