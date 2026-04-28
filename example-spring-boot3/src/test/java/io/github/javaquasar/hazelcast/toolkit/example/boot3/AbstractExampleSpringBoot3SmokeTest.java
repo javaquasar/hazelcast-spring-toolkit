@@ -182,7 +182,7 @@ abstract class AbstractExampleSpringBoot3SmokeTest {
         mockMvc.perform(get("/api/books/{id}/near-cache-demo", id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.entityId").value(id))
-                .andExpect(jsonPath("$.interpretation.warmReadFasterThanColdRead").value(true))
+                .andExpect(jsonPath("$.hibernateL2Deltas.hitsOnWarmRead").value(1))
                 .andExpect(jsonPath("$.interpretation.evictionForcedMiss").value(true));
 
         mockMvc.perform(get("/actuator/hazelcastNearCache")
