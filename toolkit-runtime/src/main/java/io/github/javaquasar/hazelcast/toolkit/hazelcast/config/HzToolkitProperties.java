@@ -30,6 +30,7 @@ public class HzToolkitProperties {
     private Metrics metrics = new Metrics();
     private Client client = new Client();
     private Hibernate hibernate = new Hibernate();
+    private SpringCache springCache = new SpringCache();
     private Actuator actuator = new Actuator();
 
     public Compact getCompact() {
@@ -62,6 +63,14 @@ public class HzToolkitProperties {
 
     public void setHibernate(Hibernate hibernate) {
         this.hibernate = hibernate;
+    }
+
+    public SpringCache getSpringCache() {
+        return springCache;
+    }
+
+    public void setSpringCache(SpringCache springCache) {
+        this.springCache = springCache;
     }
 
     public Actuator getActuator() {
@@ -143,6 +152,48 @@ public class HzToolkitProperties {
 
         public void setBaseName(String baseName) {
             this.baseName = baseName;
+        }
+    }
+
+    /**
+     * Spring Cache abstraction settings ({@code hazelcast.toolkit.spring-cache.*}).
+     */
+    public static class SpringCache {
+
+        /**
+         * Selects which Spring {@code CacheManager} the toolkit auto-configures.
+         *
+         * <p>Defaults to {@link Mode#JCACHE} to preserve the original public behaviour.
+         */
+        private Mode mode = Mode.JCACHE;
+
+        public Mode getMode() {
+            return mode;
+        }
+
+        public void setMode(Mode mode) {
+            this.mode = mode;
+        }
+
+        public enum Mode {
+            /**
+             * Default mode. Creates a Hazelcast-backed {@code javax.cache.CacheManager}
+             * and exposes it through Spring's {@code JCacheCacheManager}.
+             */
+            JCACHE,
+
+            /**
+             * Creates Spring's native Hazelcast {@code HazelcastCacheManager} around the
+             * toolkit-managed {@code HazelcastInstance}. Requires
+             * {@code com.hazelcast:hazelcast-spring}.
+             */
+            NATIVE,
+
+            /**
+             * Does not auto-configure a Spring {@code CacheManager}. Applications can
+             * provide their own bean.
+             */
+            NONE
         }
     }
 

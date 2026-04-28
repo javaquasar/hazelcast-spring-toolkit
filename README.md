@@ -103,6 +103,9 @@ Add these explicitly when your application layout requires them:
 - `com.hazelcast:hazelcast-hibernate`
   Needed for native Hibernate L2 modes such as `HAZELCAST_LOCAL` or
   `HAZELCAST`.
+- `com.hazelcast:hazelcast-spring`
+  Needed only when `hazelcast.toolkit.spring-cache.mode=native` is used. The
+  toolkit starters do not expose it transitively for default `jcache` users.
 - `javax.cache:cache-api`
   Needed for `region-factory: JCACHE`, and currently still relevant for the
   known Boot 2 native-mode edge case documented in the project notes.
@@ -293,6 +296,107 @@ A local multi-run characterization of `JCACHE` vs `HAZELCAST_LOCAL`, with and
 without client near-cache, is documented in [docs/performance.md](docs/performance.md).
 Treat those numbers as engineering guidance, not as a universal benchmark.
 
+### Spring Cache Mode
+
+By default, the toolkit keeps its original Spring Cache behavior: it creates a
+Hazelcast-backed `javax.cache.CacheManager` and exposes it through Spring's
+`JCacheCacheManager`.
+
+```yaml
+hazelcast:
+  toolkit:
+    spring-cache:
+      mode: jcache   # default
+```
+
+Available modes:
+
+| Mode | Behavior | Use when |
+|---|---|---|
+| `jcache` | Creates `javax.cache.CacheManager` and Spring `JCacheCacheManager` | Default; good for new apps and JCache / Hibernate-oriented setups |
+| `native` | Creates Spring `com.hazelcast.spring.cache.HazelcastCacheManager` around the toolkit-managed `HazelcastInstance` | Legacy apps migrating from Hazelcast member mode that previously used Hazelcast's native Spring cache manager |
+| `none` | Does not auto-configure a Spring `CacheManager` | The application wants full control or provides its own cache manager bean |
+
+`native` mode requires `com.hazelcast:hazelcast-spring` on the application
+classpath. The toolkit keeps this dependency optional (`compileOnly` in the
+starter modules), so applications must add it explicitly when they opt into
+`native`. It uses Spring's native Hazelcast cache adapter around the
+toolkit-managed `HazelcastInstance`; it does not create an embedded Hazelcast
+member. JCache remains available for Hibernate/JPA where the existing JCache
+auto-configuration applies, but Spring application caching uses Hazelcast's
+native Spring adapter.
+
+Gradle:
+
+```groovy
+implementation "com.hazelcast:hazelcast-spring:${hazelcastVersion}"
+```
+
+Maven:
+
+```xml
+<dependency>
+  <groupId>com.hazelcast</groupId>
+  <artifactId>hazelcast-spring</artifactId>
+  <version>${hazelcast.version}</version>
+</dependency>
+```
+
+If your application uses Hazelcast Enterprise, declare Enterprise explicitly and
+exclude ordinary `com.hazelcast:hazelcast` from `hazelcast-spring` so Enterprise
+keeps dependency priority:
+
+```xml
+<dependency>
+  <groupId>com.hazelcast</groupId>
+  <artifactId>hazelcast-enterprise</artifactId>
+  <version>${hazelcast.version}</version>
+</dependency>
+
+<dependency>
+  <groupId>com.hazelcast</groupId>
+  <artifactId>hazelcast-spring</artifactId>
+  <version>${hazelcast.version}</version>
+  <exclusions>
+    <exclusion>
+      <groupId>com.hazelcast</groupId>
+      <artifactId>hazelcast</artifactId>
+    </exclusion>
+  </exclusions>
+</dependency>
+```
+
+Migration note for Core-style legacy cache semantics:
+
+```properties
+hazelcast.toolkit.spring-cache.mode=native
+```
+
+Use `native` when a legacy application relied on Hazelcast's native Spring Cache
+semantics. `HazelcastCacheManager` resolves cache names lazily as Hazelcast maps,
+so `getCache("some.dynamic.cache")` can work even when no JCache cache has been
+pre-created. `jcache` is the backward-compatible toolkit default, but it is not
+behaviorally equivalent for applications that expect arbitrary dynamic cache
+names to resolve automatically.
+
+#### Spring Cache vs Hibernate L2 Cache
+
+Do not confuse Spring Cache mode with Hibernate L2 region-factory mode. They
+configure different integration layers and can intentionally use different
+backends:
+
+```properties
+hazelcast.toolkit.spring-cache.mode=native
+hazelcast.toolkit.hibernate.l2.region-factory=JCACHE
+```
+
+In this example, application-level Spring caching (`@Cacheable`,
+`org.springframework.cache.CacheManager`, and cache utility code) uses
+Hazelcast's native Spring `HazelcastCacheManager`, while Hibernate second-level
+cache still uses JCache. This is a valid migration setup for legacy applications
+that need native Spring Cache semantics while keeping existing JCache-based
+Hibernate L2 wiring.
+
 ### Observability
 
 The toolkit exposes observability through three complementary surfaces:
@@ -452,6 +556,7 @@ Examples:
 |---|---|---|
 | `client.base-name` | _(empty)_ | Toolkit naming prefix; when combined with `spring.application.name`, produces `<base-name>-<app-name>` |
 | `compact.base-package` | _(empty)_ | Root package to scan for `@HzCompact` classes |
+| `spring-cache.mode` | `JCACHE` | Spring Cache manager mode: `JCACHE` \| `NATIVE` \| `NONE` |
 | `metrics.enabled` | `false` | Enable Micrometer near-cache and Hibernate L2 binders |
 | `metrics.diagnostic-endpoint.enabled` | `false` | Enable the optional `/hz-toolkit/...` diagnostic controller |
 | `hibernate.l2.enabled` | `false` | Activate Hibernate second-level cache support |
