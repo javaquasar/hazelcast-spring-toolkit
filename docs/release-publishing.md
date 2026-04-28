@@ -147,6 +147,19 @@ Before uploading anything, run the release-confidence matrix:
 ./gradlew :example-spring-boot3:test
 ```
 
+After Maven Central shows the release as available, switch to the post-release
+verification branch and run the example against the published artifacts instead
+of the local Gradle projects:
+
+```bash
+./gradlew :example-spring-boot3:test -PusePublishedToolkit=true -PtoolkitReleaseVersion=0.3.0
+```
+
+The example test suite verifies the published Boot 3 starter in the demo
+application, including default `jcache` Spring Cache mode, explicit `native`
+Spring Cache mode, `none` mode, Hibernate L2 cache behavior, compact scanning,
+IMap listeners, and the near-cache actuator endpoint.
+
 You should also verify that release notes and public documentation match the code:
 
 - `README.md`

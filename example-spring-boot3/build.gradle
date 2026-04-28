@@ -3,11 +3,22 @@ plugins {
 }
 
 def exampleTestRunId = providers.provider { Long.toString(System.currentTimeMillis()) }
+def usePublishedToolkit = providers.gradleProperty('usePublishedToolkit')
+        .map { it.toBoolean() }
+        .orElse(false)
+def toolkitReleaseVersion = providers.gradleProperty('toolkitReleaseVersion')
+        .orElse(version.toString())
 
 dependencies {
     implementation platform("org.springframework.boot:spring-boot-dependencies:${springBoot3Version}")
 
-    implementation project(':toolkit-spring-boot3')
+    if (usePublishedToolkit.get()) {
+        implementation "io.github.javaquasar:hazelcast-toolkit-spring-boot3:${toolkitReleaseVersion.get()}"
+        testImplementation "io.github.javaquasar:hazelcast-toolkit-scan-reflections:${toolkitReleaseVersion.get()}"
+    } else {
+        implementation project(':toolkit-spring-boot3')
+        testImplementation project(':toolkit-scan-reflections')
+    }
 
     implementation "org.springframework.boot:spring-boot-starter-web:${springBoot3Version}"
     implementation "org.springframework.boot:spring-boot-starter-data-jpa:${springBoot3Version}"
@@ -18,8 +29,9 @@ dependencies {
     runtimeOnly 'org.hibernate.orm:hibernate-jcache:6.6.33.Final'
     runtimeOnly 'com.hazelcast:hazelcast-hibernate53:2.2.1'
 
-    testImplementation project(':toolkit-scan-reflections')
     testImplementation "org.springframework.boot:spring-boot-starter-test:${springBoot3Version}"
+    testImplementation 'javax.cache:cache-api:1.1.1'
+    testImplementation "com.hazelcast:hazelcast-spring:${hazelcastVersion}"
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
