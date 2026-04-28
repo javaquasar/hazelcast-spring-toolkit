@@ -2,7 +2,6 @@ package io.github.javaquasar.hazelcast.toolkit.boot3;
 
 import com.hazelcast.cache.ICache;
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.nearcache.NearCacheStats;
 import io.github.javaquasar.hazelcast.toolkit.boot3.l2.L2CacheTestConfiguration;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientFactory;
 import io.github.javaquasar.hazelcast.toolkit.scan.reflections.ReflectionsClassScanner;
@@ -36,6 +35,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers(disabledWithoutDocker = true)
@@ -163,10 +163,6 @@ class Boot3JpaL2CacheIntegrationTest extends TestcontainersEnvironment {
 
         hazelcastCache.get(cacheKey);
 
-        NearCacheStats statsBeforeRemoteUpdate = hazelcastCache.getLocalCacheStatistics().getNearCacheStatistics();
-        long hitsBeforeRemoteUpdate = statsBeforeRemoteUpdate.getHits();
-        long missesBeforeRemoteUpdate = statsBeforeRemoteUpdate.getMisses();
-
         try (RemoteCacheAccess remoteCacheAccess = openRemoteCacheAccess()) {
             Cache<Object, Object> remoteCache = remoteCacheAccess.cacheManager().getCache(SharedTestCachedEntity.CACHE_REGION);
             assertNotNull(remoteCache, "Expected remote CacheManager to resolve the Hibernate L2 region");
@@ -178,28 +174,13 @@ class Boot3JpaL2CacheIntegrationTest extends TestcontainersEnvironment {
             remoteCache.remove(cacheKey);
 
             // Keep the remote client alive until the local near-cache observes the remote eviction.
-            // A direct get() may already repopulate from the cluster, so assert the near-cache signal
-            // instead of requiring the instantaneous read value to be null.
             Awaitility.await()
                     .atMost(Duration.ofSeconds(10))
-                    .untilAsserted(() -> {
-                        hazelcastCache.get(cacheKey);
-                        NearCacheStats currentStats = hazelcastCache.getLocalCacheStatistics().getNearCacheStatistics();
-                        assertTrue(
-                                currentStats.getInvalidations() > statsBeforeRemoteUpdate.getInvalidations()
-                                        || currentStats.getMisses() > missesBeforeRemoteUpdate,
-                                "Expected near-cache to observe the remote eviction via invalidation or a follow-up miss"
-                        );
-                    });
+                    .untilAsserted(() -> assertNull(
+                            hazelcastCache.get(cacheKey),
+                            "Expected local near-cache to stop serving the evicted L2 cache entry"
+                    ));
         }
-
-        NearCacheStats statsAfterRemoteEviction = hazelcastCache.getLocalCacheStatistics().getNearCacheStatistics();
-        assertTrue(
-                statsAfterRemoteEviction.getInvalidations() > statsBeforeRemoteUpdate.getInvalidations()
-                        || statsAfterRemoteEviction.getMisses() > missesBeforeRemoteUpdate,
-                "Expected near-cache to observe the remote eviction via invalidation or a follow-up miss"
-        );
-        assertTrue(statsAfterRemoteEviction.getHits() >= hitsBeforeRemoteUpdate);
     }
 
     private long countEntries(ICache<Object, Object> cache) {
