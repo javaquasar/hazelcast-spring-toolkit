@@ -164,8 +164,13 @@ jobs:
         with:
           name: release-test-reports-${{ steps.release.outputs.version }}
           path: |
-            **/build/reports/tests/
-            **/build/test-results/
+            **/build/reports/tests/**/*.html
+            **/build/reports/tests/**/*.css
+            **/build/reports/tests/**/*.js
+            **/build/test-results/**/*.xml
+            **/build/test-results/**/*.bin
+            **/build/test-results/**/*.idx
+          if-no-files-found: warn
 
       - name: Print follow-up
         run: |

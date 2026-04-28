@@ -72,5 +72,10 @@ jobs:
         with:
           name: integration-test-reports
           path: |
-            **/build/reports/tests/
-            **/build/test-results/
+            **/build/reports/tests/**/*.html
+            **/build/reports/tests/**/*.css
+            **/build/reports/tests/**/*.js
+            **/build/test-results/**/*.xml
+            **/build/test-results/**/*.bin
+            **/build/test-results/**/*.idx
+          if-no-files-found: warn
