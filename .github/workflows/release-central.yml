@@ -15,6 +15,11 @@ on:
         options:
           - USER_MANAGED
           - AUTOMATIC
+      dry_run:
+        description: Build and verify without uploading to Central Portal
+        required: true
+        default: true
+        type: boolean
   push:
     tags:
       - 'v*'
@@ -26,6 +31,7 @@ jobs:
   release:
     name: Build and upload Central bundle
     runs-on: ubuntu-latest
+    environment: maven-central
 
     steps:
       - name: Check out repository
@@ -45,9 +51,11 @@ jobs:
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             VERSION="${{ inputs.version }}"
             PUBLISHING_TYPE="${{ inputs.publishing_type }}"
+            DRY_RUN="${{ inputs.dry_run }}"
           else
             VERSION="${GITHUB_REF_NAME#v}"
             PUBLISHING_TYPE="USER_MANAGED"
+            DRY_RUN="false"
           fi
 
           if [[ -z "${VERSION}" || "${VERSION}" == *"-SNAPSHOT" ]]; then
@@ -57,6 +65,20 @@ jobs:
 
           echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
           echo "publishing_type=${PUBLISHING_TYPE}" >> "${GITHUB_OUTPUT}"
+          echo "dry_run=${DRY_RUN}" >> "${GITHUB_OUTPUT}"
+
+      - name: Check release secrets
+        shell: bash
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+          CENTRAL_PORTAL_USERNAME: ${{ secrets.CENTRAL_PORTAL_USERNAME }}
+          CENTRAL_PORTAL_PASSWORD: ${{ secrets.CENTRAL_PORTAL_PASSWORD }}
+        run: |
+          test -n "${SIGNING_KEY}" || { echo "SIGNING_KEY is not configured." >&2; exit 1; }
+          test -n "${SIGNING_PASSWORD}" || { echo "SIGNING_PASSWORD is not configured." >&2; exit 1; }
+          test -n "${CENTRAL_PORTAL_USERNAME}" || { echo "CENTRAL_PORTAL_USERNAME is not configured." >&2; exit 1; }
+          test -n "${CENTRAL_PORTAL_PASSWORD}" || { echo "CENTRAL_PORTAL_PASSWORD is not configured." >&2; exit 1; }
 
       - name: Check Docker
         run: docker info
@@ -71,7 +93,30 @@ jobs:
           ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.SIGNING_PASSWORD }}
         run: ./gradlew clean collectCentralAggregateBundle -PreleaseVersion=${{ steps.release.outputs.version }}
 
+      - name: Verify signed Central bundle
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          BUNDLE="build/central-bundles/hazelcast-toolkit-${RELEASE_VERSION}-central-bundle.zip"
+          if [[ ! -s "${BUNDLE}" ]]; then
+            echo "Central bundle not found or empty: ${BUNDLE}" >&2
+            exit 1
+          fi
+
+          ASC_COUNT="$(find . -path "*/build/staging-repo/*" -name "*.asc" | wc -l)"
+          if [[ "${ASC_COUNT}" -eq 0 ]]; then
+            echo "No signature files were generated. Check SIGNING_KEY and SIGNING_PASSWORD." >&2
+            exit 1
+          fi
+
+          unzip -l "${BUNDLE}" | grep -q '\.asc$' || {
+            echo "Central bundle does not contain signature files." >&2
+            exit 1
+          }
+
       - name: Upload Central bundle
+        if: steps.release.outputs.dry_run != 'true'
         id: upload
         shell: bash
         env:
@@ -115,4 +160,5 @@ jobs:
         run: |
           echo "Central deployment id: ${{ steps.upload.outputs.deployment_id }}"
           echo "Publishing type: ${{ steps.release.outputs.publishing_type }}"
+          echo "Dry run: ${{ steps.release.outputs.dry_run }}"
           echo "For USER_MANAGED releases, open https://central.sonatype.com/publishing and publish after validation succeeds."

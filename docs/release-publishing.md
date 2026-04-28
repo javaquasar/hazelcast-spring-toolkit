@@ -233,6 +233,33 @@ Then either:
 Tag-triggered releases use `USER_MANAGED`. Manual releases can use either
 `USER_MANAGED` or `AUTOMATIC`.
 
+### Manual GitHub Actions Run
+
+Use a dry run first to verify secrets, Docker/Testcontainers, signing, and bundle
+assembly without uploading anything to Central Portal:
+
+1. Open the repository on GitHub.
+2. Open `Actions`.
+3. Select `Release to Maven Central`.
+4. Click `Run workflow`.
+5. Select the release branch, usually `main`.
+6. Enter `version`: `0.3.0`.
+7. Select `publishing_type`: `USER_MANAGED`.
+8. Leave `dry_run`: `true`.
+9. Click `Run workflow`.
+10. If the `maven-central` environment requires approval, approve the deployment.
+
+When the dry run is green, run the workflow again with the same version and:
+
+```text
+publishing_type = USER_MANAGED
+dry_run = false
+```
+
+This uploads the bundle but still leaves the final publish action manual in the
+Central Portal. Use `AUTOMATIC` only after a previous `USER_MANAGED` release has
+validated cleanly.
+
 After a `USER_MANAGED` upload succeeds:
 
 1. Open `https://central.sonatype.com/publishing`.
