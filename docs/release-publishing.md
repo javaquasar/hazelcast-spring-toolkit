@@ -220,10 +220,13 @@ Central validates it, and you press Publish manually in the portal.
 Create these repository secrets:
 
 - `SIGNING_KEY`: ASCII-armored private signing key
-- `SIGNING_KEY_ID`: signing key id, optional but recommended
 - `SIGNING_PASSWORD`: signing key passphrase
 - `CENTRAL_PORTAL_USERNAME`: Central Portal user token username
 - `CENTRAL_PORTAL_PASSWORD`: Central Portal user token password
+
+`SIGNING_KEY_ID` is intentionally not required by the GitHub workflow. Gradle can
+select the signing key from the in-memory `SIGNING_KEY` material directly, which
+avoids failures when a primary key id and signing subkey id differ.
 
 Then either:
 

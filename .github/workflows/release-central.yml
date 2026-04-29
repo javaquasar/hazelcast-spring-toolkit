@@ -92,9 +92,8 @@ jobs:
       - name: Build signed Central bundle
         env:
           ORG_GRADLE_PROJECT_signingKey: ${{ secrets.SIGNING_KEY }}
-          ORG_GRADLE_PROJECT_signingKeyId: ${{ secrets.SIGNING_KEY_ID }}
           ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.SIGNING_PASSWORD }}
-        run: ./gradlew clean collectCentralAggregateBundle -PreleaseVersion=${{ steps.release.outputs.version }}
+        run: ./gradlew clean collectCentralAggregateBundle -PreleaseVersion=${{ steps.release.outputs.version }} --stacktrace
 
       - name: Verify signed Central bundle
         shell: bash
