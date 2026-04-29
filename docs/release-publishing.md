@@ -225,10 +225,11 @@ Create these repository secrets:
 - `CENTRAL_PORTAL_USERNAME`: Central Portal user token username
 - `CENTRAL_PORTAL_PASSWORD`: Central Portal user token password
 
-Use the signing subkey id for `SIGNING_KEY_ID`, not the primary key id. For the
-current release key this is `50C2783D878EDB17`; the primary key is
-`7DF564CB21D0D295`. The workflow verifies that generated `.asc` signatures were
-made with the configured signing subkey before upload.
+Use the 16-character signing subkey id for `SIGNING_KEY_ID`, not the primary key
+id. For the current release key this is `50C2783D878EDB17`; the primary key is
+`7DF564CB21D0D295`. The workflow passes Gradle the short 8-character id
+`878EDB17` required by the signing plugin, then verifies that generated `.asc`
+signatures were made with the full configured signing subkey before upload.
 
 Then either:
 
