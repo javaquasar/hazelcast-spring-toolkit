@@ -165,7 +165,7 @@ verification branch and run the example against the published artifacts instead
 of the local Gradle projects:
 
 ```bash
-./gradlew :example-spring-boot3:test -PusePublishedToolkit=true -PtoolkitReleaseVersion=0.3.1
+./gradlew :example-spring-boot3:test -PusePublishedToolkit=true "-PtoolkitReleaseVersion=0.3.1"
 ```
 
 The example test suite verifies the published Boot 3 starter in the demo
@@ -318,8 +318,8 @@ Expected published modules for `0.3.1`:
 For a normal signed release build:
 
 ```bash
-./gradlew clean publishMavenJavaPublicationToLocalStagingRepository -PreleaseVersion=0.3.1
-./gradlew collectCentralBundles -PreleaseVersion=0.3.1
+./gradlew clean publishMavenJavaPublicationToLocalStagingRepository "-PreleaseVersion=0.3.1"
+./gradlew collectCentralBundles "-PreleaseVersion=0.3.1"
 ./gradlew :toolkit-runtime:test :toolkit-spring-boot2:test :toolkit-spring-boot3:test :toolkit-spring-boot4:test :example-spring-boot3:test
 ```
 
