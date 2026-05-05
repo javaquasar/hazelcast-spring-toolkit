@@ -20,7 +20,7 @@ import java.util.Map;
  * {@link NearCacheProbe} helper; this class is responsible only for wiring the
  * {@code jakarta.persistence} JPA operations.
  *
- * <p>Exposed at {@code GET /actuator/hazelcast-near-cache}. Accepts optional query
+ * <p>Exposed at {@code GET /actuator/hazelcastNearCache}. Accepts optional query
  * parameters {@code entity} and {@code id} to override the values configured in
  * {@code hazelcast.toolkit.actuator.near-cache-check.*}.
  *
@@ -72,8 +72,13 @@ public class HazelcastNearCacheEndpoint {
                 entity, id,
                 () -> emf.unwrap(SessionFactory.class).getStatistics(),
                 this::findInNewContext,
-                (cls, entityId) -> emf.getCache().evict(cls, entityId)
+                (cls, entityId) -> emf.getCache().evict(cls, entityId),
+                this::resolveEntityIdType
         );
+    }
+
+    private Class<?> resolveEntityIdType(Class<?> entityClass) {
+        return emf.getMetamodel().entity(entityClass).getIdType().getJavaType();
     }
 
     /**

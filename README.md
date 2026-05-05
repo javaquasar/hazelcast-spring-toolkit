@@ -12,26 +12,26 @@ Register Compact serialization types with `@HzCompact`, wire IMap listeners with
 
 ## Why this library?
 
-**hazelcat-toolkit** is a high-level, annotation-driven toolkit that brings modern Hazelcast 5+ best practices to Spring Boot applications.
+**hazelcast-toolkit** is a high-level, annotation-driven toolkit that brings modern Hazelcast 5+ best practices to Spring Boot applications.
 
-While Spring Boot provides basic Hazelcast auto-configuration, it is intentionally minimal and focused only on core `HazelcastInstance` and `Cache` integration. hazelcat-toolkit goes significantly further by eliminating boilerplate for the most common real-world use cases.
+While Spring Boot provides basic Hazelcast auto-configuration, it is intentionally minimal and focused only on core `HazelcastInstance` and `Cache` integration. hazelcast-toolkit goes significantly further by eliminating boilerplate for the most common real-world use cases.
 
 ### Key Differences from Official Spring Boot Hazelcast Support
 
-| Feature                              | Official Spring Boot                          | hazelcat-toolkit                                      | Benefit |
+| Feature                              | Official Spring Boot                          | hazelcast-toolkit                                      | Benefit |
 |--------------------------------------|-----------------------------------------------|-------------------------------------------------------|---------|
 | **Hazelcast Instance**               | Basic client/server auto-config               | Smart client with auto-naming, `HazelcastClientConfigCustomizer` | Cleaner, more maintainable configuration |
 | **Compact Serialization**            | Not supported                                 | `@HzCompact` + automatic package scanning (zero-config + explicit serializers) | Modern, efficient, cross-language ready |
 | **IMap Event Listeners**             | Manual registration                           | `@HzIMapListener` on Spring beans (auto-registered) | Zero-boilerplate event-driven architecture |
 | **Hibernate 2nd-Level Cache**        | No dedicated support                          | Full auto-configuration with safe defaults + known issue documentation | Production-ready L2 caching |
 | **Configuration Style**              | Properties + XML/YAML files only              | Annotations + properties + type-safe customizers     | Developer-friendly and type-safe |
-| **Multi Boot Version Support**       | Single implementation                         | Published starters for Boot 2 / 3, with Boot 4 work tracked separately in-repo | Clear release scope |
+| **Multi Boot Version Support**       | Single implementation                         | Published starters for Boot 2 / 3 / 4 | Clear release scope |
 | **Test Infrastructure**              | None                                          | Shared Testcontainers (3-node cluster + Postgres)    | Ready for integration testing |
 | **Metrics & Observability**          | Basic                                         | Micrometer near-cache + Hibernate L2 meters, diagnostic controller, and Near-Cache health Actuator endpoint | Production monitoring ready |
 
 **In short:**  
 Spring Boot gives you the foundation.  
-**hazelcat-toolkit** gives you the complete, production-grade Hazelcast experience with almost zero boilerplate.
+**hazelcast-toolkit** gives you the complete, production-grade Hazelcast experience with almost zero boilerplate.
 
 ---
 
@@ -56,17 +56,67 @@ hazelcast:
 
 **Gradle:**
 ```groovy
-implementation 'io.github.javaquasar:toolkit-spring-boot3:0.1.0'
+implementation 'io.github.javaquasar:hazelcast-toolkit-spring-boot3:<version>'
 ```
 
 **Maven:**
 ```xml
 <dependency>
     <groupId>io.github.javaquasar</groupId>
-    <artifactId>toolkit-spring-boot3</artifactId>
-    <version>0.1.0</version>
+    <artifactId>hazelcast-toolkit-spring-boot3</artifactId>
+    <version>${version}</version>
 </dependency>
 ```
+
+Published Maven artifact IDs use the `hazelcast-toolkit-*` prefix, for example:
+
+- `io.github.javaquasar:hazelcast-toolkit-spring-boot2`
+- `io.github.javaquasar:hazelcast-toolkit-spring-boot3`
+- `io.github.javaquasar:hazelcast-toolkit-spring-boot4`
+
+### Companion Dependencies in Real Consumer Apps
+
+For a standard Spring Boot application, the starter is the main entry point:
+
+```groovy
+implementation 'io.github.javaquasar:hazelcast-toolkit-spring-boot3:<version>'
+```
+
+In stricter enterprise builds, that may not be enough on its own. During real
+consumer verification against an external application, a few companion
+dependencies had to be declared explicitly because the host project used
+centralized dependency management, module-level exclusions, and split
+configuration across shared modules.
+
+Add these explicitly when your application layout requires them:
+
+- `com.hazelcast:hazelcast`
+  Needed when the host application pins or excludes Hazelcast centrally and does
+  not already bring the runtime transitively.
+- `io.github.javaquasar:hazelcast-toolkit-scan-reflections`
+  Needed when you rely on the Reflections-based scanner outside the simple
+  starter-only path, for example in shared library modules or tests that create
+  scanner-driven configuration directly.
+- `io.micrometer:micrometer-core`
+  Needed when toolkit metrics are enabled in an application that does not
+  already bring Micrometer through its own starter stack.
+- `com.hazelcast:hazelcast-hibernate`
+  Needed for native Hibernate L2 modes such as `HAZELCAST_LOCAL` or
+  `HAZELCAST`.
+- `com.hazelcast:hazelcast-spring`
+  Needed only when `hazelcast.toolkit.spring-cache.mode=native` is used. The
+  toolkit starters do not expose it transitively for default `jcache` users.
+- `javax.cache:cache-api`
+  Needed for `region-factory: JCACHE`, and currently still relevant for the
+  known Boot 2 native-mode edge case documented in the project notes.
+
+Practical rule:
+
+- start with the Boot starter only
+- if your application uses custom dependency management, excludes transitive
+  libraries, or moves Hazelcast setup into shared modules, add the companion
+  dependencies above explicitly instead of assuming the starter is a single-jar
+  distribution
 
 ### 2. Configure `application.yml`
 
@@ -246,13 +296,114 @@ A local multi-run characterization of `JCACHE` vs `HAZELCAST_LOCAL`, with and
 without client near-cache, is documented in [docs/performance.md](docs/performance.md).
 Treat those numbers as engineering guidance, not as a universal benchmark.
 
+### Spring Cache Mode
+
+By default, the toolkit keeps its original Spring Cache behavior: it creates a
+Hazelcast-backed `javax.cache.CacheManager` and exposes it through Spring's
+`JCacheCacheManager`.
+
+```yaml
+hazelcast:
+  toolkit:
+    spring-cache:
+      mode: jcache   # default
+```
+
+Available modes:
+
+| Mode | Behavior | Use when |
+|---|---|---|
+| `jcache` | Creates `javax.cache.CacheManager` and Spring `JCacheCacheManager` | Default; good for new apps and JCache / Hibernate-oriented setups |
+| `native` | Creates Spring `com.hazelcast.spring.cache.HazelcastCacheManager` around the toolkit-managed `HazelcastInstance` | Legacy apps migrating from Hazelcast member mode that previously used Hazelcast's native Spring cache manager |
+| `none` | Does not auto-configure a Spring `CacheManager` | The application wants full control or provides its own cache manager bean |
+
+`native` mode requires `com.hazelcast:hazelcast-spring` on the application
+classpath. The toolkit keeps this dependency optional (`compileOnly` in the
+starter modules), so applications must add it explicitly when they opt into
+`native`. It uses Spring's native Hazelcast cache adapter around the
+toolkit-managed `HazelcastInstance`; it does not create an embedded Hazelcast
+member. JCache remains available for Hibernate/JPA where the existing JCache
+auto-configuration applies, but Spring application caching uses Hazelcast's
+native Spring adapter.
+
+Gradle:
+
+```groovy
+implementation "com.hazelcast:hazelcast-spring:${hazelcastVersion}"
+```
+
+Maven:
+
+```xml
+<dependency>
+  <groupId>com.hazelcast</groupId>
+  <artifactId>hazelcast-spring</artifactId>
+  <version>${hazelcast.version}</version>
+</dependency>
+```
+
+If your application uses Hazelcast Enterprise, declare Enterprise explicitly and
+exclude ordinary `com.hazelcast:hazelcast` from `hazelcast-spring` so Enterprise
+keeps dependency priority:
+
+```xml
+<dependency>
+  <groupId>com.hazelcast</groupId>
+  <artifactId>hazelcast-enterprise</artifactId>
+  <version>${hazelcast.version}</version>
+</dependency>
+
+<dependency>
+  <groupId>com.hazelcast</groupId>
+  <artifactId>hazelcast-spring</artifactId>
+  <version>${hazelcast.version}</version>
+  <exclusions>
+    <exclusion>
+      <groupId>com.hazelcast</groupId>
+      <artifactId>hazelcast</artifactId>
+    </exclusion>
+  </exclusions>
+</dependency>
+```
+
+Migration note for Core-style legacy cache semantics:
+
+```properties
+hazelcast.toolkit.spring-cache.mode=native
+```
+
+Use `native` when a legacy application relied on Hazelcast's native Spring Cache
+semantics. `HazelcastCacheManager` resolves cache names lazily as Hazelcast maps,
+so `getCache("some.dynamic.cache")` can work even when no JCache cache has been
+pre-created. `jcache` is the backward-compatible toolkit default, but it is not
+behaviorally equivalent for applications that expect arbitrary dynamic cache
+names to resolve automatically.
+
+#### Spring Cache vs Hibernate L2 Cache
+
+Do not confuse Spring Cache mode with Hibernate L2 region-factory mode. They
+configure different integration layers and can intentionally use different
+backends:
+
+```properties
+hazelcast.toolkit.spring-cache.mode=native
+hazelcast.toolkit.hibernate.l2.region-factory=JCACHE
+```
+
+In this example, application-level Spring caching (`@Cacheable`,
+`org.springframework.cache.CacheManager`, and cache utility code) uses
+Hazelcast's native Spring `HazelcastCacheManager`, while Hibernate second-level
+cache still uses JCache. This is a valid migration setup for legacy applications
+that need native Spring Cache semantics while keeping existing JCache-based
+Hibernate L2 wiring.
+
 ### Observability
 
 The toolkit exposes observability through three complementary surfaces:
 
 1. **Micrometer meters** for production monitoring
 2. **`/hz-toolkit/...` diagnostic endpoints** for manual inspection
-3. **`/actuator/hazelcast-near-cache`** for an active near-cache probe
+3. **`/actuator/hazelcastNearCache`** for an active near-cache probe
 
 Enable Micrometer binders:
 
@@ -276,7 +427,7 @@ hazelcast:
 Documented meter names, tags, and usage guidance live in
 [docs/observability.md](docs/observability.md).
 
-### Near-Cache Health Check — `/actuator/hazelcast-near-cache`
+### Near-Cache Health Check — `/actuator/hazelcastNearCache`
 
 A lightweight Actuator endpoint that verifies, in production, that the Hazelcast near-cache is functioning correctly for a JPA entity of your choice.
 
@@ -308,8 +459,8 @@ hazelcast:
 **Query parameters** — override defaults per request:
 
 ```
-GET /actuator/hazelcast-near-cache
-GET /actuator/hazelcast-near-cache?entity=com.mycompany.entity.Product&id=99
+GET /actuator/hazelcastNearCache
+GET /actuator/hazelcastNearCache?entity=com.mycompany.entity.Product&id=99
 ```
 
 **Example response:**
@@ -319,6 +470,8 @@ GET /actuator/hazelcast-near-cache?entity=com.mycompany.entity.Product&id=99
   "status": "OK",
   "entity": "com.mycompany.entity.User",
   "id": "42",
+  "idType": "java.lang.Long",
+  "resolvedId": 42,
   "nearCache": {
     "hitVerified": true,
     "invalidationVerified": true
@@ -405,14 +558,15 @@ Examples:
 |---|---|---|
 | `client.base-name` | _(empty)_ | Toolkit naming prefix; when combined with `spring.application.name`, produces `<base-name>-<app-name>` |
 | `compact.base-package` | _(empty)_ | Root package to scan for `@HzCompact` classes |
+| `spring-cache.mode` | `JCACHE` | Spring Cache manager mode: `JCACHE` \| `NATIVE` \| `NONE` |
 | `metrics.enabled` | `false` | Enable Micrometer near-cache and Hibernate L2 binders |
-| `metrics.diagnostic-endpoint.enabled` | `false` | Enable the optional `/hz-toolkit/...` diagnostic controller |
+| `metrics.diagnostic-endpoint.enabled` | `false` | Enable the optional `/hz-toolkit/...` diagnostic controller separately from metrics publishing |
 | `hibernate.l2.enabled` | `false` | Activate Hibernate second-level cache support |
 | `hibernate.l2.region-factory` | `JCACHE` | RegionFactory type: `JCACHE` \| `HAZELCAST_LOCAL` \| `HAZELCAST` |
 | `hibernate.l2.extended-config` | `false` | Apply full property set (region.factory_class, query cache, statistics) |
 | `hibernate.l2.use-query-cache` | `false` | Enable Hibernate query result cache (`extended-config` only) |
 | `hibernate.l2.use-statistics` | `false` | Enable Hibernate cache statistics (`extended-config` only) |
-| `actuator.near-cache-check.enabled` | `false` | Register the `/actuator/hazelcast-near-cache` endpoint |
+| `actuator.near-cache-check.enabled` | `false` | Register the `/actuator/hazelcastNearCache` endpoint |
 | `actuator.near-cache-check.entity-class` | _(empty)_ | Fully-qualified JPA entity class used as probe |
 | `actuator.near-cache-check.entity-id` | _(empty)_ | Primary-key value of the probe entity (as String) |
 
@@ -424,7 +578,7 @@ Examples:
 
 - **Hibernate 5 composite-key issue**: If you use Hibernate 5 and JPA entities with composite keys, Hazelcast's L2 cache key conversion may fail. See [`docs/hibernate-l2-cachekey-converter-issue.md`](docs/hibernate-l2-cachekey-converter-issue.md) for root cause analysis and workarounds.
 
-- **Boot 4 conditional support**: `toolkit-spring-boot4` is functionally equivalent to the Boot 3 module — it includes JCache, Hibernate L2, and Actuator auto-configurations. Each auto-configuration is guarded by `@ConditionalOnClass` against the relevant type (`HibernatePropertiesCustomizer`, `@Endpoint`, `EntityManagerFactory`). In Spring Boot 4.0.0 these types are not yet published, so the extra configurations remain inactive until Boot 4 ships JPA/Actuator support. The module is opt-in: pass `-PenableBoot4=true` to Gradle.
+- **Boot 4 support**: `toolkit-spring-boot4` is part of the regular build and provides Boot 4 auto-configuration for the shared Hazelcast client, JCache wiring, Hibernate L2 integration, listener registration, metrics binders, and the Near-Cache Actuator endpoint. Some advanced auto-configurations are still guarded by `@ConditionalOnClass` and activate only when the relevant Spring Boot 4 / JPA / Actuator types are present on the application classpath.
 
 ---
 
@@ -434,13 +588,13 @@ Examples:
 |---|---|---|
 | `toolkit-core` | Yes | Public annotations: `@HzCompact`, `@HzIMapListener` |
 | `toolkit-scan-api` | Yes | `ClassScanner` interface |
-| `toolkit-scan-reflections` | Yes | `org.reflections`-based scanner implementation |
+| `toolkit-scan-reflections` | Yes | `org.reflections`-based scanner implementation; common companion dependency in shared-module integrations |
 | `toolkit-runtime` | Yes | `HazelcastClientFactory`, `HazelcastClientConfigCustomizer`, properties |
 | `toolkit-spring-common` | Yes | `HzListenersAutoRegistrar` — Spring-aware IMap listener wiring |
-| `toolkit-metrics-spring` | Yes | Optional `HzToolkitMetricsController` |
+| `toolkit-metrics-spring` | Yes | Optional `HzToolkitMetricsController`; may require explicit `micrometer-core` in stricter consumer builds |
 | `toolkit-spring-boot2` | Yes | Spring Boot 2 auto-configuration |
 | `toolkit-spring-boot3` | Yes | Spring Boot 3 auto-configuration (primary) |
-| `toolkit-spring-boot4` | No | Spring Boot 4 auto-configuration (opt-in; full JCache, Hibernate L2, and Actuator parity; enabled when JPA/Actuator land in Boot 4) |
+| `toolkit-spring-boot4` | Yes | Spring Boot 4 auto-configuration starter with shared client, JCache, Hibernate L2, Micrometer, and Actuator support |
 | `toolkit-testcontainers` | No | Shared Hazelcast + Postgres test infrastructure |
 | `example-spring-boot3` | No | Runnable sample app with `@HzCompact`, `@HzIMapListener`, and Hibernate L2 profiles |
 
@@ -455,22 +609,30 @@ Examples:
 # Run a single test class
 ./gradlew :toolkit-spring-boot3:test --tests io.github.javaquasar.hazelcast.toolkit.boot3.Boot3MapListenerIntegrationTest
 
-# Build with the optional Boot 4 module
-./gradlew -PenableBoot4=true :toolkit-spring-boot4:compileJava
+# Run the full Boot 4 starter test suite
+./gradlew :toolkit-spring-boot4:test
 ```
 
 ### Publishing to Maven Central
 
-Publish one module to a local staging repository:
+Publish all Maven publications into local staging repositories:
 
 ```bash
-./gradlew :toolkit-core:publishMavenJavaPublicationToLocalStagingRepository -PreleaseVersion=0.1.0
+./gradlew publishMavenJavaPublicationToLocalStagingRepository -PreleaseVersion=<releaseVersion>
 ```
 
 Bundle all published modules for Central Portal upload:
 
 ```bash
-./gradlew centralBundleAll -PreleaseVersion=0.1.0
+./gradlew centralBundleAll -PreleaseVersion=<releaseVersion>
 ```
 
-GPG signing requires `signingKey` and `signingPassword` in `~/.gradle/gradle.properties`. Staging repos and ZIP bundles are written to each module's `build/` directory.
+Collect all generated Central Portal bundles into one folder:
+
+```bash
+./gradlew collectCentralBundles -PreleaseVersion=<releaseVersion>
+```
+
+GPG signing can use either in-memory Gradle properties (`signingKey`, `signingPassword`, optional `signingKeyId`) or the local GPG command (`useGpgCmd=true`). Staging repositories are written under each published module's `build/staging-repo/`, and the final ZIP bundles are collected under `build/central-bundles/`.
+
+For a full release walkthrough, see [docs/release-publishing.md](docs/release-publishing.md) and the private operator notes in [SECRETS.md](SECRETS.md).

@@ -1,0 +1,81 @@
+name: Integration Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Test suite to run
+        required: true
+        default: docker
+        type: choice
+        options:
+          - docker
+          - release-confidence
+          - all-tests
+
+permissions:
+  contents: read
+
+jobs:
+  integration-tests:
+    name: Run integration tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Check Docker
+        run: docker info
+
+      - name: Prepare Gradle wrapper
+        run: chmod +x ./gradlew
+
+      - name: Run selected suite
+        shell: bash
+        run: |
+          case "${{ inputs.suite }}" in
+            docker)
+              ./gradlew :toolkit-spring-boot3:test
+              ;;
+            release-confidence)
+              ./gradlew :toolkit-runtime:test :toolkit-spring-boot2:test :toolkit-spring-boot3:test :toolkit-spring-boot4:test :example-spring-boot3:test
+              ;;
+            all-tests)
+              ./gradlew test
+              ;;
+            *)
+              echo "Unknown suite: ${{ inputs.suite }}" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Print failed tests
+        if: failure()
+        shell: bash
+        run: |
+          find . -path "*/build/test-results/test/*.xml" -print0 \
+            | xargs -0 grep -H -E "<failure|<error" \
+            || true
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-reports
+          path: |
+            **/build/reports/tests/**/*.html
+            **/build/reports/tests/**/*.css
+            **/build/reports/tests/**/*.js
+            **/build/test-results/**/*.xml
+            **/build/test-results/**/*.bin
+            **/build/test-results/**/*.idx
+          if-no-files-found: warn

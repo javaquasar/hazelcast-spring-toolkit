@@ -4,6 +4,7 @@ import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperti
 import org.hibernate.stat.Statistics;
 import org.springframework.lang.Nullable;
 
+import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -65,6 +66,18 @@ public final class NearCacheProbe {
         void evict(Class<?> entityClass, Object entityId);
     }
 
+    /**
+     * Resolves the Java type of a JPA entity identifier.
+     */
+    @FunctionalInterface
+    public interface EntityIdTypeResolver {
+        /**
+         * @param entityClass the JPA entity type
+         * @return the Java identifier type, or {@code null} when it cannot be resolved
+         */
+        @Nullable Class<?> resolve(Class<?> entityClass);
+    }
+
     private final HzToolkitProperties properties;
 
     /**
@@ -96,6 +109,20 @@ public final class NearCacheProbe {
             Supplier<Statistics> statisticsSupplier,
             NewContextLoader loader,
             L2CacheEvictor evictor) {
+        return check(entity, id, statisticsSupplier, loader, evictor, ignored -> null);
+    }
+
+    /**
+     * Runs the near-cache probe using the entity identifier type provided by the
+     * caller's JPA metamodel.
+     */
+    public Map<String, Object> check(
+            @Nullable String entity,
+            @Nullable String id,
+            Supplier<Statistics> statisticsSupplier,
+            NewContextLoader loader,
+            L2CacheEvictor evictor,
+            EntityIdTypeResolver idTypeResolver) {
 
         HzToolkitProperties.Actuator.NearCacheCheck cfg =
                 properties.getActuator().getNearCacheCheck();
@@ -117,10 +144,18 @@ public final class NearCacheProbe {
             return errorResult("Entity class not found on classpath: " + entityClassName);
         }
 
-        Object entityId = resolveId(entityIdStr);
+        Class<?> entityIdType;
+        Object entityId;
+        try {
+            entityIdType = idTypeResolver.resolve(entityClass);
+            entityId = resolveId(entityIdStr, entityIdType);
+        } catch (Exception ex) {
+            return errorResult("Failed to convert entity id '" + entityIdStr + "'"
+                    + " for " + entityClass.getName() + ": " + ex.getMessage());
+        }
 
         try {
-            return runProbe(entityClass, entityId, entityIdStr,
+            return runProbe(entityClass, entityId, entityIdStr, entityIdType,
                     statisticsSupplier, loader, evictor);
         } catch (Exception ex) {
             return errorResult("Probe failed: " + ex.getMessage());
@@ -135,6 +170,7 @@ public final class NearCacheProbe {
             Class<?> entityClass,
             Object entityId,
             String entityIdStr,
+            @Nullable Class<?> entityIdType,
             Supplier<Statistics> statisticsSupplier,
             NewContextLoader loader,
             L2CacheEvictor evictor) {
@@ -186,6 +222,8 @@ public final class NearCacheProbe {
         result.put("status", "OK");
         result.put("entity", entityClass.getName());
         result.put("id", entityIdStr);
+        result.put("idType", entityIdType != null ? entityIdType.getName() : entityId.getClass().getName());
+        result.put("resolvedId", entityId);
 
         Map<String, Object> nearCacheSection = new LinkedHashMap<>();
         nearCacheSection.put("hitVerified", cacheHit);
@@ -216,12 +254,42 @@ public final class NearCacheProbe {
     // ------------------------------------------------------------------
 
     /**
-     * Resolves an entity ID string to a typed value.
+     * Resolves an entity ID string using a known JPA identifier type.
      *
-     * <p>Tries {@code Long} first (most common for auto-increment primary keys),
-     * then {@code Integer}, then returns the raw string for string-keyed entities.
+     * <p>When no identifier type is known, this method preserves the historical
+     * fallback behavior for compatibility.
      */
     public static Object resolveId(String idStr) {
+        return resolveId(idStr, null);
+    }
+
+    /**
+     * Resolves an entity ID string to the requested Java type.
+     */
+    public static Object resolveId(String idStr, @Nullable Class<?> idType) {
+        if (idType != null) {
+            Class<?> targetType = wrapPrimitive(idType);
+            if (String.class.equals(targetType)) {
+                return idStr;
+            }
+            if (Integer.class.equals(targetType)) {
+                return Integer.valueOf(idStr);
+            }
+            if (Long.class.equals(targetType)) {
+                return Long.valueOf(idStr);
+            }
+            if (Short.class.equals(targetType)) {
+                return Short.valueOf(idStr);
+            }
+            if (Byte.class.equals(targetType)) {
+                return Byte.valueOf(idStr);
+            }
+            Object valueOfResult = tryStaticValueOf(targetType, idStr);
+            if (valueOfResult != null) {
+                return valueOfResult;
+            }
+            return idStr;
+        }
         try {
             return Long.parseLong(idStr);
         } catch (NumberFormatException ignored) {
@@ -231,6 +299,38 @@ public final class NearCacheProbe {
         } catch (NumberFormatException ignored) {
         }
         return idStr;
+    }
+
+    private static Class<?> wrapPrimitive(Class<?> idType) {
+        if (!idType.isPrimitive()) {
+            return idType;
+        }
+        if (idType == int.class) {
+            return Integer.class;
+        }
+        if (idType == long.class) {
+            return Long.class;
+        }
+        if (idType == short.class) {
+            return Short.class;
+        }
+        if (idType == byte.class) {
+            return Byte.class;
+        }
+        return idType;
+    }
+
+    @Nullable
+    private static Object tryStaticValueOf(Class<?> targetType, String idStr) {
+        try {
+            Method valueOf = targetType.getMethod("valueOf", String.class);
+            if (!java.lang.reflect.Modifier.isStatic(valueOf.getModifiers())) {
+                return null;
+            }
+            return valueOf.invoke(null, idStr);
+        } catch (ReflectiveOperationException | IllegalArgumentException ex) {
+            return null;
+        }
     }
 
     /**

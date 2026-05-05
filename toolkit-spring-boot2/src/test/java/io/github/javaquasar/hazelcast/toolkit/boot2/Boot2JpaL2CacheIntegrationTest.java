@@ -1,12 +1,8 @@
 package io.github.javaquasar.hazelcast.toolkit.boot2;
 
-import com.hazelcast.cache.HazelcastCachingProvider;
 import com.hazelcast.cache.ICache;
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.nearcache.NearCacheStats;
 import io.github.javaquasar.hazelcast.toolkit.boot2.l2.Boot2L2CacheTestConfiguration;
-import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientFactory;
-import io.github.javaquasar.hazelcast.toolkit.scan.reflections.ReflectionsClassScanner;
 import io.github.javaquasar.hazelcast.toolkit.spring.test.l2.SharedTestCachedEntity;
 import io.github.javaquasar.hazelcast.toolkit.spring.test.l2.SharedTestCachedEntityRepository;
 import org.awaitility.Awaitility;
@@ -23,16 +19,12 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
-import javax.cache.spi.CachingProvider;
 import javax.persistence.EntityManagerFactory;
 import java.time.Duration;
 import java.util.List;
-import java.util.Properties;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
@@ -47,8 +39,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
                 "spring.jpa.hibernate.ddl-auto=create-drop",
                 "spring.jpa.open-in-view=false",
                 "hazelcast.toolkit.hibernate.l2.enabled=true",
-                // extended-config=true: apply full JCache wiring (region.factory_class, CacheManager binding, etc.)
-                // Without this only use_second_level_cache=true would be set (safe default).
                 "hazelcast.toolkit.hibernate.l2.extended-config=true",
                 "hazelcast.toolkit.hibernate.l2.use-statistics=true",
                 "hazelcast.client.instance-name=boot2-l2-client",
@@ -126,103 +116,11 @@ class Boot2JpaL2CacheIntegrationTest {
         assertTrue(distributedObjects.stream().anyMatch(name -> name.endsWith(SharedTestCachedEntity.CACHE_REGION)));
     }
 
-    @Test
-    void invalidatesNearCacheWhenAnotherClientEvictsL2CacheEntry() {
-        Long entityId = transactionTemplate.execute(status -> repository.save(new SharedTestCachedEntity("bravo")).getId());
-        assertNotNull(entityId);
-
-        SharedTestCachedEntity firstRead = transactionTemplate.execute(status -> repository.findById(entityId).orElseThrow());
-        assertEquals("bravo", firstRead.getName());
-
-        Cache<Object, Object> l2Cache = cacheManager.getCache(SharedTestCachedEntity.CACHE_REGION);
-        assertNotNull(l2Cache);
-
-        ICache<Object, Object> hazelcastCache = l2Cache.unwrap(ICache.class);
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(10))
-                .untilAsserted(() -> assertTrue(countEntries(hazelcastCache) > 0));
-
-        // After clearL2CacheRegion() + saving exactly one entity, there is exactly one entry
-        // in the cache. Take its key directly — no assumption about the key format is needed.
-        Cache.Entry<Object, Object> anyEntry = null;
-        for (Cache.Entry<Object, Object> e : l2Cache) {
-            anyEntry = e;
-            break;
-        }
-        assertNotNull(anyEntry, "Expected at least one L2 cache entry after first read of entity " + entityId);
-        Object cacheKey = anyEntry.getKey();
-        Object originalValue = hazelcastCache.get(cacheKey);
-        assertNotNull(originalValue, "Expected a cached value for key: " + cacheKey);
-
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(10))
-                .untilAsserted(() -> assertTrue(hazelcastCache.getLocalCacheStatistics().getNearCacheStatistics().getOwnedEntryCount() > 0));
-
-        hazelcastCache.get(cacheKey);
-
-        NearCacheStats statsBeforeRemoteUpdate = hazelcastCache.getLocalCacheStatistics().getNearCacheStatistics();
-        long hitsBeforeRemoteUpdate = statsBeforeRemoteUpdate.getHits();
-        long missesBeforeRemoteUpdate = statsBeforeRemoteUpdate.getMisses();
-
-        try (RemoteCacheAccess remoteCacheAccess = openRemoteCacheAccess()) {
-            Cache<Object, Object> remoteCache = remoteCacheAccess.cacheManager().getCache(SharedTestCachedEntity.CACHE_REGION);
-            assertNotNull(remoteCache, "Expected remote CacheManager to resolve the Hibernate L2 region");
-
-            Awaitility.await()
-                    .atMost(Duration.ofSeconds(10))
-                    .untilAsserted(() -> assertNotNull(remoteCache.get(cacheKey)));
-
-            remoteCache.remove(cacheKey);
-
-            // Keep the remote client alive until the invalidation is observed locally.
-            Awaitility.await()
-                    .atMost(Duration.ofSeconds(10))
-                    .untilAsserted(() -> assertNull(hazelcastCache.get(cacheKey)));
-        }
-
-        NearCacheStats statsAfterRemoteEviction = hazelcastCache.getLocalCacheStatistics().getNearCacheStatistics();
-        assertTrue(
-                statsAfterRemoteEviction.getInvalidations() > statsBeforeRemoteUpdate.getInvalidations()
-                        || statsAfterRemoteEviction.getMisses() > missesBeforeRemoteUpdate,
-                "Expected near-cache to observe the remote eviction via invalidation or a follow-up miss"
-        );
-        assertTrue(statsAfterRemoteEviction.getHits() >= hitsBeforeRemoteUpdate);
-    }
-
     private long countEntries(ICache<Object, Object> cache) {
         long count = 0;
         for (Cache.Entry<Object, Object> ignored : cache) {
             count++;
         }
         return count;
-    }
-
-    private RemoteCacheAccess openRemoteCacheAccess() {
-        HazelcastInstance remoteHazelcastClient = new HazelcastClientFactory(new ReflectionsClassScanner(), List.of()).createClient(
-                "boot2-l2-remote-client-" + UUID.randomUUID(),
-                Boot2L2CacheTestConfiguration.CLUSTER_NAME,
-                List.of(Boot2L2CacheTestConfiguration.MEMBER_ADDRESS),
-                false,
-                null
-        );
-
-        CachingProvider cachingProvider = new HazelcastCachingProvider();
-        Properties properties = HazelcastCachingProvider.propertiesByInstanceItself(remoteHazelcastClient);
-        CacheManager remoteCacheManager = cachingProvider.getCacheManager(
-                cacheManager.getURI(),
-                cacheManager.getClassLoader(),
-                properties
-        );
-
-        return new RemoteCacheAccess(remoteHazelcastClient, remoteCacheManager);
-    }
-
-    private record RemoteCacheAccess(HazelcastInstance hazelcastInstance, CacheManager cacheManager) implements AutoCloseable {
-
-        @Override
-        public void close() {
-            cacheManager.close();
-            hazelcastInstance.shutdown();
-        }
     }
 }

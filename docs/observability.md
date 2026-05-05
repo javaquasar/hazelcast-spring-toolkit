@@ -110,7 +110,7 @@ It is **not** the primary production monitoring API.
 
 - Use **Micrometer meters** for dashboards, scraping, recording rules, and alerts.
 - Use **`/hz-toolkit` diagnostic endpoints** for manual inspection when debugging a cache issue.
-- Use **`/actuator/hazelcast-near-cache`** when you want to actively probe whether near-cache invalidation and L2 behavior are working for a specific entity.
+- Use **`/actuator/hazelcastNearCache`** when you want to actively probe whether near-cache invalidation and L2 behavior are working for a specific entity.
 
 ## JPA And JCache Corner Case
 
@@ -154,6 +154,6 @@ hazelcast:
 
 With that setup:
 
-- Micrometer meters are exported
-- `/hz-toolkit/...` is available for diagnostics
-- `/actuator/hazelcast-near-cache` is available for an active near-cache probe
+- Micrometer meters are exported by `hazelcast.toolkit.metrics.enabled=true`
+- `/hz-toolkit/...` is available for diagnostics by `hazelcast.toolkit.metrics.diagnostic-endpoint.enabled=true`
+- `/actuator/hazelcastNearCache` is available for an active near-cache probe

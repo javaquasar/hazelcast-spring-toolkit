@@ -28,6 +28,7 @@ dependencies {
     compileOnly 'org.springframework:spring-context-support:6.2.12'
     compileOnly 'jakarta.persistence:jakarta.persistence-api:3.1.0'
     compileOnly 'org.hibernate.orm:hibernate-core:6.6.33.Final'
+    compileOnly "com.hazelcast:hazelcast-spring:${hazelcastVersion}"
 
     // Boot 3 compile-time stubs (no transitives — only the artifact itself is needed)
     boot3Stubs("org.springframework.boot:spring-boot-autoconfigure:${springBoot3Version}") { transitive = false }
@@ -39,6 +40,7 @@ dependencies {
     testImplementation "org.springframework.boot:spring-boot-starter-data-jpa:${springBoot3Version}"
     testImplementation 'org.springframework:spring-context-support:6.2.12'
     testImplementation "org.hibernate.orm:hibernate-jcache:6.6.33.Final"
+    testImplementation "com.hazelcast:hazelcast-spring:${hazelcastVersion}"
     testImplementation 'com.hazelcast:hazelcast-hibernate53:2.2.1'
     testImplementation "org.springframework.boot:spring-boot-actuator:${springBoot3Version}"
     testRuntimeOnly 'com.h2database:h2:2.2.224'
@@ -58,3 +60,9 @@ tasks.withType(Test).configureEach {
     classpath += configurations.boot3Stubs
     binaryResultsDirectory = layout.buildDirectory.dir(boot4TestRunId.map { "test-results/${name}/binary-${it}" })
 }
+
+
+tasks.named('javadoc') {
+    classpath += configurations.boot3Stubs
+}
+

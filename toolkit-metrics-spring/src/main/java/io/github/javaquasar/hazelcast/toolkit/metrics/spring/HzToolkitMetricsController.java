@@ -90,11 +90,15 @@ public class HzToolkitMetricsController {
 
         ICache<Object, Object> icache = cache.unwrap(ICache.class);
 
-        var local = icache.getLocalCacheStatistics();
-        var near = local.getNearCacheStatistics();
-
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("cacheName", cacheName);
+
+        var local = icache.getLocalCacheStatistics();
+        if (local == null) {
+            out.put("local", Map.of("available", false));
+            out.put("near", Map.of("enabled", false, "reason", "Local cache statistics are not available"));
+            return out;
+        }
 
         Map<String, Object> l = new LinkedHashMap<>();
         l.put("creationTime", local.getCreationTime());
@@ -117,8 +121,19 @@ public class HzToolkitMetricsController {
 
         out.put("local", l);
 
+        NearCacheStats near = null;
+        RuntimeException nearStatsError = null;
+        try {
+            near = local.getNearCacheStatistics();
+        } catch (UnsupportedOperationException ex) {
+            nearStatsError = ex;
+        } catch (RuntimeException ex) {
+            nearStatsError = ex;
+        }
+
         if (near != null) {
             Map<String, Object> n = new LinkedHashMap<>();
+            n.put("enabled", true);
             n.put("ownedEntryCount", near.getOwnedEntryCount());
             n.put("hits", near.getHits());
             n.put("misses", near.getMisses());
@@ -131,7 +146,14 @@ public class HzToolkitMetricsController {
 
             out.put("near", n);
         } else {
-            out.put("near", Map.of("enabled", false));
+            Map<String, Object> n = new LinkedHashMap<>();
+            n.put("enabled", false);
+            if (nearStatsError != null) {
+                n.put("reason", nearStatsError.getMessage() != null
+                        ? nearStatsError.getMessage()
+                        : nearStatsError.getClass().getSimpleName());
+            }
+            out.put("near", n);
         }
 
         return out;

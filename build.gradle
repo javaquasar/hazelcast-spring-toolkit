@@ -46,6 +46,12 @@ subprojects {
 
     tasks.withType(Test).configureEach {
         useJUnitPlatform()
+        if (System.getenv('CI') == 'true') {
+            testLogging {
+                events "failed"
+                exceptionFormat "full"
+            }
+        }
     }
 
     tasks.withType(Javadoc).configureEach {
@@ -63,6 +69,19 @@ def publishedModules = [
         'toolkit-spring-common',
         'toolkit-spring-boot2',
         'toolkit-spring-boot3',
+        'toolkit-spring-boot4',
+]
+
+def publishedArtifactIds = [
+        'toolkit-core'             : 'hazelcast-toolkit-core',
+        'toolkit-runtime'          : 'hazelcast-toolkit-runtime',
+        'toolkit-scan-api'         : 'hazelcast-toolkit-scan-api',
+        'toolkit-scan-reflections' : 'hazelcast-toolkit-scan-reflections',
+        'toolkit-metrics-spring'   : 'hazelcast-toolkit-metrics-spring',
+        'toolkit-spring-common'    : 'hazelcast-toolkit-spring-common',
+        'toolkit-spring-boot2'     : 'hazelcast-toolkit-spring-boot2',
+        'toolkit-spring-boot3'     : 'hazelcast-toolkit-spring-boot3',
+        'toolkit-spring-boot4'     : 'hazelcast-toolkit-spring-boot4',
 ]
 
 // POM display names and descriptions for each published module.
@@ -84,7 +103,9 @@ def pomMeta = [
         'toolkit-spring-boot2'  : [name: 'Hazelcast Toolkit Spring Boot 2 Starter',
                                    desc: 'Spring Boot 2 auto-configuration starter: compact serialization, IMap listener registration, JCache L2 cache, and Micrometer metrics.'],
         'toolkit-spring-boot3'  : [name: 'Hazelcast Toolkit Spring Boot 3 Starter',
-                                   desc: 'Spring Boot 3 auto-configuration starter: compact serialization, IMap listener registration, JCache L2 cache, Hibernate L2, and Micrometer metrics.'],
+                                    desc: 'Spring Boot 3 auto-configuration starter: compact serialization, IMap listener registration, JCache L2 cache, Hibernate L2, and Micrometer metrics.'],
+        'toolkit-spring-boot4'  : [name: 'Hazelcast Toolkit Spring Boot 4 Starter',
+                                    desc: 'Spring Boot 4 auto-configuration starter: compact serialization, IMap listener registration, JCache L2 cache, Hibernate L2, Actuator integration, and Micrometer metrics.'],
 ]
 
 configure(subprojects.findAll { it.name in publishedModules }) { Project p ->
@@ -95,9 +116,7 @@ configure(subprojects.findAll { it.name in publishedModules }) { Project p ->
         publications {
             mavenJava(MavenPublication) {
                 from components.java
-
-                // By default artifactId matches the module name. Override it here if needed:
-                // artifactId = "hazelcast-toolkit-core"
+                artifactId = publishedArtifactIds[p.name] ?: p.name
 
                 pom {
                     def meta = pomMeta[p.name]
@@ -173,6 +192,16 @@ tasks.register("centralBundleAll") {
     dependsOn publishedModules.collect { ":${it}:centralBundleZip" }
 }
 
+// Single Central Portal bundle that contains every published module in one deployment.
+tasks.register("centralBundleAggregate", Zip) {
+    dependsOn publishedModules.collect { ":${it}:publishMavenJavaPublicationToLocalStagingRepository" }
+    publishedModules.each { moduleName ->
+        from(project(":${moduleName}").layout.buildDirectory.dir("staging-repo"))
+    }
+    archiveFileName = "${rootProject.name}-${version}-central-bundle.zip"
+    destinationDirectory = layout.buildDirectory.dir("central")
+}
+
 // Collect all generated Central Portal bundle ZIPs into a single root-level directory
 tasks.register("collectCentralBundles", Copy) {
     dependsOn tasks.named("centralBundleAll")
@@ -185,4 +214,12 @@ tasks.register("collectCentralBundles", Copy) {
     doFirst {
         delete layout.buildDirectory.dir("central-bundles")
     }
+}
+
+tasks.register("collectCentralAggregateBundle", Copy) {
+    dependsOn tasks.named("centralBundleAggregate")
+    from(layout.buildDirectory.dir("central")) {
+        include "${rootProject.name}-*-central-bundle.zip"
+    }
+    into layout.buildDirectory.dir("central-bundles")
 }

@@ -3,8 +3,11 @@ package io.github.javaquasar.hazelcast.toolkit.springboot2.config;
 import com.hazelcast.cache.HazelcastCachingProvider;
 import com.hazelcast.core.HazelcastInstance;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.AutoConfigureBefore;
+import org.springframework.boot.autoconfigure.cache.CacheAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.jcache.JCacheCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,6 +18,7 @@ import java.util.Properties;
 
 @Configuration(proxyBeanMethods = false)
 @AutoConfigureAfter(HazelcastToolkitAutoConfiguration.class)
+@AutoConfigureBefore(CacheAutoConfiguration.class)
 @ConditionalOnClass(CacheManager.class)
 public class HazelcastJCacheAutoConfiguration {
 
@@ -32,6 +36,12 @@ public class HazelcastJCacheAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(org.springframework.cache.CacheManager.class)
+    @ConditionalOnProperty(
+            prefix = "hazelcast.toolkit.spring-cache",
+            name = "mode",
+            havingValue = "jcache",
+            matchIfMissing = true
+    )
     public org.springframework.cache.CacheManager springCacheManager(CacheManager cacheManager) {
         JCacheCacheManager springCacheManager = new JCacheCacheManager();
         springCacheManager.setCacheManager(cacheManager);

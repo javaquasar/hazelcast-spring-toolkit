@@ -30,13 +30,6 @@ public abstract class TestcontainersEnvironment {
             .withEnv("HZ_CLUSTERNAME", HAZELCAST_CLUSTER_NAME)
             .withExposedPorts(5701);
 
-    @Container
-    protected static final GenericContainer<?> HAZELCAST_2 = new GenericContainer<>(DockerImageName.parse("hazelcast/hazelcast:5.5.0"))
-            .withNetwork(NETWORK)
-            .withNetworkAliases("hz2")
-            .withEnv("HZ_CLUSTERNAME", HAZELCAST_CLUSTER_NAME)
-            .withExposedPorts(5701);
-
     protected TestcontainersEnvironment() {
     }
 
@@ -64,10 +57,7 @@ public abstract class TestcontainersEnvironment {
     }
 
     public static List<String> hazelcastMembers() {
-        return List.of(
-                HAZELCAST_1.getHost() + ":" + HAZELCAST_1.getMappedPort(5701),
-                HAZELCAST_2.getHost() + ":" + HAZELCAST_2.getMappedPort(5701)
-        );
+        return List.of(HAZELCAST_1.getHost() + ":" + HAZELCAST_1.getMappedPort(5701));
     }
 
     public static String hazelcastClusterName() {

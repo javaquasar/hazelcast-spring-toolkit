@@ -2,6 +2,8 @@ package io.github.javaquasar.hazelcast.toolkit.boot3;
 
 import io.github.javaquasar.hazelcast.toolkit.boot3.l2.L2CacheTestConfiguration;
 import io.github.javaquasar.hazelcast.toolkit.spring.test.boot.SharedTestApplication;
+import io.github.javaquasar.hazelcast.toolkit.spring.test.l2.SharedIntegerIdCachedEntity;
+import io.github.javaquasar.hazelcast.toolkit.spring.test.l2.SharedIntegerIdCachedEntityRepository;
 import io.github.javaquasar.hazelcast.toolkit.spring.test.l2.SharedTestCachedEntity;
 import io.github.javaquasar.hazelcast.toolkit.spring.test.l2.SharedTestCachedEntityRepository;
 import io.github.javaquasar.hazelcast.toolkit.springboot3.actuator.HazelcastNearCacheEndpoint;
@@ -22,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Integration test verifying the {@code /actuator/hazelcast-near-cache} endpoint
+ * Integration test verifying the {@code /actuator/hazelcastNearCache} endpoint
  * under the Spring Boot 3 auto-configuration stack with a real Hazelcast cluster
  * and Postgres database (via Testcontainers).
  *
@@ -63,6 +65,9 @@ class Boot3ActuatorNearCacheIntegrationTest extends TestcontainersEnvironment {
 
     @Autowired
     private SharedTestCachedEntityRepository repository;
+
+    @Autowired
+    private SharedIntegerIdCachedEntityRepository integerIdRepository;
 
     @Autowired
     private TransactionTemplate transactionTemplate;
@@ -108,5 +113,25 @@ class Boot3ActuatorNearCacheIntegrationTest extends TestcontainersEnvironment {
                 "At least one L2 miss must be counted on the post-eviction reload");
         assertEquals(0L, ((Number) hStats.get("l2HitsDeltaAfterEviction")).longValue(),
                 "No L2 hits should occur on the post-eviction reload (cache is cold)");
+    }
+
+    @Test
+    void checkReturnsOkWhenEntityIdTypeIsInteger() {
+        Integer entityId = 1;
+        transactionTemplate.executeWithoutResult(status ->
+                integerIdRepository.save(new SharedIntegerIdCachedEntity(entityId, "integer-id-probe-boot3"))
+        );
+
+        Map<String, Object> result = nearCacheEndpoint.check(
+                SharedIntegerIdCachedEntity.class.getName(),
+                entityId.toString()
+        );
+
+        assertEquals("OK", result.get("status"),
+                "Probe must succeed with Integer id — error: " + result.get("error"));
+        assertEquals(SharedIntegerIdCachedEntity.class.getName(), result.get("entity"));
+        assertEquals(entityId.toString(), result.get("id"));
+        assertEquals(Integer.class.getName(), result.get("idType"));
+        assertEquals(entityId, result.get("resolvedId"));
     }
 }

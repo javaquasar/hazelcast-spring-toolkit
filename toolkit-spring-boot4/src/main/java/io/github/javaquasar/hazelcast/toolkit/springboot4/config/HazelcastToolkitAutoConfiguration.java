@@ -104,12 +104,9 @@ public class HazelcastToolkitAutoConfiguration {
     @ConditionalOnProperty(prefix = "hazelcast.toolkit.metrics", name = "enabled", havingValue = "true")
     @ConditionalOnMissingBean
     public HazelcastNearCacheMetricsBinder hazelcastNearCacheMetricsBinder(
-            MeterRegistry meterRegistry,
             CacheManager cacheManager,
             HazelcastInstance hazelcastInstance) {
-        HazelcastNearCacheMetricsBinder binder = new HazelcastNearCacheMetricsBinder(cacheManager, hazelcastInstance);
-        binder.bindTo(meterRegistry);
-        return binder;
+        return new HazelcastNearCacheMetricsBinder(cacheManager, hazelcastInstance);
     }
 
     @Bean
@@ -117,12 +114,9 @@ public class HazelcastToolkitAutoConfiguration {
     @ConditionalOnProperty(prefix = "hazelcast.toolkit.metrics", name = "enabled", havingValue = "true")
     @ConditionalOnMissingBean
     public HibernateL2MetricsBinder hibernateL2MetricsBinder(
-            MeterRegistry meterRegistry,
             EntityManagerFactory entityManagerFactory,
             HzToolkitProperties properties) {
-        HibernateL2MetricsBinder binder = new HibernateL2MetricsBinder(entityManagerFactory, properties);
-        binder.bindTo(meterRegistry);
-        return binder;
+        return new HibernateL2MetricsBinder(entityManagerFactory, properties);
     }
 
     private static String resolveClientBaseName(HzToolkitProperties toolkitProps) {

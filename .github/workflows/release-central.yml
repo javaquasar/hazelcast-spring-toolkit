@@ -1,0 +1,209 @@
+name: Release to Maven Central
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version, for example 0.3.1
+        required: true
+        type: string
+      publishing_type:
+        description: Central Portal publishing mode
+        required: true
+        default: USER_MANAGED
+        type: choice
+        options:
+          - USER_MANAGED
+          - AUTOMATIC
+      dry_run:
+        description: Build and verify without uploading to Central Portal
+        required: true
+        default: true
+        type: boolean
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Build and upload Central bundle
+    runs-on: ubuntu-latest
+    environment: maven-central
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Resolve release inputs
+        id: release
+        shell: bash
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            VERSION="${{ inputs.version }}"
+            PUBLISHING_TYPE="${{ inputs.publishing_type }}"
+            DRY_RUN="${{ inputs.dry_run }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+            PUBLISHING_TYPE="USER_MANAGED"
+            DRY_RUN="false"
+          fi
+
+          if [[ -z "${VERSION}" || "${VERSION}" == *"-SNAPSHOT" ]]; then
+            echo "Release version must be a non-SNAPSHOT version." >&2
+            exit 1
+          fi
+
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "publishing_type=${PUBLISHING_TYPE}" >> "${GITHUB_OUTPUT}"
+          echo "dry_run=${DRY_RUN}" >> "${GITHUB_OUTPUT}"
+
+      - name: Check release secrets
+        shell: bash
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+          CENTRAL_PORTAL_USERNAME: ${{ secrets.CENTRAL_PORTAL_USERNAME }}
+          CENTRAL_PORTAL_PASSWORD: ${{ secrets.CENTRAL_PORTAL_PASSWORD }}
+        run: |
+          test -n "${SIGNING_KEY}" || { echo "SIGNING_KEY is not configured." >&2; exit 1; }
+          test -n "${SIGNING_KEY_ID}" || { echo "SIGNING_KEY_ID is not configured." >&2; exit 1; }
+          test -n "${SIGNING_PASSWORD}" || { echo "SIGNING_PASSWORD is not configured." >&2; exit 1; }
+          test -n "${CENTRAL_PORTAL_USERNAME}" || { echo "CENTRAL_PORTAL_USERNAME is not configured." >&2; exit 1; }
+          test -n "${CENTRAL_PORTAL_PASSWORD}" || { echo "CENTRAL_PORTAL_PASSWORD is not configured." >&2; exit 1; }
+
+      - name: Resolve signing key ids
+        id: signing
+        shell: bash
+        env:
+          SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
+        run: |
+          SIGNING_KEY_ID="$(echo "${SIGNING_KEY_ID}" | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')"
+          SIGNING_KEY_ID="${SIGNING_KEY_ID#0X}"
+
+          if [[ ! "${SIGNING_KEY_ID}" =~ ^[0-9A-F]{16}$ ]]; then
+            echo "SIGNING_KEY_ID must be the 16-character signing subkey id, for example 50C2783D878EDB17." >&2
+            exit 1
+          fi
+
+          echo "full_key_id=${SIGNING_KEY_ID}" >> "${GITHUB_OUTPUT}"
+          echo "gradle_key_id=${SIGNING_KEY_ID:8:8}" >> "${GITHUB_OUTPUT}"
+
+      - name: Prepare Gradle wrapper
+        run: chmod +x ./gradlew
+
+      - name: Check Docker
+        run: docker info
+
+      - name: Run release integration tests
+        run: ./gradlew :toolkit-runtime:test :toolkit-spring-boot2:test :toolkit-spring-boot3:test :toolkit-spring-boot4:test :example-spring-boot3:test -PreleaseVersion=${{ steps.release.outputs.version }}
+
+      - name: Build signed Central bundle
+        env:
+          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingKeyId: ${{ steps.signing.outputs.gradle_key_id }}
+          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.SIGNING_PASSWORD }}
+        run: ./gradlew clean collectCentralAggregateBundle -PreleaseVersion=${{ steps.release.outputs.version }} --stacktrace
+
+      - name: Verify signed Central bundle
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          SIGNING_KEY_ID: ${{ steps.signing.outputs.full_key_id }}
+        run: |
+          BUNDLE="build/central-bundles/hazelcast-toolkit-${RELEASE_VERSION}-central-bundle.zip"
+          if [[ ! -s "${BUNDLE}" ]]; then
+            echo "Central bundle not found or empty: ${BUNDLE}" >&2
+            exit 1
+          fi
+
+          ASC_COUNT="$(find . -path "*/build/staging-repo/*" -name "*.asc" | wc -l)"
+          if [[ "${ASC_COUNT}" -eq 0 ]]; then
+            echo "No signature files were generated. Check SIGNING_KEY and SIGNING_PASSWORD." >&2
+            exit 1
+          fi
+
+          unzip -l "${BUNDLE}" | grep -q '\.asc$' || {
+            echo "Central bundle does not contain signature files." >&2
+            exit 1
+          }
+
+          EXPECTED_SIGNING_KEY_ID="$(echo "${SIGNING_KEY_ID}" | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')"
+          find . -path "*/build/staging-repo/*" -name "*.asc" -print0 \
+            | xargs -0 -I{} sh -c '
+                gpg --list-packets "$1" | grep -q "keyid '"${EXPECTED_SIGNING_KEY_ID}"'" || {
+                  echo "Signature $1 was not made by expected signing key '"${EXPECTED_SIGNING_KEY_ID}"'." >&2
+                  exit 1
+                }
+              ' sh {}
+
+      - name: Upload Central bundle
+        if: steps.release.outputs.dry_run != 'true'
+        id: upload
+        shell: bash
+        env:
+          CENTRAL_PORTAL_USERNAME: ${{ secrets.CENTRAL_PORTAL_USERNAME }}
+          CENTRAL_PORTAL_PASSWORD: ${{ secrets.CENTRAL_PORTAL_PASSWORD }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          PUBLISHING_TYPE: ${{ steps.release.outputs.publishing_type }}
+        run: |
+          BUNDLE="build/central-bundles/hazelcast-toolkit-${RELEASE_VERSION}-central-bundle.zip"
+          if [[ ! -f "${BUNDLE}" ]]; then
+            echo "Central bundle not found: ${BUNDLE}" >&2
+            exit 1
+          fi
+
+          TOKEN="$(printf '%s:%s' "${CENTRAL_PORTAL_USERNAME}" "${CENTRAL_PORTAL_PASSWORD}" | base64 -w 0)"
+          DEPLOYMENT_ID="$(curl --fail --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer ${TOKEN}" \
+            --form "bundle=@${BUNDLE}" \
+            "https://central.sonatype.com/api/v1/publisher/upload?name=hazelcast-toolkit-${RELEASE_VERSION}&publishingType=${PUBLISHING_TYPE}")"
+
+          echo "deployment_id=${DEPLOYMENT_ID}" >> "${GITHUB_OUTPUT}"
+          echo "Uploaded Central deployment: ${DEPLOYMENT_ID}"
+
+      - name: Save Central bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: central-bundle-${{ steps.release.outputs.version }}
+          path: build/central-bundles/*.zip
+
+      - name: Print failed tests
+        if: failure()
+        shell: bash
+        run: |
+          find . -path "*/build/test-results/test/*.xml" -print0 \
+            | xargs -0 grep -H -E "<failure|<error" \
+            || true
+
+      - name: Save test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-test-reports-${{ steps.release.outputs.version }}
+          path: |
+            **/build/reports/tests/**/*.html
+            **/build/reports/tests/**/*.css
+            **/build/reports/tests/**/*.js
+            **/build/test-results/**/*.xml
+            **/build/test-results/**/*.bin
+            **/build/test-results/**/*.idx
+          if-no-files-found: warn
+
+      - name: Print follow-up
+        run: |
+          echo "Central deployment id: ${{ steps.upload.outputs.deployment_id }}"
+          echo "Publishing type: ${{ steps.release.outputs.publishing_type }}"
+          echo "Dry run: ${{ steps.release.outputs.dry_run }}"
+          echo "For USER_MANAGED releases, open https://central.sonatype.com/publishing and publish after validation succeeds."
