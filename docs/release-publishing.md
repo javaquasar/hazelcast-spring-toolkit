@@ -44,7 +44,7 @@ You can pass them on the command line, or place them in a local uncommitted
 Example `gradle-local.properties`:
 
 ```properties
-releaseVersion=0.3.0
+releaseVersion=0.3.1
 signingKey=-----BEGIN PGP PRIVATE KEY BLOCK-----
 ...
 -----END PGP PRIVATE KEY BLOCK-----
@@ -57,7 +57,7 @@ This step creates Maven publications for every published module under each modul
 local staging repository.
 
 ```bash
-./gradlew clean publishMavenJavaPublicationToLocalStagingRepository "-PreleaseVersion=0.3.0"
+./gradlew clean publishMavenJavaPublicationToLocalStagingRepository "-PreleaseVersion=0.3.1"
 ```
 
 What this should produce for each published module:
@@ -96,19 +96,19 @@ After local staging succeeds, create one uploadable ZIP bundle containing all
 published modules:
 
 ```bash
-./gradlew collectCentralAggregateBundle "-PreleaseVersion=0.3.0"
+./gradlew collectCentralAggregateBundle "-PreleaseVersion=0.3.1"
 ```
 
 Collected bundle location:
 
 ```text
-build/central-bundles/hazelcast-toolkit-0.3.0-central-bundle.zip
+build/central-bundles/hazelcast-toolkit-0.3.1-central-bundle.zip
 ```
 
 If you still want separate per-module bundles for manual diagnostics, use:
 
 ```bash
-./gradlew centralBundleAll "-PreleaseVersion=0.3.0"
+./gradlew centralBundleAll "-PreleaseVersion=0.3.1"
 ```
 
 This creates one ZIP per published module under:
@@ -131,7 +131,7 @@ Each ZIP should contain Maven repository layout entries, including:
 If you do not want to browse each module directory manually, use the root helper task:
 
 ```bash
-./gradlew collectCentralBundles "-PreleaseVersion=0.3.0"
+./gradlew collectCentralBundles "-PreleaseVersion=0.3.1"
 ```
 
 Collected bundle location:
@@ -165,7 +165,7 @@ verification branch and run the example against the published artifacts instead
 of the local Gradle projects:
 
 ```bash
-./gradlew :example-spring-boot3:test -PusePublishedToolkit=true -PtoolkitReleaseVersion=0.3.0
+./gradlew :example-spring-boot3:test -PusePublishedToolkit=true -PtoolkitReleaseVersion=0.3.1
 ```
 
 The example test suite verifies the published Boot 3 starter in the demo
@@ -191,9 +191,9 @@ You should also verify that release notes and public documentation match the cod
 - `README.md`
 - `docs/observability.md`
 - `docs/performance.md`
-- `docs/releases/v0.3.0.md`
+- `docs/releases/v0.3.1.md`
 
-For v0.3.0 and later, also verify that `com.hazelcast:hazelcast-spring`
+For v0.3.1 and later, also verify that `com.hazelcast:hazelcast-spring`
 remains optional for default `jcache` users and is not exposed through starter
 runtime metadata:
 
@@ -238,8 +238,8 @@ subkey.
 
 Then either:
 
-1. Run `Release to Maven Central` manually from GitHub Actions and enter `0.3.0`.
-2. Push a release tag such as `v0.3.0`.
+1. Run `Release to Maven Central` manually from GitHub Actions and enter `0.3.1`.
+2. Push a release tag such as `v0.3.1`.
 
 Tag-triggered releases use `USER_MANAGED`. Manual releases can use either
 `USER_MANAGED` or `AUTOMATIC`.
@@ -254,7 +254,7 @@ assembly without uploading anything to Central Portal:
 3. Select `Release to Maven Central`.
 4. Click `Run workflow`.
 5. Select the release branch, usually `main`.
-6. Enter `version`: `0.3.0`.
+6. Enter `version`: `0.3.1`.
 7. Select `publishing_type`: `USER_MANAGED`.
 8. Leave `dry_run`: `true`.
 9. Click `Run workflow`.
@@ -284,10 +284,10 @@ Use `AUTOMATIC` only after at least one `USER_MANAGED` release has validated cle
 Use the aggregate file from:
 
 ```text
-build/central-bundles/hazelcast-toolkit-0.3.0-central-bundle.zip
+build/central-bundles/hazelcast-toolkit-0.3.1-central-bundle.zip
 ```
 
-Expected published modules for `0.3.0`:
+Expected published modules for `0.3.1`:
 
 - `hazelcast-toolkit-core`
 - `hazelcast-toolkit-runtime`
@@ -303,31 +303,31 @@ Expected published modules for `0.3.0`:
 
 | Bundle file | Deployment name | ArtifactId | Description |
 |---|---|---|---|
-| `hazelcast-toolkit-core-0.3.0-central-bundle.zip` | `hazelcast-toolkit-core-0.3.0` | `hazelcast-toolkit-core` | Core annotations for Hazelcast Compact serialization and IMap listener registration. |
-| `hazelcast-toolkit-metrics-spring-0.3.0-central-bundle.zip` | `hazelcast-toolkit-metrics-spring-0.3.0` | `hazelcast-toolkit-metrics-spring` | Micrometer binders and diagnostic metrics support for Hazelcast near-cache and Hibernate L2. |
-| `hazelcast-toolkit-runtime-0.3.0-central-bundle.zip` | `hazelcast-toolkit-runtime-0.3.0` | `hazelcast-toolkit-runtime` | Shared runtime support for Hazelcast client creation, naming, compact registration, cache mode settings, and config customization. |
-| `hazelcast-toolkit-scan-api-0.3.0-central-bundle.zip` | `hazelcast-toolkit-scan-api-0.3.0` | `hazelcast-toolkit-scan-api` | Scanner abstraction used by Hazelcast Toolkit. |
-| `hazelcast-toolkit-scan-reflections-0.3.0-central-bundle.zip` | `hazelcast-toolkit-scan-reflections-0.3.0` | `hazelcast-toolkit-scan-reflections` | Reflections-based scanner implementation for annotated Hazelcast types. |
-| `hazelcast-toolkit-spring-boot2-0.3.0-central-bundle.zip` | `hazelcast-toolkit-spring-boot2-0.3.0` | `hazelcast-toolkit-spring-boot2` | Spring Boot 2 starter for Hazelcast client integration, compact types, listeners, Hibernate L2, metrics, and configurable Spring Cache mode. |
-| `hazelcast-toolkit-spring-boot3-0.3.0-central-bundle.zip` | `hazelcast-toolkit-spring-boot3-0.3.0` | `hazelcast-toolkit-spring-boot3` | Spring Boot 3 starter for Hazelcast client integration, compact types, listeners, Hibernate L2, metrics, near-cache observability, and configurable Spring Cache mode. |
-| `hazelcast-toolkit-spring-boot4-0.3.0-central-bundle.zip` | `hazelcast-toolkit-spring-boot4-0.3.0` | `hazelcast-toolkit-spring-boot4` | Spring Boot 4 starter for Hazelcast client integration, compact types, listeners, Hibernate L2, metrics, Actuator support, and configurable Spring Cache mode. |
-| `hazelcast-toolkit-spring-common-0.3.0-central-bundle.zip` | `hazelcast-toolkit-spring-common-0.3.0` | `hazelcast-toolkit-spring-common` | Shared Spring integration components, including listener auto-registration. |
+| `hazelcast-toolkit-core-0.3.1-central-bundle.zip` | `hazelcast-toolkit-core-0.3.1` | `hazelcast-toolkit-core` | Core annotations for Hazelcast Compact serialization and IMap listener registration. |
+| `hazelcast-toolkit-metrics-spring-0.3.1-central-bundle.zip` | `hazelcast-toolkit-metrics-spring-0.3.1` | `hazelcast-toolkit-metrics-spring` | Micrometer binders and diagnostic metrics support for Hazelcast near-cache and Hibernate L2. |
+| `hazelcast-toolkit-runtime-0.3.1-central-bundle.zip` | `hazelcast-toolkit-runtime-0.3.1` | `hazelcast-toolkit-runtime` | Shared runtime support for Hazelcast client creation, naming, compact registration, cache mode settings, and config customization. |
+| `hazelcast-toolkit-scan-api-0.3.1-central-bundle.zip` | `hazelcast-toolkit-scan-api-0.3.1` | `hazelcast-toolkit-scan-api` | Scanner abstraction used by Hazelcast Toolkit. |
+| `hazelcast-toolkit-scan-reflections-0.3.1-central-bundle.zip` | `hazelcast-toolkit-scan-reflections-0.3.1` | `hazelcast-toolkit-scan-reflections` | Reflections-based scanner implementation for annotated Hazelcast types. |
+| `hazelcast-toolkit-spring-boot2-0.3.1-central-bundle.zip` | `hazelcast-toolkit-spring-boot2-0.3.1` | `hazelcast-toolkit-spring-boot2` | Spring Boot 2 starter for Hazelcast client integration, compact types, listeners, Hibernate L2, metrics, and configurable Spring Cache mode. |
+| `hazelcast-toolkit-spring-boot3-0.3.1-central-bundle.zip` | `hazelcast-toolkit-spring-boot3-0.3.1` | `hazelcast-toolkit-spring-boot3` | Spring Boot 3 starter for Hazelcast client integration, compact types, listeners, Hibernate L2, metrics, near-cache observability, and configurable Spring Cache mode. |
+| `hazelcast-toolkit-spring-boot4-0.3.1-central-bundle.zip` | `hazelcast-toolkit-spring-boot4-0.3.1` | `hazelcast-toolkit-spring-boot4` | Spring Boot 4 starter for Hazelcast client integration, compact types, listeners, Hibernate L2, metrics, Actuator support, and configurable Spring Cache mode. |
+| `hazelcast-toolkit-spring-common-0.3.1-central-bundle.zip` | `hazelcast-toolkit-spring-common-0.3.1` | `hazelcast-toolkit-spring-common` | Shared Spring integration components, including listener auto-registration. |
 
 ## Recommended Release Commands
 
 For a normal signed release build:
 
 ```bash
-./gradlew clean publishMavenJavaPublicationToLocalStagingRepository -PreleaseVersion=0.3.0
-./gradlew collectCentralBundles -PreleaseVersion=0.3.0
+./gradlew clean publishMavenJavaPublicationToLocalStagingRepository -PreleaseVersion=0.3.1
+./gradlew collectCentralBundles -PreleaseVersion=0.3.1
 ./gradlew :toolkit-runtime:test :toolkit-spring-boot2:test :toolkit-spring-boot3:test :toolkit-spring-boot4:test :example-spring-boot3:test
 ```
 
 If you prefer to separate packaging and verification:
 
 ```bash
-./gradlew clean publishMavenJavaPublicationToLocalStagingRepository -PreleaseVersion=0.3.0
-./gradlew collectCentralBundles -PreleaseVersion=0.3.0
+./gradlew clean publishMavenJavaPublicationToLocalStagingRepository "-PreleaseVersion=0.3.1"
+./gradlew collectCentralBundles "-PreleaseVersion=0.3.1"
 ./gradlew :toolkit-spring-boot2:test
 ./gradlew :toolkit-spring-boot3:test
 ./gradlew :toolkit-spring-boot4:test
@@ -353,9 +353,9 @@ Before publishing, confirm all of the following:
 - `SECRETS.md` contains the Windows-oriented operator notes for signing key setup
 
 ```bash
-git tag v0.3.0
+git tag v0.3.1
 ```
 
 ```bash
-git push origin v0.3.0
+git push origin v0.3.1
 ```
