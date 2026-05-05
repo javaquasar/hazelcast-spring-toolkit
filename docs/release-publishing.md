@@ -231,6 +231,11 @@ id. For the current release key this is `50C2783D878EDB17`; the primary key is
 `878EDB17` required by the signing plugin, then verifies that generated `.asc`
 signatures were made with the full configured signing subkey before upload.
 
+Note: keep the full signing subkey id in GitHub secrets. The workflow derives the
+short Gradle-compatible id from it, so Gradle can sign successfully while the
+post-build verification still proves that the bundle was signed by the intended
+subkey.
+
 Then either:
 
 1. Run `Release to Maven Central` manually from GitHub Actions and enter `0.3.0`.

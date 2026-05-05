@@ -403,7 +403,7 @@ The toolkit exposes observability through three complementary surfaces:
 
 1. **Micrometer meters** for production monitoring
 2. **`/hz-toolkit/...` diagnostic endpoints** for manual inspection
-3. **`/actuator/hazelcast-near-cache`** for an active near-cache probe
+3. **`/actuator/hazelcastNearCache`** for an active near-cache probe
 
 Enable Micrometer binders:
 
@@ -427,7 +427,7 @@ hazelcast:
 Documented meter names, tags, and usage guidance live in
 [docs/observability.md](docs/observability.md).
 
-### Near-Cache Health Check — `/actuator/hazelcast-near-cache`
+### Near-Cache Health Check — `/actuator/hazelcastNearCache`
 
 A lightweight Actuator endpoint that verifies, in production, that the Hazelcast near-cache is functioning correctly for a JPA entity of your choice.
 
@@ -459,8 +459,8 @@ hazelcast:
 **Query parameters** — override defaults per request:
 
 ```
-GET /actuator/hazelcast-near-cache
-GET /actuator/hazelcast-near-cache?entity=com.mycompany.entity.Product&id=99
+GET /actuator/hazelcastNearCache
+GET /actuator/hazelcastNearCache?entity=com.mycompany.entity.Product&id=99
 ```
 
 **Example response:**
@@ -470,6 +470,8 @@ GET /actuator/hazelcast-near-cache?entity=com.mycompany.entity.Product&id=99
   "status": "OK",
   "entity": "com.mycompany.entity.User",
   "id": "42",
+  "idType": "java.lang.Long",
+  "resolvedId": 42,
   "nearCache": {
     "hitVerified": true,
     "invalidationVerified": true
@@ -558,13 +560,13 @@ Examples:
 | `compact.base-package` | _(empty)_ | Root package to scan for `@HzCompact` classes |
 | `spring-cache.mode` | `JCACHE` | Spring Cache manager mode: `JCACHE` \| `NATIVE` \| `NONE` |
 | `metrics.enabled` | `false` | Enable Micrometer near-cache and Hibernate L2 binders |
-| `metrics.diagnostic-endpoint.enabled` | `false` | Enable the optional `/hz-toolkit/...` diagnostic controller |
+| `metrics.diagnostic-endpoint.enabled` | `false` | Enable the optional `/hz-toolkit/...` diagnostic controller separately from metrics publishing |
 | `hibernate.l2.enabled` | `false` | Activate Hibernate second-level cache support |
 | `hibernate.l2.region-factory` | `JCACHE` | RegionFactory type: `JCACHE` \| `HAZELCAST_LOCAL` \| `HAZELCAST` |
 | `hibernate.l2.extended-config` | `false` | Apply full property set (region.factory_class, query cache, statistics) |
 | `hibernate.l2.use-query-cache` | `false` | Enable Hibernate query result cache (`extended-config` only) |
 | `hibernate.l2.use-statistics` | `false` | Enable Hibernate cache statistics (`extended-config` only) |
-| `actuator.near-cache-check.enabled` | `false` | Register the `/actuator/hazelcast-near-cache` endpoint |
+| `actuator.near-cache-check.enabled` | `false` | Register the `/actuator/hazelcastNearCache` endpoint |
 | `actuator.near-cache-check.entity-class` | _(empty)_ | Fully-qualified JPA entity class used as probe |
 | `actuator.near-cache-check.entity-id` | _(empty)_ | Primary-key value of the probe entity (as String) |
 

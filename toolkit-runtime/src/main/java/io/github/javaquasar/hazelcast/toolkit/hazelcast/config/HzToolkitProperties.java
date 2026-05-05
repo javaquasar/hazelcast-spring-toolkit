@@ -412,7 +412,7 @@ public class HzToolkitProperties {
          * ({@code hazelcast.toolkit.actuator.near-cache-check.*}).
          *
          * <p>When enabled, registers a Spring Boot Actuator endpoint at
-         * {@code /actuator/hazelcast-near-cache} that probes whether the Hazelcast
+         * {@code /actuator/hazelcastNearCache} that probes whether the Hazelcast
          * near-cache is hitting correctly and whether L2-cache evictions propagate as
          * near-cache invalidations.
          *
@@ -439,7 +439,7 @@ public class HzToolkitProperties {
 
             /**
              * Master switch. Set to {@code true} to register the
-             * {@code /actuator/hazelcast-near-cache} endpoint.
+             * {@code /actuator/hazelcastNearCache} endpoint.
              */
             private boolean enabled = false;
 

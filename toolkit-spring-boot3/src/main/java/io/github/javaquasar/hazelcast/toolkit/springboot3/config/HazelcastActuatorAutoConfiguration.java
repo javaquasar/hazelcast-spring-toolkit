@@ -25,7 +25,7 @@ import org.springframework.context.annotation.Bean;
  *   <li>{@code hazelcast.toolkit.actuator.near-cache-check.enabled=true} is set.</li>
  * </ol>
  *
- * <p>The registered endpoint is exposed at {@code GET /actuator/hazelcast-near-cache}.
+ * <p>The registered endpoint is exposed at {@code GET /actuator/hazelcastNearCache}.
  *
  * <h2>Minimal configuration</h2>
  * <pre>{@code

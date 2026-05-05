@@ -8,7 +8,9 @@ import io.github.javaquasar.hazelcast.toolkit.spring.test.l2.SharedTestCachedEnt
 import io.github.javaquasar.hazelcast.toolkit.spring.test.l2.SharedTestCachedEntityRepository;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.binder.MeterBinder;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,6 +21,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.cache.CacheManager;
 import javax.cache.configuration.MutableConfiguration;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -51,6 +54,9 @@ class Boot4MetricsIntegrationTest {
     private MeterRegistry meterRegistry;
 
     @Autowired
+    private List<MeterBinder> meterBinders;
+
+    @Autowired
     private HzToolkitMetricsController diagnosticController;
 
     @Autowired
@@ -64,6 +70,11 @@ class Boot4MetricsIntegrationTest {
 
     @Autowired
     private CacheManager cacheManager;
+
+    @BeforeEach
+    void bindMeters() {
+        meterBinders.forEach(binder -> binder.bindTo(meterRegistry));
+    }
 
     @Test
     void registersDiagnosticControllerSeparatelyFromMicrometerMetrics() {
