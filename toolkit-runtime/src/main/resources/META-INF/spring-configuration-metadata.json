@@ -1,0 +1,143 @@
+{
+  "groups": [
+    {
+      "name": "hazelcast.toolkit",
+      "type": "io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties",
+      "description": "Hazelcast Toolkit configuration properties."
+    },
+    {
+      "name": "hazelcast.toolkit.actuator.near-cache-check",
+      "type": "io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties$Actuator$NearCacheCheck",
+      "description": "Actuator near-cache probe settings."
+    },
+    {
+      "name": "hazelcast.toolkit.hibernate.l2",
+      "type": "io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties$Hibernate$L2",
+      "description": "Hibernate second-level cache settings."
+    },
+    {
+      "name": "hazelcast.toolkit.metrics",
+      "type": "io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties$Metrics",
+      "description": "Micrometer metrics and diagnostic endpoint settings."
+    },
+    {
+      "name": "hazelcast.toolkit.spring-cache",
+      "type": "io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties$SpringCache",
+      "description": "Spring Cache manager mode settings."
+    }
+  ],
+  "properties": [
+    {
+      "name": "hazelcast.toolkit.compact.base-package",
+      "type": "java.lang.String",
+      "defaultValue": "",
+      "description": "Root package scanned for Hazelcast Compact serialization annotations."
+    },
+    {
+      "name": "hazelcast.toolkit.client.base-name",
+      "type": "java.lang.String",
+      "defaultValue": "",
+      "description": "Toolkit-managed Hazelcast client name prefix."
+    },
+    {
+      "name": "hazelcast.toolkit.metrics.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": false,
+      "description": "Enable Micrometer MeterBinder beans for Hazelcast near-cache and Hibernate L2 metrics."
+    },
+    {
+      "name": "hazelcast.toolkit.metrics.diagnostic-endpoint.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": false,
+      "description": "Enable the optional /hz-toolkit diagnostic HTTP endpoints. This is separate from Micrometer metrics publishing."
+    },
+    {
+      "name": "hazelcast.toolkit.actuator.near-cache-check.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": false,
+      "description": "Register the /actuator/hazelcastNearCache endpoint."
+    },
+    {
+      "name": "hazelcast.toolkit.actuator.near-cache-check.entity-class",
+      "type": "java.lang.String",
+      "description": "Fully-qualified cacheable JPA entity class used by the near-cache probe."
+    },
+    {
+      "name": "hazelcast.toolkit.actuator.near-cache-check.entity-id",
+      "type": "java.lang.String",
+      "description": "Primary-key value of the probe entity. The endpoint converts it to the JPA metamodel id type."
+    },
+    {
+      "name": "hazelcast.toolkit.spring-cache.mode",
+      "type": "io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties$SpringCache$Mode",
+      "defaultValue": "JCACHE",
+      "description": "Spring Cache manager mode: JCACHE, NATIVE, or NONE."
+    },
+    {
+      "name": "hazelcast.toolkit.hibernate.l2.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": false,
+      "description": "Activate Hibernate second-level cache auto-configuration."
+    },
+    {
+      "name": "hazelcast.toolkit.hibernate.l2.region-factory",
+      "type": "io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties$Hibernate$L2$RegionFactoryType",
+      "defaultValue": "JCACHE",
+      "description": "Hibernate L2 RegionFactory mode: JCACHE, HAZELCAST_LOCAL, or HAZELCAST."
+    },
+    {
+      "name": "hazelcast.toolkit.hibernate.l2.extended-config",
+      "type": "java.lang.Boolean",
+      "defaultValue": false,
+      "description": "Apply the full Hibernate L2 property set while preserving explicit application settings."
+    },
+    {
+      "name": "hazelcast.toolkit.hibernate.l2.use-query-cache",
+      "type": "java.lang.Boolean",
+      "defaultValue": false,
+      "description": "Enable Hibernate query cache when extended L2 configuration is active."
+    },
+    {
+      "name": "hazelcast.toolkit.hibernate.l2.use-statistics",
+      "type": "java.lang.Boolean",
+      "defaultValue": false,
+      "description": "Enable Hibernate cache statistics when extended L2 configuration is active."
+    }
+  ],
+  "hints": [
+    {
+      "name": "hazelcast.toolkit.spring-cache.mode",
+      "values": [
+        {
+          "value": "JCACHE",
+          "description": "Expose a Spring JCacheCacheManager backed by the toolkit-managed JCache CacheManager."
+        },
+        {
+          "value": "NATIVE",
+          "description": "Expose Hazelcast's native Spring CacheManager around the toolkit-managed HazelcastInstance."
+        },
+        {
+          "value": "NONE",
+          "description": "Do not auto-configure a Spring CacheManager."
+        }
+      ]
+    },
+    {
+      "name": "hazelcast.toolkit.hibernate.l2.region-factory",
+      "values": [
+        {
+          "value": "JCACHE",
+          "description": "Use the toolkit-managed JCache CacheManager."
+        },
+        {
+          "value": "HAZELCAST_LOCAL",
+          "description": "Use Hazelcast's local near-cache Hibernate region factory."
+        },
+        {
+          "value": "HAZELCAST",
+          "description": "Use Hazelcast's distributed Hibernate region factory."
+        }
+      ]
+    }
+  ]
+}

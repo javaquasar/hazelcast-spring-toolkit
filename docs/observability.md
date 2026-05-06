@@ -106,11 +106,28 @@ This layer is for:
 
 It is **not** the primary production monitoring API.
 
+Diagnostic near-cache responses use a stable top-level shape where possible:
+
+```json
+{
+  "status": "OK",
+  "name": "test-entity-region",
+  "local": {
+    "available": true
+  },
+  "near": {
+    "enabled": false,
+    "reason": "Near Cache is not enabled"
+  }
+}
+```
+
 ## Recommended Usage
 
 - Use **Micrometer meters** for dashboards, scraping, recording rules, and alerts.
 - Use **`/hz-toolkit` diagnostic endpoints** for manual inspection when debugging a cache issue.
 - Use **`/actuator/hazelcastNearCache`** when you want to actively probe whether near-cache invalidation and L2 behavior are working for a specific entity.
+- See [near-cache actuator troubleshooting](near-cache-actuator-troubleshooting.md) for common endpoint errors and expected responses.
 
 ## JPA And JCache Corner Case
 

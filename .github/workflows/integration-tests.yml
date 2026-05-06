@@ -11,7 +11,13 @@ on:
         options:
           - docker
           - release-confidence
+          - published-consumer-smoke
           - all-tests
+      toolkit_version:
+        description: Toolkit version for published-consumer-smoke, for example 0.3.1
+        required: false
+        default: 0.3.1
+        type: string
 
 permissions:
   contents: read
@@ -48,6 +54,9 @@ jobs:
               ;;
             release-confidence)
               ./gradlew :toolkit-runtime:test :toolkit-spring-boot2:test :toolkit-spring-boot3:test :toolkit-spring-boot4:test :example-spring-boot3:test
+              ;;
+            published-consumer-smoke)
+              ./gradlew :example-spring-boot3:test -PusePublishedToolkit=true -PtoolkitReleaseVersion="${{ inputs.toolkit_version }}"
               ;;
             all-tests)
               ./gradlew test

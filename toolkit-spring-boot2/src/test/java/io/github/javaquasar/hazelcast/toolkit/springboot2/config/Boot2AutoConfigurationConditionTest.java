@@ -1,0 +1,125 @@
+package io.github.javaquasar.hazelcast.toolkit.springboot2.config;
+
+import com.hazelcast.core.HazelcastInstance;
+import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HazelcastNearCacheMetricsBinder;
+import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HibernateL2MetricsBinder;
+import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HzToolkitMetricsController;
+import io.github.javaquasar.hazelcast.toolkit.springboot2.actuator.HazelcastNearCacheEndpoint;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import javax.cache.CacheManager;
+import javax.persistence.EntityManagerFactory;
+import java.lang.reflect.Proxy;
+import java.util.Collections;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class Boot2AutoConfigurationConditionTest {
+
+    private final ApplicationContextRunner toolkitContext = new ApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(HazelcastToolkitAutoConfiguration.class))
+            .withUserConfiguration(TestInfrastructure.class);
+
+    private final ApplicationContextRunner actuatorContext = new ApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(
+                    HazelcastToolkitAutoConfiguration.class,
+                    HazelcastActuatorAutoConfiguration.class
+            ))
+            .withUserConfiguration(TestInfrastructure.class);
+
+    @Test
+    void diagnosticControllerIsControlledSeparatelyFromMicrometerMetrics() {
+        toolkitContext
+                .withPropertyValues("hazelcast.toolkit.metrics.enabled=true")
+                .run(context -> assertThat(context).doesNotHaveBean(HzToolkitMetricsController.class));
+
+        toolkitContext
+                .withPropertyValues("hazelcast.toolkit.metrics.diagnostic-endpoint.enabled=true")
+                .run(context -> assertThat(context).hasSingleBean(HzToolkitMetricsController.class));
+    }
+
+    @Test
+    void metricsBindersDoNotRequireMeterRegistryAtBeanCreationTime() {
+        toolkitContext
+                .withPropertyValues("hazelcast.toolkit.metrics.enabled=true")
+                .run(context -> {
+                    assertThat(context).hasSingleBean(HazelcastNearCacheMetricsBinder.class);
+                    assertThat(context).hasSingleBean(HibernateL2MetricsBinder.class);
+                });
+    }
+
+    @Test
+    void actuatorEndpointRequiresExplicitPropertyAndEntityManagerFactory() {
+        actuatorContext
+                .run(context -> assertThat(context).doesNotHaveBean(HazelcastNearCacheEndpoint.class));
+
+        actuatorContext
+                .withPropertyValues("hazelcast.toolkit.actuator.near-cache-check.enabled=true")
+                .run(context -> assertThat(context).hasSingleBean(HazelcastNearCacheEndpoint.class));
+    }
+
+    @Test
+    void actuatorEndpointBacksOffWithoutEntityManagerFactoryBean() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        HazelcastToolkitAutoConfiguration.class,
+                        HazelcastActuatorAutoConfiguration.class
+                ))
+                .withUserConfiguration(HazelcastOnlyInfrastructure.class)
+                .withPropertyValues("hazelcast.toolkit.actuator.near-cache-check.enabled=true")
+                .run(context -> assertThat(context).doesNotHaveBean(HazelcastNearCacheEndpoint.class));
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    static class TestInfrastructure extends HazelcastOnlyInfrastructure {
+
+        @Bean
+        CacheManager cacheManager() {
+            return proxy(CacheManager.class);
+        }
+
+        @Bean
+        EntityManagerFactory entityManagerFactory() {
+            return proxy(EntityManagerFactory.class);
+        }
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    static class HazelcastOnlyInfrastructure {
+
+        @Bean
+        HazelcastInstance hazelcastInstance() {
+            return proxy(HazelcastInstance.class);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T proxy(Class<T> type) {
+        return (T) Proxy.newProxyInstance(
+                type.getClassLoader(),
+                new Class<?>[]{type},
+                (proxy, method, args) -> {
+                    if (method.getName().equals("toString")) {
+                        return "test-" + type.getSimpleName();
+                    }
+                    if (method.getName().equals("getCacheNames")) {
+                        return Collections.emptyList();
+                    }
+                    if (method.getReturnType().equals(boolean.class)) {
+                        return false;
+                    }
+                    if (method.getReturnType().equals(int.class)) {
+                        return 0;
+                    }
+                    if (method.getReturnType().equals(long.class)) {
+                        return 0L;
+                    }
+                    return null;
+                }
+        );
+    }
+}

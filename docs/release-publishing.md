@@ -170,6 +170,13 @@ of the local Gradle projects:
 
 The example test suite verifies the published Boot 3 starter in the demo
 application, including default `jcache` Spring Cache mode, explicit `native`
+mode, actuator, and metrics wiring.
+
+The same check is available from GitHub Actions:
+
+1. Open `Integration Tests`.
+2. Select the `published-consumer-smoke` suite.
+3. Enter the published toolkit version, for example `0.3.2`.
 Spring Cache mode, `none` mode, Hibernate L2 cache behavior, compact scanning,
 IMap listeners, and the near-cache actuator endpoint.
 

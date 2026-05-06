@@ -92,12 +92,34 @@ class Boot2MetricsIntegrationTest {
 
         Map<String, Object> result = diagnosticController.nearJCacheStats(cacheName);
 
+        assertEquals("OK", result.get("status"));
+        assertEquals(cacheName, result.get("name"));
         assertEquals(cacheName, result.get("cacheName"));
         assertNotNull(result.get("local"), "Local cache stats should still be returned when available");
 
         @SuppressWarnings("unchecked")
         Map<String, Object> near = (Map<String, Object>) result.get("near");
         assertNotNull(near);
+        assertEquals(false, near.get("enabled"));
+    }
+
+    @Test
+    void jcacheNearStatsReturnsStandardErrorContractWhenCacheIsMissing() {
+        String cacheName = "boot2-missing-cache";
+
+        Map<String, Object> result = diagnosticController.nearJCacheStats(cacheName);
+
+        assertEquals("ERROR", result.get("status"));
+        assertEquals(cacheName, result.get("name"));
+        assertEquals(cacheName, result.get("cacheName"));
+        assertTrue(result.get("error").toString().contains("Cache not found"));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> local = (Map<String, Object>) result.get("local");
+        assertEquals(false, local.get("available"));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> near = (Map<String, Object>) result.get("near");
         assertEquals(false, near.get("enabled"));
     }
 

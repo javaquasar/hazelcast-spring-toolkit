@@ -65,32 +65,52 @@ public class HzToolkitMetricsController {
         IMap<Object, Object> map = hazelcastInstance.getMap(mapName);
         NearCacheStats near = map.getLocalMapStats().getNearCacheStats();
 
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("status", "OK");
+        out.put("name", mapName);
+        out.put("mapName", mapName);
+
         if (near == null) {
-            return Map.of("enabled", false);
+            out.put("enabled", false);
+            out.put("near", Map.of("enabled", false));
+            return out;
         }
 
-        return Map.of(
-                "ownedEntryCount", near.getOwnedEntryCount(),
-                "hits", near.getHits(),
-                "misses", near.getMisses(),
-                "ratio", near.getRatio(),
-                "invalidations", near.getInvalidations(),
-                "evictions", near.getEvictions(),
-                "expirations", near.getExpirations(),
-                "ownedEntryMemoryCost", near.getOwnedEntryMemoryCost()
-        );
+        Map<String, Object> n = new LinkedHashMap<>();
+        n.put("enabled", true);
+        n.put("ownedEntryCount", near.getOwnedEntryCount());
+        n.put("hits", near.getHits());
+        n.put("misses", near.getMisses());
+        n.put("ratio", near.getRatio());
+        n.put("invalidations", near.getInvalidations());
+        n.put("evictions", near.getEvictions());
+        n.put("expirations", near.getExpirations());
+        n.put("ownedEntryMemoryCost", near.getOwnedEntryMemoryCost());
+
+        out.putAll(n);
+        out.put("near", n);
+        return out;
     }
 
     @GetMapping("/hz/jcache/near-stats/{cacheName}")
     public Map<String, Object> nearJCacheStats(@PathVariable String cacheName) {
         Cache<Object, Object> cache = cacheManager.getCache(cacheName);
         if (cache == null) {
-            return Map.of("error", "Cache not found: " + cacheName);
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("status", "ERROR");
+            out.put("name", cacheName);
+            out.put("cacheName", cacheName);
+            out.put("error", "Cache not found: " + cacheName);
+            out.put("local", Map.of("available", false));
+            out.put("near", Map.of("enabled", false, "reason", "Cache not found"));
+            return out;
         }
 
         ICache<Object, Object> icache = cache.unwrap(ICache.class);
 
         Map<String, Object> out = new LinkedHashMap<>();
+        out.put("status", "OK");
+        out.put("name", cacheName);
         out.put("cacheName", cacheName);
 
         var local = icache.getLocalCacheStatistics();
@@ -101,6 +121,7 @@ public class HzToolkitMetricsController {
         }
 
         Map<String, Object> l = new LinkedHashMap<>();
+        l.put("available", true);
         l.put("creationTime", local.getCreationTime());
         l.put("lastAccessTime", local.getLastAccessTime());
         l.put("lastUpdateTime", local.getLastUpdateTime());

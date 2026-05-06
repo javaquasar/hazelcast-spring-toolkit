@@ -26,7 +26,7 @@ While Spring Boot provides basic Hazelcast auto-configuration, it is intentional
 | **Hibernate 2nd-Level Cache**        | No dedicated support                          | Full auto-configuration with safe defaults + known issue documentation | Production-ready L2 caching |
 | **Configuration Style**              | Properties + XML/YAML files only              | Annotations + properties + type-safe customizers     | Developer-friendly and type-safe |
 | **Multi Boot Version Support**       | Single implementation                         | Published starters for Boot 2 / 3 / 4 | Clear release scope |
-| **Test Infrastructure**              | None                                          | Shared Testcontainers (3-node cluster + Postgres)    | Ready for integration testing |
+| **Test Infrastructure**              | None                                          | Shared Testcontainers (single Hazelcast node + Postgres) | Ready for integration testing |
 | **Metrics & Observability**          | Basic                                         | Micrometer near-cache + Hibernate L2 meters, diagnostic controller, and Near-Cache health Actuator endpoint | Production monitoring ready |
 
 **In short:**  
@@ -425,7 +425,9 @@ hazelcast:
 ```
 
 Documented meter names, tags, and usage guidance live in
-[docs/observability.md](docs/observability.md).
+[docs/observability.md](docs/observability.md). Troubleshooting guidance for
+the active near-cache probe lives in
+[docs/near-cache-actuator-troubleshooting.md](docs/near-cache-actuator-troubleshooting.md).
 
 ### Near-Cache Health Check — `/actuator/hazelcastNearCache`
 
@@ -462,6 +464,11 @@ hazelcast:
 GET /actuator/hazelcastNearCache
 GET /actuator/hazelcastNearCache?entity=com.mycompany.entity.Product&id=99
 ```
+
+The `id` value is converted using the JPA metamodel id type. Simple ids such as
+`Integer`, `Long`, `Short`, `Byte`, `String`, primitives, and value-object ids
+with `static valueOf(String)` are supported. Composite ids are intentionally not
+supported by this probe.
 
 **Example response:**
 
@@ -568,7 +575,7 @@ Examples:
 | `hibernate.l2.use-statistics` | `false` | Enable Hibernate cache statistics (`extended-config` only) |
 | `actuator.near-cache-check.enabled` | `false` | Register the `/actuator/hazelcastNearCache` endpoint |
 | `actuator.near-cache-check.entity-class` | _(empty)_ | Fully-qualified JPA entity class used as probe |
-| `actuator.near-cache-check.entity-id` | _(empty)_ | Primary-key value of the probe entity (as String) |
+| `actuator.near-cache-check.entity-id` | _(empty)_ | Primary-key value of the probe entity; converted through the JPA metamodel id type |
 
 ---
 
@@ -611,6 +618,9 @@ Examples:
 
 # Run the full Boot 4 starter test suite
 ./gradlew :toolkit-spring-boot4:test
+
+# Verify a published toolkit version from the example consumer app
+./gradlew :example-spring-boot3:test -PusePublishedToolkit=true -PtoolkitReleaseVersion=<releaseVersion>
 ```
 
 ### Publishing to Maven Central
