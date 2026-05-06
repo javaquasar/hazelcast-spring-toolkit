@@ -290,6 +290,44 @@ Use these rules in real applications:
 - If you want to avoid the JCache layer entirely, use `region-factory: HAZELCAST_LOCAL`
 - In tests or multi-context applications, always set a unique `hazelcast.client.instance-name`
 
+#### Native Hibernate L2 and Hazelcast Management Center Storage View
+
+The Hazelcast Management Center storage section depends on which Hibernate L2
+`RegionFactory` is used.
+
+When `region-factory: JCACHE` is active, Hibernate stores L2 regions through
+Hazelcast JCache. Those regions appear under **Storage -> Caches**.
+
+When `region-factory: HAZELCAST` is active, Hibernate uses Hazelcast's native
+`HazelcastCacheRegionFactory`, which stores regions in Hazelcast `IMap`
+structures. Those regions appear under **Storage -> Maps**.
+
+For Hazelcast client applications, native Hibernate mode must use the native
+client loader so `hazelcast-hibernate` reuses the toolkit-managed client instead
+of trying to start or find an embedded member:
+
+```properties
+hazelcast.toolkit.hibernate.l2.enabled=true
+hazelcast.toolkit.hibernate.l2.extended-config=true
+hazelcast.toolkit.hibernate.l2.region-factory=HAZELCAST
+
+spring.jpa.properties.hibernate.cache.hazelcast.use_native_client=true
+spring.jpa.properties.hibernate.cache.hazelcast.native_client_instance_name=<toolkit-client-instance-name>
+```
+
+Use `HAZELCAST` when the goal is to store Hibernate L2 regions as distributed
+Hazelcast maps.
+
+Be careful with `HAZELCAST_LOCAL` in pure client applications. It uses
+`HazelcastLocalCacheRegionFactory`, which keeps entries in a local JVM cache and
+uses Hazelcast topics for invalidation. It may not create the distributed map
+shape expected in Management Center, and with Hazelcast clients it can log
+`Client has no local member!` during listener handling.
+
+`hazelcast.toolkit.spring-cache.mode=native` is a separate setting. It affects
+Spring's `@Cacheable` / `CacheManager` integration, but it does not change the
+Hibernate L2 `RegionFactory`.
+
 #### Local Performance Notes
 
 A local multi-run characterization of `JCACHE` vs `HAZELCAST_LOCAL`, with and
