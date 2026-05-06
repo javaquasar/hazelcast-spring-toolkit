@@ -145,9 +145,15 @@ public final class NearCacheProbe {
         }
 
         Class<?> entityIdType;
-        Object entityId;
         try {
             entityIdType = idTypeResolver.resolve(entityClass);
+        } catch (Exception ex) {
+            return errorResult("Failed to resolve entity id type for " + entityClass.getName()
+                    + ": " + ex.getMessage());
+        }
+
+        Object entityId;
+        try {
             entityId = resolveId(entityIdStr, entityIdType);
         } catch (Exception ex) {
             return errorResult("Failed to convert entity id '" + entityIdStr + "'"

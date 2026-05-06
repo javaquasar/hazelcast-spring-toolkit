@@ -78,7 +78,13 @@ public class HazelcastNearCacheEndpoint {
     }
 
     private Class<?> resolveEntityIdType(Class<?> entityClass) {
-        return emf.getMetamodel().entity(entityClass).getIdType().getJavaType();
+        var entityType = emf.getMetamodel().entity(entityClass);
+        if (!entityType.hasSingleIdAttribute()) {
+            throw new IllegalArgumentException(
+                    "Composite ids are not supported by the hazelcastNearCache actuator probe: "
+                            + entityClass.getName());
+        }
+        return entityType.getIdType().getJavaType();
     }
 
     /**

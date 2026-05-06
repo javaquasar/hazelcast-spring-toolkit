@@ -26,6 +26,10 @@ dependencies {
     compileOnly 'org.hibernate.orm:hibernate-core:6.6.33.Final'
     implementation "com.hazelcast:hazelcast:${hazelcastVersion}"
 
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
+    testImplementation 'org.hibernate.orm:hibernate-core:6.6.33.Final'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
     testFixturesImplementation project(':toolkit-scan-reflections')
     // Shared fixtures must stay Spring 5-compatible unless they are moved out of the
     // cross-version fixture layer. Boot 3 / 4 can still consume these fixtures because
