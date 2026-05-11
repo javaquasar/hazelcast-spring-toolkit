@@ -157,18 +157,26 @@ Before uploading anything, run the release-confidence matrix:
 ./gradlew :toolkit-spring-boot4:test
 ```
 ```bash
+./gradlew :example-spring-boot2:test
+```
+```bash
 ./gradlew :example-spring-boot3:test
 ```
 
 After Maven Central shows the release as available, switch to the post-release
-verification branch and run the example against the published artifacts instead
-of the local Gradle projects:
+verification branch and run the consumer examples against the published
+artifacts instead of the local Gradle projects:
 
+```bash
+./gradlew :example-spring-boot2:test -PusePublishedToolkit=true "-PtoolkitReleaseVersion=0.3.1"
+```
 ```bash
 ./gradlew :example-spring-boot3:test -PusePublishedToolkit=true "-PtoolkitReleaseVersion=0.3.1"
 ```
 
-The example test suite verifies the published Boot 3 starter in the demo
+The Boot 2 smoke verifies the published Boot 2 starter in a minimal consumer
+application with actuator, toolkit metrics, and diagnostic endpoint properties
+enabled. The Boot 3 example verifies the published Boot 3 starter in the demo
 application, including default `jcache` Spring Cache mode, explicit `native`
 mode, actuator, and metrics wiring.
 
@@ -191,11 +199,14 @@ Available suites:
 
 - `docker`: runs `:toolkit-spring-boot3:test`, including Testcontainers-backed tests.
 - `release-confidence`: runs the release-confidence matrix listed above.
+- `published-consumer-smoke`: runs the Boot 2 smoke and Boot 3 example against
+  published Maven artifacts for the entered toolkit version.
 - `all-tests`: runs `./gradlew test` for the whole repository.
 
 You should also verify that release notes and public documentation match the code:
 
 - `README.md`
+- `docs/compatibility-matrix.md`
 - `docs/observability.md`
 - `docs/performance.md`
 - `docs/releases/v0.3.1.md`
@@ -327,7 +338,7 @@ For a normal signed release build:
 ```bash
 ./gradlew clean publishMavenJavaPublicationToLocalStagingRepository "-PreleaseVersion=0.3.1"
 ./gradlew collectCentralBundles "-PreleaseVersion=0.3.1"
-./gradlew :toolkit-runtime:test :toolkit-spring-boot2:test :toolkit-spring-boot3:test :toolkit-spring-boot4:test :example-spring-boot3:test
+./gradlew :toolkit-runtime:test :toolkit-spring-boot2:test :toolkit-spring-boot3:test :toolkit-spring-boot4:test :example-spring-boot2:test :example-spring-boot3:test
 ```
 
 If you prefer to separate packaging and verification:
@@ -350,12 +361,13 @@ Before publishing, confirm all of the following:
 - `sources` and `javadoc` JARs are present
 - generated POM metadata is correct
 - `collectCentralBundles` succeeds
-- Boot 2, Boot 3, and Boot 4 test suites are green
+- Boot 2, Boot 3, Boot 4, and consumer smoke test suites are green
 - release notes match the actual module set
 
 ## Notes
 
 - `toolkit-testcontainers` is internal test infrastructure and is not published
+- `example-spring-boot2` is a minimal consumer smoke app, not a published library
 - `example-spring-boot3` is a runnable example application, not a published library
 - `SECRETS.md` contains the Windows-oriented operator notes for signing key setup
 

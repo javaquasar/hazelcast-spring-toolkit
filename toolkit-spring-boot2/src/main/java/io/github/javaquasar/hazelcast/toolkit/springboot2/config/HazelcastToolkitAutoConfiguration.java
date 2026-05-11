@@ -128,6 +128,7 @@ public class HazelcastToolkitAutoConfiguration {
 
     @Bean
     @ConditionalOnClass({HibernateL2MetricsBinder.class, MeterRegistry.class, EntityManagerFactory.class})
+    @ConditionalOnBean(EntityManagerFactory.class)
     @ConditionalOnProperty(prefix = "hazelcast.toolkit.metrics", name = "enabled", havingValue = "true")
     @ConditionalOnMissingBean
     public HibernateL2MetricsBinder hibernateL2MetricsBinder(

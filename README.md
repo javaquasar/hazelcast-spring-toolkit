@@ -161,6 +161,9 @@ If you want a minimal end-to-end sample with `@HzCompact`, `@HzIMapListener`,
 Hibernate L2, and switchable `JCACHE` / `HAZELCAST_LOCAL` profiles, see
 [`example-spring-boot3`](example-spring-boot3/README.md).
 
+For release verification of the Boot 2 starter, the repository also contains a
+small consumer smoke module: [`example-spring-boot2`](example-spring-boot2/README.md).
+
 ---
 
 ## Features
@@ -462,10 +465,16 @@ hazelcast:
         enabled: true
 ```
 
+`/hz-toolkit` is intentionally separate from Spring Boot Actuator. It is an
+opt-in debugging surface and should be exposed only in trusted environments or
+protected by application security rules.
+
 Documented meter names, tags, and usage guidance live in
 [docs/observability.md](docs/observability.md). Troubleshooting guidance for
 the active near-cache probe lives in
 [docs/near-cache-actuator-troubleshooting.md](docs/near-cache-actuator-troubleshooting.md).
+Supported Boot, Hibernate, Hazelcast, and JPA namespace combinations are listed
+in [docs/compatibility-matrix.md](docs/compatibility-matrix.md).
 
 ### Near-Cache Health Check — `/actuator/hazelcastNearCache`
 
@@ -641,6 +650,7 @@ Examples:
 | `toolkit-spring-boot3` | Yes | Spring Boot 3 auto-configuration (primary) |
 | `toolkit-spring-boot4` | Yes | Spring Boot 4 auto-configuration starter with shared client, JCache, Hibernate L2, Micrometer, and Actuator support |
 | `toolkit-testcontainers` | No | Shared Hazelcast + Postgres test infrastructure |
+| `example-spring-boot2` | No | Minimal consumer smoke app for verifying the Boot 2 starter locally or from Maven Central |
 | `example-spring-boot3` | No | Runnable sample app with `@HzCompact`, `@HzIMapListener`, and Hibernate L2 profiles |
 
 ---
@@ -658,6 +668,7 @@ Examples:
 ./gradlew :toolkit-spring-boot4:test
 
 # Verify a published toolkit version from the example consumer app
+./gradlew :example-spring-boot2:test -PusePublishedToolkit=true -PtoolkitReleaseVersion=<releaseVersion>
 ./gradlew :example-spring-boot3:test -PusePublishedToolkit=true -PtoolkitReleaseVersion=<releaseVersion>
 ```
 

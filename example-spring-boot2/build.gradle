@@ -1,0 +1,38 @@
+plugins {
+    id 'application'
+}
+
+def exampleTestRunId = providers.provider { Long.toString(System.currentTimeMillis()) }
+def usePublishedToolkit = providers.gradleProperty('usePublishedToolkit')
+        .map { it.toBoolean() }
+        .orElse(false)
+def toolkitReleaseVersion = providers.gradleProperty('toolkitReleaseVersion')
+        .orElse(version.toString())
+
+dependencies {
+    implementation platform("org.springframework.boot:spring-boot-dependencies:${springBoot2Version}")
+
+    if (usePublishedToolkit.get()) {
+        implementation "io.github.javaquasar:hazelcast-toolkit-spring-boot2:${toolkitReleaseVersion.get()}"
+    } else {
+        implementation project(':toolkit-spring-boot2')
+    }
+
+    implementation "org.springframework.boot:spring-boot-starter:${springBoot2Version}"
+    implementation "org.springframework.boot:spring-boot-starter-actuator:${springBoot2Version}"
+    implementation "org.springframework:spring-context-support:5.3.34"
+    implementation 'javax.cache:cache-api:1.1.1'
+    implementation 'javax.persistence:javax.persistence-api:2.2'
+    implementation 'io.micrometer:micrometer-core:1.12.13'
+
+    testImplementation "org.springframework.boot:spring-boot-starter-test:${springBoot2Version}"
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+application {
+    mainClass = 'io.github.javaquasar.hazelcast.toolkit.example.boot2.ExampleSpringBoot2Application'
+}
+
+tasks.withType(Test).configureEach {
+    binaryResultsDirectory = layout.buildDirectory.dir(exampleTestRunId.map { "test-results/${name}/binary-${it}" })
+}

@@ -53,13 +53,32 @@ Successful responses include:
 
 ```json
 {
+  "status": "OK",
+  "entity": "com.mycompany.entity.Product",
   "id": "1",
   "idType": "java.lang.Integer",
-  "resolvedId": 1
+  "resolvedId": 1,
+  "nearCache": {
+    "hitVerified": true,
+    "invalidationVerified": true
+  }
 }
 ```
 
 Use these fields to verify that the probe uses the same id type as your entity.
+
+If id conversion fails, the response keeps the normal endpoint shape and reports
+the conversion problem:
+
+```json
+{
+  "status": "ERROR",
+  "entity": "com.mycompany.entity.Product",
+  "id": "abc",
+  "idType": "java.lang.Integer",
+  "error": "Failed to convert id 'abc' to java.lang.Integer"
+}
+```
 
 ## Composite Ids
 
@@ -133,6 +152,9 @@ endpoint returns a structured error response instead of failing with HTTP 500:
   }
 }
 ```
+
+For the full diagnostic response contract, see
+[observability](observability.md#diagnostic-response-contracts).
 
 ## Production Safety
 

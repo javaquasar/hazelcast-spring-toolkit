@@ -98,6 +98,10 @@ This registers:
 - `GET /hz-toolkit/hz/map/near-stats/{mapName}`
 - `GET /hz-toolkit/hz/jcache/near-stats/{cacheName}`
 
+The `/hz-toolkit` controller is intentionally separate from Spring Boot
+Actuator. It is opt-in, debugging-oriented, and should be exposed only in
+trusted environments or protected by application security rules.
+
 This layer is for:
 
 - local debugging
@@ -122,12 +126,99 @@ Diagnostic near-cache responses use a stable top-level shape where possible:
 }
 ```
 
+### Diagnostic Response Contracts
+
+`GET /hz-toolkit/hz/map/near-stats/{mapName}` returns `status`, `name`,
+`mapName`, and `near`. For backward compatibility, the near-cache fields are also
+mirrored at the top level when statistics are available.
+
+Map with Near Cache enabled:
+
+```json
+{
+  "status": "OK",
+  "name": "books",
+  "mapName": "books",
+  "enabled": true,
+  "hits": 12,
+  "misses": 3,
+  "invalidations": 1,
+  "near": {
+    "enabled": true,
+    "hits": 12,
+    "misses": 3,
+    "invalidations": 1
+  }
+}
+```
+
+Map with Near Cache disabled:
+
+```json
+{
+  "status": "OK",
+  "name": "books",
+  "mapName": "books",
+  "enabled": false,
+  "near": {
+    "enabled": false
+  }
+}
+```
+
+`GET /hz-toolkit/hz/jcache/near-stats/{cacheName}` returns `status`, `name`,
+`cacheName`, `local`, and `near`.
+
+JCache cache with local stats and Near Cache disabled:
+
+```json
+{
+  "status": "OK",
+  "name": "starfish.gamesystem",
+  "cacheName": "starfish.gamesystem",
+  "local": {
+    "available": true,
+    "cacheGets": 42,
+    "cacheHits": 40,
+    "cacheMisses": 2
+  },
+  "near": {
+    "enabled": false,
+    "reason": "Near Cache is not enabled"
+  }
+}
+```
+
+JCache cache not found:
+
+```json
+{
+  "status": "ERROR",
+  "name": "missing-cache",
+  "cacheName": "missing-cache",
+  "error": "Cache not found: missing-cache",
+  "local": {
+    "available": false
+  },
+  "near": {
+    "enabled": false,
+    "reason": "Cache not found"
+  }
+}
+```
+
+The diagnostic controller should return structured JSON for expected cache-state
+problems. A disabled Near Cache is represented as `near.enabled=false`, not as an
+HTTP 500.
+
 ## Recommended Usage
 
 - Use **Micrometer meters** for dashboards, scraping, recording rules, and alerts.
 - Use **`/hz-toolkit` diagnostic endpoints** for manual inspection when debugging a cache issue.
 - Use **`/actuator/hazelcastNearCache`** when you want to actively probe whether near-cache invalidation and L2 behavior are working for a specific entity.
 - See [near-cache actuator troubleshooting](near-cache-actuator-troubleshooting.md) for common endpoint errors and expected responses.
+- See [compatibility matrix](compatibility-matrix.md) for the supported Boot,
+  Hibernate, and Hazelcast lines.
 
 ## JPA And JCache Corner Case
 
