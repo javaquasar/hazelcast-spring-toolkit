@@ -94,6 +94,7 @@ public class HazelcastToolkitAutoConfiguration {
     @Bean
     @ConditionalOnClass({HzToolkitMetricsController.class, CacheManager.class})
     @ConditionalOnProperty(prefix = "hazelcast.toolkit.metrics.diagnostic-endpoint", name = "enabled", havingValue = "true")
+    @ConditionalOnMissingBean
     public HzToolkitMetricsController hzToolkitMetricsController(CacheManager cacheManager,
                                                                  HazelcastInstance hazelcastInstance) {
         return new HzToolkitMetricsController(cacheManager, hazelcastInstance);

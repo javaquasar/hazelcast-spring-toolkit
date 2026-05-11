@@ -1,11 +1,12 @@
-package io.github.javaquasar.hazelcast.toolkit.springboot2.config;
+package io.github.javaquasar.hazelcast.toolkit.springboot3.config;
 
 import com.hazelcast.core.HazelcastInstance;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties;
 import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HazelcastNearCacheMetricsBinder;
 import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HibernateL2MetricsBinder;
 import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HzToolkitMetricsController;
-import io.github.javaquasar.hazelcast.toolkit.springboot2.actuator.HazelcastNearCacheEndpoint;
+import io.github.javaquasar.hazelcast.toolkit.springboot3.actuator.HazelcastNearCacheEndpoint;
+import jakarta.persistence.EntityManagerFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -13,13 +14,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import javax.cache.CacheManager;
-import javax.persistence.EntityManagerFactory;
 import java.lang.reflect.Proxy;
 import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class Boot2AutoConfigurationConditionTest {
+class Boot3AutoConfigurationConditionTest {
 
     private final ApplicationContextRunner toolkitContext = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(HazelcastToolkitAutoConfiguration.class))
