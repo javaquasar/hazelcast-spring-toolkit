@@ -106,16 +106,25 @@ public class HzToolkitMetricsController {
             return out;
         }
 
-        ICache<Object, Object> icache = cache.unwrap(ICache.class);
-
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("status", "OK");
         out.put("name", cacheName);
         out.put("cacheName", cacheName);
 
+        ICache<Object, Object> icache;
+        try {
+            icache = cache.unwrap(ICache.class);
+        } catch (RuntimeException ex) {
+            out.put("status", "ERROR");
+            out.put("error", "Cache cannot be unwrapped to Hazelcast ICache: " + cacheName);
+            out.put("local", Map.of("available", false, "reason", reason(ex)));
+            out.put("near", Map.of("enabled", false, "reason", "Hazelcast ICache is not available"));
+            return out;
+        }
+
         var local = icache.getLocalCacheStatistics();
         if (local == null) {
-            out.put("local", Map.of("available", false));
+            out.put("local", Map.of("available", false, "reason", "Local cache statistics are not available"));
             out.put("near", Map.of("enabled", false, "reason", "Local cache statistics are not available"));
             return out;
         }
@@ -170,13 +179,15 @@ public class HzToolkitMetricsController {
             Map<String, Object> n = new LinkedHashMap<>();
             n.put("enabled", false);
             if (nearStatsError != null) {
-                n.put("reason", nearStatsError.getMessage() != null
-                        ? nearStatsError.getMessage()
-                        : nearStatsError.getClass().getSimpleName());
+                n.put("reason", reason(nearStatsError));
             }
             out.put("near", n);
         }
 
         return out;
+    }
+
+    private static String reason(RuntimeException ex) {
+        return ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName();
     }
 }

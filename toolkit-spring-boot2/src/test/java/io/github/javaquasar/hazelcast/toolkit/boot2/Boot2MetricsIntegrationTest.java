@@ -84,6 +84,15 @@ class Boot2MetricsIntegrationTest {
     }
 
     @Test
+    void meterBindersAreIdempotentForTheSameRegistry() {
+        int meterCount = meterRegistry.getMeters().size();
+
+        meterBinders.forEach(binder -> binder.bindTo(meterRegistry));
+
+        assertEquals(meterCount, meterRegistry.getMeters().size());
+    }
+
+    @Test
     void jcacheNearStatsReturnsDisabledSectionWhenNearCacheIsNotEnabled() {
         String cacheName = "boot2-no-near-cache";
         if (cacheManager.getCache(cacheName) == null) {
@@ -96,6 +105,23 @@ class Boot2MetricsIntegrationTest {
         assertEquals(cacheName, result.get("name"));
         assertEquals(cacheName, result.get("cacheName"));
         assertNotNull(result.get("local"), "Local cache stats should still be returned when available");
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> near = (Map<String, Object>) result.get("near");
+        assertNotNull(near);
+        assertEquals(false, near.get("enabled"));
+    }
+
+    @Test
+    void mapNearStatsReturnsStandardContract() {
+        String mapName = "boot2-contract-map";
+        hazelcastInstance.getMap(mapName).put("key", "value");
+
+        Map<String, Object> result = diagnosticController.nearMapStats(mapName);
+
+        assertEquals("OK", result.get("status"));
+        assertEquals(mapName, result.get("name"));
+        assertEquals(mapName, result.get("mapName"));
 
         @SuppressWarnings("unchecked")
         Map<String, Object> near = (Map<String, Object>) result.get("near");

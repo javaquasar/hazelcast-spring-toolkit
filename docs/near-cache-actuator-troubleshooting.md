@@ -116,6 +116,24 @@ If Near Cache is not enabled for a JCache cache, the diagnostic response reports
 
 This is a normal diagnostic outcome, not an HTTP failure.
 
+If a JCache cache exists but is not backed by Hazelcast `ICache`, the diagnostic
+endpoint returns a structured error response instead of failing with HTTP 500:
+
+```json
+{
+  "status": "ERROR",
+  "error": "Cache cannot be unwrapped to Hazelcast ICache: plain-cache",
+  "local": {
+    "available": false,
+    "reason": "not a Hazelcast cache"
+  },
+  "near": {
+    "enabled": false,
+    "reason": "Hazelcast ICache is not available"
+  }
+}
+```
+
 ## Production Safety
 
 The probe is read-only except for one targeted JPA `Cache.evict(entityClass, id)`
