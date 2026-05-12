@@ -5,6 +5,8 @@ import com.hazelcast.core.HazelcastInstance;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties.Hibernate.L2;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties.Hibernate.L2.RegionFactoryType;
+import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HibernateL2MetricsBinder;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -17,6 +19,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import javax.cache.CacheManager;
+import javax.persistence.EntityManagerFactory;
 
 /**
  * Auto-configuration for Hibernate second-level cache backed by Hazelcast.
@@ -77,6 +80,16 @@ public class HazelcastHibernateL2AutoConfiguration {
                 applyMinimumNativeSet(properties, l2, hazelcastInstance);
             }
         };
+    }
+
+    @Bean
+    @ConditionalOnClass({HibernateL2MetricsBinder.class, MeterRegistry.class, EntityManagerFactory.class})
+    @ConditionalOnProperty(prefix = "hazelcast.toolkit.metrics", name = "enabled", havingValue = "true")
+    @ConditionalOnMissingBean
+    public HibernateL2MetricsBinder hibernateL2MetricsBinder(
+            EntityManagerFactory entityManagerFactory,
+            HzToolkitProperties properties) {
+        return new HibernateL2MetricsBinder(entityManagerFactory, properties);
     }
 
     private void applyFullSet(

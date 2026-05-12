@@ -7,7 +7,6 @@ import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientFactory;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HazelcastClientProperties;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties;
 import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HazelcastNearCacheMetricsBinder;
-import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HibernateL2MetricsBinder;
 import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HzToolkitMetricsController;
 import io.github.javaquasar.hazelcast.toolkit.scan.api.ClassScanner;
 import io.github.javaquasar.hazelcast.toolkit.scan.reflections.ReflectionsClassScanner;
@@ -15,7 +14,6 @@ import io.github.javaquasar.hazelcast.toolkit.spring.listener.HzListenersAutoReg
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -25,7 +23,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 
 import javax.cache.CacheManager;
-import javax.persistence.EntityManagerFactory;
 
 /**
  * Core Boot 2 auto-configuration for the Hazelcast toolkit.
@@ -124,17 +121,6 @@ public class HazelcastToolkitAutoConfiguration {
             CacheManager cacheManager,
             HazelcastInstance hazelcastInstance) {
         return new HazelcastNearCacheMetricsBinder(cacheManager, hazelcastInstance);
-    }
-
-    @Bean
-    @ConditionalOnClass({HibernateL2MetricsBinder.class, MeterRegistry.class, EntityManagerFactory.class})
-    @ConditionalOnBean(EntityManagerFactory.class)
-    @ConditionalOnProperty(prefix = "hazelcast.toolkit.metrics", name = "enabled", havingValue = "true")
-    @ConditionalOnMissingBean
-    public HibernateL2MetricsBinder hibernateL2MetricsBinder(
-            EntityManagerFactory entityManagerFactory,
-            HzToolkitProperties properties) {
-        return new HibernateL2MetricsBinder(entityManagerFactory, properties);
     }
 
     private static String resolveClientBaseName(HzToolkitProperties toolkitProps) {

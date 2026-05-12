@@ -22,7 +22,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class Boot2AutoConfigurationConditionTest {
 
     private final ApplicationContextRunner toolkitContext = new ApplicationContextRunner()
-            .withConfiguration(AutoConfigurations.of(HazelcastToolkitAutoConfiguration.class))
+            .withConfiguration(AutoConfigurations.of(
+                    HazelcastToolkitAutoConfiguration.class,
+                    HazelcastHibernateL2AutoConfiguration.class
+            ))
             .withUserConfiguration(TestInfrastructure.class);
 
     private final ApplicationContextRunner actuatorContext = new ApplicationContextRunner()
@@ -46,7 +49,10 @@ class Boot2AutoConfigurationConditionTest {
     @Test
     void metricsBindersDoNotRequireMeterRegistryAtBeanCreationTime() {
         toolkitContext
-                .withPropertyValues("hazelcast.toolkit.metrics.enabled=true")
+                .withPropertyValues(
+                        "hazelcast.toolkit.metrics.enabled=true",
+                        "hazelcast.toolkit.hibernate.l2.enabled=true"
+                )
                 .run(context -> {
                     assertThat(context).hasSingleBean(HazelcastNearCacheMetricsBinder.class);
                     assertThat(context).hasSingleBean(HibernateL2MetricsBinder.class);
@@ -68,6 +74,7 @@ class Boot2AutoConfigurationConditionTest {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
                         HazelcastToolkitAutoConfiguration.class,
+                        HazelcastHibernateL2AutoConfiguration.class,
                         HazelcastActuatorAutoConfiguration.class
                 ))
                 .withUserConfiguration(HazelcastOnlyInfrastructure.class)
@@ -85,6 +92,7 @@ class Boot2AutoConfigurationConditionTest {
                 .withUserConfiguration(TestInfrastructure.class, UserDefinedBeans.class)
                 .withPropertyValues(
                         "hazelcast.toolkit.metrics.enabled=true",
+                        "hazelcast.toolkit.hibernate.l2.enabled=true",
                         "hazelcast.toolkit.metrics.diagnostic-endpoint.enabled=true",
                         "hazelcast.toolkit.actuator.near-cache-check.enabled=true"
                 )

@@ -262,6 +262,21 @@ Then either:
 Tag-triggered releases use `USER_MANAGED`. Manual releases can use either
 `USER_MANAGED` or `AUTOMATIC`.
 
+### Replacing A Pushed Tag Before Publishing
+
+If a release tag was pushed too early, but the version has not been published to
+Maven Central yet, delete the local and remote tag, commit the fix, then recreate
+the tag on the corrected commit.
+
+Example for `v0.3.5`:
+
+```powershell
+git tag -d v0.3.5
+git push origin :refs/tags/v0.3.5
+git tag v0.3.5
+git push origin v0.3.5
+```
+
 ### Manual GitHub Actions Run
 
 Use a dry run first to verify secrets, Docker/Testcontainers, signing, and bundle
