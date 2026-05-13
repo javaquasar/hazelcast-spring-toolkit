@@ -34,8 +34,8 @@ hazelcast.toolkit.health.enabled=true
 
 Candidate indicators:
 
-- Hazelcast client lifecycle state
-- cluster connection status
+- Hazelcast client lifecycle state (first slice added in `0.4.0`)
+- cluster connection status (first slice added in `0.4.0`)
 - optional cache/map availability checks
 - Hibernate L2 readiness where applicable
 

@@ -21,6 +21,11 @@
       "description": "Micrometer metrics and diagnostic endpoint settings."
     },
     {
+      "name": "hazelcast.toolkit.health",
+      "type": "io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties$Health",
+      "description": "Hazelcast toolkit health indicator settings."
+    },
+    {
       "name": "hazelcast.toolkit.spring-cache",
       "type": "io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties$SpringCache",
       "description": "Spring Cache manager mode settings."
@@ -50,6 +55,12 @@
       "type": "java.lang.Boolean",
       "defaultValue": false,
       "description": "Enable the optional /hz-toolkit diagnostic HTTP endpoints. This is separate from Micrometer metrics publishing."
+    },
+    {
+      "name": "hazelcast.toolkit.health.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": false,
+      "description": "Enable the optional Hazelcast toolkit HealthIndicator for /actuator/health."
     },
     {
       "name": "hazelcast.toolkit.actuator.near-cache-check.enabled",

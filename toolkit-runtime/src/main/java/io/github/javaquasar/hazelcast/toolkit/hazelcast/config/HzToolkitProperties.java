@@ -32,6 +32,7 @@ public class HzToolkitProperties {
     private Hibernate hibernate = new Hibernate();
     private SpringCache springCache = new SpringCache();
     private Actuator actuator = new Actuator();
+    private Health health = new Health();
 
     public Compact getCompact() {
         return compact;
@@ -79,6 +80,14 @@ public class HzToolkitProperties {
 
     public void setActuator(Actuator actuator) {
         this.actuator = actuator;
+    }
+
+    public Health getHealth() {
+        return health;
+    }
+
+    public void setHealth(Health health) {
+        this.health = health;
     }
 
     /**
@@ -136,6 +145,21 @@ public class HzToolkitProperties {
             public void setEnabled(boolean enabled) {
                 this.enabled = enabled;
             }
+        }
+    }
+
+    /**
+     * Health indicator settings ({@code hazelcast.toolkit.health.*}).
+     */
+    public static class Health {
+        private boolean enabled = false;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
         }
     }
 

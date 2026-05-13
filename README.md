@@ -143,13 +143,17 @@ hazelcast:
 
 ```java
 @HzCompact                            // reflective compact serialization
-public class UserProfile { ... }
+public class UserProfile {
+    private String userId;
+}
 
 @Component
 @HzIMapListener(map = "users")        // auto-registered on startup
 public class UserListener implements EntryAddedListener<String, UserProfile> {
     @Override
-    public void entryAdded(EntryEvent<String, UserProfile> event) { ... }
+    public void entryAdded(EntryEvent<String, UserProfile> event) {
+        // handle event
+    }
 }
 ```
 
@@ -185,7 +189,9 @@ public class OrderEntry {
 **Explicit serializer** — full control over encoding (enums, versioning, cross-language):
 ```java
 @HzCompact(serializer = OrderEntryCompactSerializer.class)
-public class OrderEntry { ... }
+public class OrderEntry {
+    private String orderId;
+}
 ```
 
 - Explicit serializers are registered **before** reflective classes (Hazelcast's recommended order).
@@ -201,7 +207,9 @@ Annotate any Spring bean that implements `MapListener` or `EntryListener`:
 @HzIMapListener(map = "sessions", localOnly = true)
 public class SessionEvictionListener implements EntryRemovedListener<String, Session> {
     @Override
-    public void entryRemoved(EntryEvent<String, Session> event) { ... }
+    public void entryRemoved(EntryEvent<String, Session> event) {
+        // handle event
+    }
 }
 ```
 
@@ -455,6 +463,15 @@ hazelcast:
       enabled: true
 ```
 
+Enable the optional Hazelcast health indicator:
+
+```yaml
+hazelcast:
+  toolkit:
+    health:
+      enabled: true
+```
+
 Enable the diagnostic HTTP controller separately:
 
 ```yaml
@@ -473,6 +490,10 @@ Documented meter names, tags, and usage guidance live in
 [docs/observability.md](docs/observability.md). Troubleshooting guidance for
 the active near-cache probe lives in
 [docs/near-cache-actuator-troubleshooting.md](docs/near-cache-actuator-troubleshooting.md).
+Production exposure guidance lives in
+[docs/actuator-operations.md](docs/actuator-operations.md), and starter
+Prometheus/Grafana examples live in
+[docs/prometheus-grafana-examples.md](docs/prometheus-grafana-examples.md).
 Supported Boot, Hibernate, Hazelcast, and JPA namespace combinations are listed
 in [docs/compatibility-matrix.md](docs/compatibility-matrix.md).
 
@@ -615,6 +636,7 @@ Examples:
 | `spring-cache.mode` | `JCACHE` | Spring Cache manager mode: `JCACHE` \| `NATIVE` \| `NONE` |
 | `metrics.enabled` | `false` | Enable Micrometer near-cache and Hibernate L2 binders |
 | `metrics.diagnostic-endpoint.enabled` | `false` | Enable the optional `/hz-toolkit/...` diagnostic controller separately from metrics publishing |
+| `health.enabled` | `false` | Enable the optional Hazelcast toolkit health indicator for `/actuator/health` |
 | `hibernate.l2.enabled` | `false` | Activate Hibernate second-level cache support |
 | `hibernate.l2.region-factory` | `JCACHE` | RegionFactory type: `JCACHE` \| `HAZELCAST_LOCAL` \| `HAZELCAST` |
 | `hibernate.l2.extended-config` | `false` | Apply full property set (region.factory_class, query cache, statistics) |

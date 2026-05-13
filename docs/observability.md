@@ -3,7 +3,8 @@
 `hazelcast-toolkit` exposes observability through two separate layers:
 
 1. **Micrometer meters** for production monitoring and dashboards
-2. **Diagnostic HTTP endpoints** for manual inspection and troubleshooting
+2. **Spring Boot health** for readiness-style Hazelcast client status
+3. **Diagnostic HTTP endpoints** for manual inspection and troubleshooting
 
 Use them differently.
 
@@ -78,6 +79,46 @@ Tags:
 | Tag | Example | Meaning |
 |---|---|---|
 | `regionFactory` | `JCACHE` | Configured Hibernate region-factory mode |
+
+## Health Indicator
+
+Enable the optional Hazelcast toolkit health indicator with:
+
+```yaml
+hazelcast:
+  toolkit:
+    health:
+      enabled: true
+```
+
+When Spring Boot Actuator health support is on the classpath, this contributes a
+`hazelcastToolkitHealthIndicator` bean to `/actuator/health`.
+
+The indicator reports:
+
+- `instanceName`
+- `lifecycleRunning`
+- `clusterState`
+- `memberCount`
+
+Example details:
+
+```json
+{
+  "status": "UP",
+  "details": {
+    "instanceName": "gameservice",
+    "lifecycleRunning": true,
+    "clusterState": "ACTIVE",
+    "memberCount": 1
+  }
+}
+```
+
+The indicator is `UP` when the toolkit-managed `HazelcastInstance` lifecycle is
+running and at least one cluster member is visible. It is `DOWN` when the client
+is not running, no members are visible, or Hazelcast status inspection throws an
+exception.
 
 ## Diagnostic Endpoint
 
@@ -214,11 +255,21 @@ HTTP 500.
 ## Recommended Usage
 
 - Use **Micrometer meters** for dashboards, scraping, recording rules, and alerts.
+- Use **`/actuator/health`** for passive Hazelcast client readiness.
 - Use **`/hz-toolkit` diagnostic endpoints** for manual inspection when debugging a cache issue.
 - Use **`/actuator/hazelcastNearCache`** when you want to actively probe whether near-cache invalidation and L2 behavior are working for a specific entity.
+- See [actuator operations](actuator-operations.md) for production exposure guidance.
+- See [Prometheus and Grafana examples](prometheus-grafana-examples.md) for starter queries and dashboard ideas.
 - See [near-cache actuator troubleshooting](near-cache-actuator-troubleshooting.md) for common endpoint errors and expected responses.
 - See [compatibility matrix](compatibility-matrix.md) for the supported Boot,
   Hibernate, and Hazelcast lines.
+
+| Surface | Endpoint | Primary use |
+|---|---|---|
+| Health | `/actuator/health` | Passive readiness of the Hazelcast client |
+| Micrometer | `/actuator/metrics`, `/actuator/prometheus` | Continuous monitoring and alerting |
+| Active probe | `/actuator/hazelcastNearCache` | Entity-level near-cache/L2 verification |
+| Diagnostics | `/hz-toolkit/...` | Manual cache/map inspection |
 
 ## JPA And JCache Corner Case
 
@@ -263,5 +314,7 @@ hazelcast:
 With that setup:
 
 - Micrometer meters are exported by `hazelcast.toolkit.metrics.enabled=true`
+- `/actuator/health` includes Hazelcast client readiness details when
+  `hazelcast.toolkit.health.enabled=true`
 - `/hz-toolkit/...` is available for diagnostics by `hazelcast.toolkit.metrics.diagnostic-endpoint.enabled=true`
 - `/actuator/hazelcastNearCache` is available for an active near-cache probe

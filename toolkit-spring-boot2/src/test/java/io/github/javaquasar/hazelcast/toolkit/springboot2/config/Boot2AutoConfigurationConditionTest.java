@@ -6,6 +6,7 @@ import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HazelcastNearCacheM
 import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HibernateL2MetricsBinder;
 import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HzToolkitMetricsController;
 import io.github.javaquasar.hazelcast.toolkit.springboot2.actuator.HazelcastNearCacheEndpoint;
+import io.github.javaquasar.hazelcast.toolkit.springboot2.actuator.HazelcastToolkitHealthIndicator;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -32,6 +33,13 @@ class Boot2AutoConfigurationConditionTest {
             .withConfiguration(AutoConfigurations.of(
                     HazelcastToolkitAutoConfiguration.class,
                     HazelcastActuatorAutoConfiguration.class
+            ))
+            .withUserConfiguration(TestInfrastructure.class);
+
+    private final ApplicationContextRunner healthContext = new ApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(
+                    HazelcastToolkitAutoConfiguration.class,
+                    HazelcastHealthAutoConfiguration.class
             ))
             .withUserConfiguration(TestInfrastructure.class);
 
@@ -83,6 +91,21 @@ class Boot2AutoConfigurationConditionTest {
     }
 
     @Test
+    void healthIndicatorRequiresExplicitPropertyAndHazelcastInstance() {
+        healthContext
+                .run(context -> assertThat(context).doesNotHaveBean(HazelcastToolkitHealthIndicator.class));
+
+        healthContext
+                .withPropertyValues("hazelcast.toolkit.health.enabled=true")
+                .run(context -> assertThat(context).hasSingleBean(HazelcastToolkitHealthIndicator.class));
+
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(HazelcastHealthAutoConfiguration.class))
+                .withPropertyValues("hazelcast.toolkit.health.enabled=true")
+                .run(context -> assertThat(context).doesNotHaveBean(HazelcastToolkitHealthIndicator.class));
+    }
+
+    @Test
     void userDefinedBeansTakePrecedence() {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
@@ -93,17 +116,21 @@ class Boot2AutoConfigurationConditionTest {
                 .withPropertyValues(
                         "hazelcast.toolkit.metrics.enabled=true",
                         "hazelcast.toolkit.hibernate.l2.enabled=true",
+                        "hazelcast.toolkit.health.enabled=true",
                         "hazelcast.toolkit.metrics.diagnostic-endpoint.enabled=true",
                         "hazelcast.toolkit.actuator.near-cache-check.enabled=true"
                 )
                 .run(context -> {
                     assertThat(context).hasSingleBean(HazelcastNearCacheEndpoint.class);
+                    assertThat(context).hasSingleBean(HazelcastToolkitHealthIndicator.class);
                     assertThat(context).hasSingleBean(HazelcastNearCacheMetricsBinder.class);
                     assertThat(context).hasSingleBean(HibernateL2MetricsBinder.class);
                     assertThat(context).hasSingleBean(HzToolkitMetricsController.class);
 
                     assertThat(context.getBean(HazelcastNearCacheEndpoint.class))
                             .isSameAs(context.getBean("customHazelcastNearCacheEndpoint"));
+                    assertThat(context.getBean(HazelcastToolkitHealthIndicator.class))
+                            .isSameAs(context.getBean("customHazelcastToolkitHealthIndicator"));
                     assertThat(context.getBean(HazelcastNearCacheMetricsBinder.class))
                             .isSameAs(context.getBean("customHazelcastNearCacheMetricsBinder"));
                     assertThat(context.getBean(HibernateL2MetricsBinder.class))
@@ -137,6 +164,7 @@ class Boot2AutoConfigurationConditionTest {
     }
 
     @Configuration(proxyBeanMethods = false)
+    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     static class UserDefinedBeans {
 
         @Bean
@@ -161,6 +189,11 @@ class Boot2AutoConfigurationConditionTest {
                 CacheManager cacheManager,
                 HazelcastInstance hazelcastInstance) {
             return new HzToolkitMetricsController(cacheManager, hazelcastInstance);
+        }
+
+        @Bean
+        HazelcastToolkitHealthIndicator customHazelcastToolkitHealthIndicator(HazelcastInstance hazelcastInstance) {
+            return new HazelcastToolkitHealthIndicator(hazelcastInstance);
         }
     }
 
