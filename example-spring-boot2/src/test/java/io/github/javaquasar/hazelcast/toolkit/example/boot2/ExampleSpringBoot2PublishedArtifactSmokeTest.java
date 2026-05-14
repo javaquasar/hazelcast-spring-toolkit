@@ -1,13 +1,19 @@
 package io.github.javaquasar.hazelcast.toolkit.example.boot2;
 
+import com.hazelcast.cluster.Cluster;
+import com.hazelcast.cluster.ClusterState;
+import com.hazelcast.cluster.Member;
 import com.hazelcast.core.DistributedObject;
 import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.core.LifecycleService;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientFactory;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties;
 import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HazelcastNearCacheMetricsBinder;
 import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HzToolkitMetricsController;
+import io.github.javaquasar.hazelcast.toolkit.springboot2.actuator.HazelcastToolkitHealthIndicator;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.actuate.health.Status;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -26,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         },
         properties = {
                 "spring.application.name=boot2-consumer-smoke",
+                "hazelcast.toolkit.health.enabled=true",
                 "hazelcast.toolkit.metrics.enabled=true",
                 "hazelcast.toolkit.metrics.diagnostic-endpoint.enabled=true"
         }
@@ -48,6 +55,9 @@ class ExampleSpringBoot2PublishedArtifactSmokeTest {
     private HzToolkitMetricsController metricsController;
 
     @Autowired
+    private HazelcastToolkitHealthIndicator healthIndicator;
+
+    @Autowired
     private CacheManager cacheManager;
 
     @Test
@@ -58,6 +68,7 @@ class ExampleSpringBoot2PublishedArtifactSmokeTest {
         assertThat(hazelcastClientFactory).isNotNull();
         assertThat(nearCacheMetricsBinder).isNotNull();
         assertThat(metricsController.objects()).isEmpty();
+        assertThat(healthIndicator.health().getStatus()).isEqualTo(Status.UP);
     }
 
     @TestConfiguration(proxyBeanMethods = false)
@@ -65,12 +76,34 @@ class ExampleSpringBoot2PublishedArtifactSmokeTest {
 
         @Bean
         HazelcastInstance hazelcastInstance() {
+            LifecycleService lifecycleService = proxy(LifecycleService.class, (proxy, method, args) -> {
+                if ("isRunning".equals(method.getName())) {
+                    return true;
+                }
+                return defaultValue(method.getReturnType());
+            });
+            Cluster cluster = proxy(Cluster.class, (proxy, method, args) -> {
+                if ("getMembers".equals(method.getName())) {
+                    return Collections.singleton(proxy(Member.class, (memberProxy, memberMethod, memberArgs) ->
+                            defaultValue(memberMethod.getReturnType())));
+                }
+                if ("getClusterState".equals(method.getName())) {
+                    return ClusterState.ACTIVE;
+                }
+                return defaultValue(method.getReturnType());
+            });
             return proxy(HazelcastInstance.class, (proxy, method, args) -> {
                 if ("getDistributedObjects".equals(method.getName())) {
                     return Collections.<DistributedObject>emptyList();
                 }
                 if ("getName".equals(method.getName())) {
                     return "boot2-consumer-smoke";
+                }
+                if ("getLifecycleService".equals(method.getName())) {
+                    return lifecycleService;
+                }
+                if ("getCluster".equals(method.getName())) {
+                    return cluster;
                 }
                 return defaultValue(method.getReturnType());
             });
