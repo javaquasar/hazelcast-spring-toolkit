@@ -17,6 +17,33 @@ hazelcast.toolkit.metrics.enabled=true
 
 Use this setup for readiness checks, dashboards, Prometheus scraping, and alerting.
 
+The toolkit registers the health bean as:
+
+```text
+hazelcastToolkitHealthIndicator
+```
+
+Spring Boot Actuator normally exposes that bean as the health component:
+
+```text
+hazelcastToolkit
+```
+
+Example health-group setup for Kubernetes-style deployments:
+
+```properties
+management.endpoint.health.probes.enabled=true
+management.endpoint.health.group.liveness.include=livenessState
+management.endpoint.health.group.readiness.include=readinessState,hazelcastToolkit
+```
+
+With this setup:
+
+- liveness stays focused on whether the process should be restarted
+- readiness includes whether the toolkit-managed Hazelcast client is usable
+- `hazelcastToolkit` reports `DOWN` when the client lifecycle is stopped, no
+  cluster members are visible, or Hazelcast status inspection fails
+
 ## Optional Active Probe
 
 The near-cache actuator probe is useful when operations teams need an active
@@ -87,3 +114,24 @@ Enable diagnostics temporarily when investigating cache state:
 ```properties
 hazelcast.toolkit.metrics.diagnostic-endpoint.enabled=true
 ```
+
+## Troubleshooting Health
+
+If `hazelcastToolkit` is missing from `/actuator/health`, check:
+
+- `spring-boot-actuator` is on the classpath
+- `hazelcast.toolkit.health.enabled=true`
+- a `HazelcastInstance` bean exists
+- the relevant health group includes `hazelcastToolkit`
+
+If `hazelcastToolkit` is `DOWN`, inspect the details:
+
+| Detail | Meaning |
+|---|---|
+| `lifecycleRunning=false` | The Hazelcast client lifecycle is stopped. |
+| `memberCount=0` | The client is running but cannot see a cluster member. |
+| `clusterState` | Hazelcast cluster state as seen by the client. |
+| `error` | The health indicator could not inspect Hazelcast status. |
+
+Treat `memberCount=0` as a readiness problem. The service process may be alive,
+but it is not ready to use Hazelcast-backed caches safely.

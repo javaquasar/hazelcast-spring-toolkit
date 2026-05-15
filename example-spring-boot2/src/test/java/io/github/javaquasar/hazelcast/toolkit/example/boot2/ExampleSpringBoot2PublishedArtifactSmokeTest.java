@@ -13,6 +13,7 @@ import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HzToolkitMetricsCon
 import io.github.javaquasar.hazelcast.toolkit.springboot2.actuator.HazelcastToolkitHealthIndicator;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.Status;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -68,7 +69,13 @@ class ExampleSpringBoot2PublishedArtifactSmokeTest {
         assertThat(hazelcastClientFactory).isNotNull();
         assertThat(nearCacheMetricsBinder).isNotNull();
         assertThat(metricsController.objects()).isEmpty();
-        assertThat(healthIndicator.health().getStatus()).isEqualTo(Status.UP);
+
+        Health health = healthIndicator.health();
+        assertThat(health.getStatus()).isEqualTo(Status.UP);
+        assertThat(health.getDetails()).containsEntry("instanceName", "boot2-consumer-smoke");
+        assertThat(health.getDetails()).containsEntry("lifecycleRunning", true);
+        assertThat(health.getDetails()).containsEntry("clusterState", "ACTIVE");
+        assertThat(health.getDetails()).containsEntry("memberCount", 1);
     }
 
     @TestConfiguration(proxyBeanMethods = false)
