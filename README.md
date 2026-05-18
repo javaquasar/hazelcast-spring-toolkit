@@ -4,7 +4,7 @@
 Register Compact serialization types with `@HzCompact`, wire IMap listeners with `@HzIMapListener`, and activate Hibernate second-level cache with one property — all without writing a single line of `ClientConfig` boilerplate.
 
 [![Java 17](https://img.shields.io/badge/Java-17-blue)](https://adoptium.net/)
-[![Spring Boot 3](https://img.shields.io/badge/Spring%20Boot-3.x-6db33f)](https://spring.io/projects/spring-boot)
+[![Spring Boot 2/3/4](https://img.shields.io/badge/Spring%20Boot-2%20%2F%203%20%2F%204-6db33f)](https://spring.io/projects/spring-boot)
 [![Hazelcast 5.5](https://img.shields.io/badge/Hazelcast-5.5-ff6600)](https://hazelcast.com/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
@@ -73,6 +73,9 @@ Published Maven artifact IDs use the `hazelcast-toolkit-*` prefix, for example:
 - `io.github.javaquasar:hazelcast-toolkit-spring-boot2`
 - `io.github.javaquasar:hazelcast-toolkit-spring-boot3`
 - `io.github.javaquasar:hazelcast-toolkit-spring-boot4`
+
+See [docs/compatibility-matrix.md](docs/compatibility-matrix.md) for the current
+Boot, Spring Framework, Hibernate, Hazelcast, and JPA namespace support matrix.
 
 ### Companion Dependencies in Real Consumer Apps
 
@@ -654,7 +657,7 @@ Examples:
 
 - **Hibernate 5 composite-key issue**: If you use Hibernate 5 and JPA entities with composite keys, Hazelcast's L2 cache key conversion may fail. See [`docs/hibernate-l2-cachekey-converter-issue.md`](docs/hibernate-l2-cachekey-converter-issue.md) for root cause analysis and workarounds.
 
-- **Boot 4 support**: `toolkit-spring-boot4` is part of the regular build and provides Boot 4 auto-configuration for the shared Hazelcast client, JCache wiring, Hibernate L2 integration, listener registration, metrics binders, and the Near-Cache Actuator endpoint. Some advanced auto-configurations are still guarded by `@ConditionalOnClass` and activate only when the relevant Spring Boot 4 / JPA / Actuator types are present on the application classpath.
+- **Boot 4 support**: `toolkit-spring-boot4` is part of the regular build and provides Boot 4 auto-configuration for the shared Hazelcast client, JCache wiring, Hibernate L2 integration, listener registration, metrics binders, and the Near-Cache Actuator endpoint. Some advanced auto-configurations are still guarded by `@ConditionalOnClass` and activate only when the relevant Spring Boot / JPA / Actuator types are present on the application classpath. See [`docs/compatibility-matrix.md`](docs/compatibility-matrix.md) for the current Boot 4 support notes.
 
 ---
 
