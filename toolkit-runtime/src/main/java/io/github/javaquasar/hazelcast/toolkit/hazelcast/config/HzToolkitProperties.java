@@ -479,8 +479,8 @@ public class HzToolkitProperties {
 
             /**
              * Primary-key value of the probe entity, expressed as a {@code String}.
-             * The endpoint converts it to {@code Long} automatically; for other ID types
-             * override via the {@code id} query parameter.
+             * The endpoint resolves the JPA metamodel id type and converts this value
+             * to that type before probing the entity.
              *
              * <p>Can be overridden per-request via the {@code id} query parameter.
              */

@@ -10,15 +10,20 @@ import io.github.javaquasar.hazelcast.toolkit.springboot4.actuator.HazelcastTool
 import jakarta.persistence.EntityManagerFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.context.ConfigurationPropertiesAutoConfiguration;
+import org.springframework.boot.autoconfigure.orm.jpa.HibernatePropertiesCustomizer;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import javax.cache.CacheManager;
 import java.lang.reflect.Proxy;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class Boot4AutoConfigurationConditionTest {
 
@@ -64,6 +69,65 @@ class Boot4AutoConfigurationConditionTest {
                 .run(context -> {
                     assertThat(context).hasSingleBean(HazelcastNearCacheMetricsBinder.class);
                     assertThat(context).hasSingleBean(HibernateL2MetricsBinder.class);
+                });
+    }
+
+    @Test
+    void hibernateL2CustomizerRequiresExplicitProperty() {
+        toolkitContext
+                .run(context -> assertThat(context).doesNotHaveBean(HibernatePropertiesCustomizer.class));
+
+        toolkitContext
+                .withPropertyValues("hazelcast.toolkit.hibernate.l2.enabled=true")
+                .run(context -> assertThat(context)
+                        .hasBean("hazelcastHibernateL2PropertiesCustomizer"));
+    }
+
+    @Test
+    void extendedJcacheHibernateModeFailsWhenCacheManagerIsUnavailable() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        ConfigurationPropertiesAutoConfiguration.class,
+                        HazelcastToolkitAutoConfiguration.class,
+                        HazelcastHibernateL2AutoConfiguration.class
+                ))
+                .withUserConfiguration(HazelcastOnlyInfrastructure.class)
+                .withPropertyValues(
+                        "hazelcast.toolkit.hibernate.l2.enabled=true",
+                        "hazelcast.toolkit.hibernate.l2.extended-config=true",
+                        "hazelcast.toolkit.hibernate.l2.region-factory=JCACHE"
+                )
+                .run(context -> {
+                    HibernatePropertiesCustomizer customizer = context.getBean(
+                            "hazelcastHibernateL2PropertiesCustomizer",
+                            HibernatePropertiesCustomizer.class
+                    );
+
+                    assertThatThrownBy(() -> customizer.customize(new LinkedHashMap<>()))
+                            .isInstanceOf(IllegalStateException.class)
+                            .hasMessageContaining("requires a javax.cache.CacheManager bean");
+                });
+    }
+
+    @Test
+    void nativeHibernateModeFailsFastWhenHazelcastHibernateIsMissing() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        ConfigurationPropertiesAutoConfiguration.class,
+                        HazelcastToolkitAutoConfiguration.class,
+                        HazelcastHibernateL2AutoConfiguration.class
+                ))
+                .withUserConfiguration(HazelcastOnlyInfrastructure.class)
+                .withClassLoader(new FilteredClassLoader("com.hazelcast.hibernate"))
+                .withPropertyValues(
+                        "hazelcast.toolkit.hibernate.l2.enabled=true",
+                        "hazelcast.toolkit.hibernate.l2.region-factory=HAZELCAST_LOCAL"
+                )
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure())
+                            .hasMessageContaining("com.hazelcast.hibernate.HazelcastLocalCacheRegionFactory")
+                            .hasMessageContaining("com.hazelcast:hazelcast-hibernate");
                 });
     }
 

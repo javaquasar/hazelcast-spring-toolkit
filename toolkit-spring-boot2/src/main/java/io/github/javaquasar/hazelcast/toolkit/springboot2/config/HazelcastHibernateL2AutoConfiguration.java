@@ -17,6 +17,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernatePropertiesCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.util.ClassUtils;
 
 import javax.cache.CacheManager;
 import javax.persistence.EntityManagerFactory;
@@ -173,9 +174,8 @@ public class HazelcastHibernateL2AutoConfiguration {
         String className = type == RegionFactoryType.HAZELCAST_LOCAL
                 ? HAZELCAST_LOCAL_REGION_FACTORY
                 : HAZELCAST_REGION_FACTORY;
-        try {
-            Class.forName(className);
-        } catch (ClassNotFoundException e) {
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        if (!ClassUtils.isPresent(className, classLoader)) {
             throw new IllegalStateException(
                     "Hazelcast toolkit Hibernate L2: region-factory=" + type +
                     " requires '" + className + "' on the classpath. " +

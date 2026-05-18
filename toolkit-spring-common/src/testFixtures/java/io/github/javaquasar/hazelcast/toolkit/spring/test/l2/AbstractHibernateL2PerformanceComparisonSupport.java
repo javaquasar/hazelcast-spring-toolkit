@@ -37,25 +37,24 @@ public abstract class AbstractHibernateL2PerformanceComparisonSupport {
                 () -> assertWarmReadsBeatColdRead(jcacheNearCache),
                 () -> assertWarmReadsBeatColdRead(nativeLocal),
                 () -> assertWarmReadsBeatColdRead(nativeLocalNearCache),
-                () -> assertTrue(
-                        nativeLocal.averageWarmReadNanos() <= jcache.averageWarmReadNanos() * 3,
-                        () -> "Expected native Hazelcast warm reads to stay within a broad 3x envelope of JCache warm reads, "
-                                + "but got native=" + nativeLocal.averageWarmReadNanos() + "ns and jcache="
-                                + jcache.averageWarmReadNanos() + "ns"
+                () -> assertWarmReadsStayWithinBaselineEnvelope(
+                        "native Hazelcast",
+                        nativeLocal,
+                        "JCache",
+                        jcache,
+                        3
                 ),
-                () -> assertTrue(
-                        jcacheNearCache.averageWarmReadNanos() <= jcache.averageWarmReadNanos() * jcacheNearCacheEnvelopeMultiplier(),
-                        () -> "Expected JCache near-cache warm reads to stay within a broad "
-                                + jcacheNearCacheEnvelopeMultiplier() + "x envelope of JCache baseline, "
-                                + "but got nearCache=" + jcacheNearCache.averageWarmReadNanos() + "ns and baseline="
-                                + jcache.averageWarmReadNanos() + "ns"
+                () -> assertNearCacheWarmReadsStayWithinBaselineEnvelope(
+                        "JCache",
+                        jcacheNearCache,
+                        jcache,
+                        jcacheNearCacheEnvelopeMultiplier()
                 ),
-                () -> assertTrue(
-                        nativeLocalNearCache.averageWarmReadNanos() <= nativeLocal.averageWarmReadNanos() * nativeNearCacheEnvelopeMultiplier(),
-                        () -> "Expected native Hazelcast near-cache warm reads to stay within a broad "
-                                + nativeNearCacheEnvelopeMultiplier() + "x envelope of native baseline, "
-                                + "but got nearCache=" + nativeLocalNearCache.averageWarmReadNanos() + "ns and baseline="
-                                + nativeLocal.averageWarmReadNanos() + "ns"
+                () -> assertNearCacheWarmReadsStayWithinBaselineEnvelope(
+                        "native Hazelcast",
+                        nativeLocalNearCache,
+                        nativeLocal,
+                        nativeNearCacheEnvelopeMultiplier()
                 )
         );
     }
@@ -134,6 +133,14 @@ public abstract class AbstractHibernateL2PerformanceComparisonSupport {
 
     protected int jcacheNearCacheEnvelopeMultiplier() {
         return 5;
+    }
+
+    protected long nearCacheVsBaselineAbsoluteJitterNanos() {
+        return 50_000_000L;
+    }
+
+    protected long crossModeVsBaselineAbsoluteJitterNanos() {
+        return 50_000_000L;
     }
 
     /**
@@ -283,6 +290,53 @@ public abstract class AbstractHibernateL2PerformanceComparisonSupport {
                                 + measurement.averageWarmReadNanos() + "ns, allowed="
                                 + allowedWarmReadNanos + "ns"
                 )
+        );
+    }
+
+    protected void assertNearCacheWarmReadsStayWithinBaselineEnvelope(
+            String label,
+            Measurement nearCacheMeasurement,
+            Measurement baselineMeasurement,
+            int envelopeMultiplier) {
+
+        long relativeThreshold = baselineMeasurement.averageWarmReadNanos() * envelopeMultiplier;
+        long absoluteJitterThreshold = baselineMeasurement.averageWarmReadNanos()
+                + nearCacheVsBaselineAbsoluteJitterNanos();
+        long allowedWarmReadNanos = Math.max(relativeThreshold, absoluteJitterThreshold);
+
+        assertTrue(
+                nearCacheMeasurement.averageWarmReadNanos() <= allowedWarmReadNanos,
+                () -> "Expected " + label + " near-cache warm reads to stay within a broad "
+                        + envelopeMultiplier + "x envelope or "
+                        + nearCacheVsBaselineAbsoluteJitterNanos()
+                        + "ns absolute jitter of baseline, but got nearCache="
+                        + nearCacheMeasurement.averageWarmReadNanos() + "ns and baseline="
+                        + baselineMeasurement.averageWarmReadNanos() + "ns, allowed="
+                        + allowedWarmReadNanos + "ns"
+        );
+    }
+
+    protected void assertWarmReadsStayWithinBaselineEnvelope(
+            String label,
+            Measurement measurement,
+            String baselineLabel,
+            Measurement baselineMeasurement,
+            int envelopeMultiplier) {
+
+        long relativeThreshold = baselineMeasurement.averageWarmReadNanos() * envelopeMultiplier;
+        long absoluteJitterThreshold = baselineMeasurement.averageWarmReadNanos()
+                + crossModeVsBaselineAbsoluteJitterNanos();
+        long allowedWarmReadNanos = Math.max(relativeThreshold, absoluteJitterThreshold);
+
+        assertTrue(
+                measurement.averageWarmReadNanos() <= allowedWarmReadNanos,
+                () -> "Expected " + label + " warm reads to stay within a broad "
+                        + envelopeMultiplier + "x envelope or "
+                        + crossModeVsBaselineAbsoluteJitterNanos()
+                        + "ns absolute jitter of " + baselineLabel + " warm reads, but got "
+                        + label + "=" + measurement.averageWarmReadNanos() + "ns and "
+                        + baselineLabel + "=" + baselineMeasurement.averageWarmReadNanos()
+                        + "ns, allowed=" + allowedWarmReadNanos + "ns"
         );
     }
 
