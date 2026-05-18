@@ -72,7 +72,7 @@ public class HzToolkitMetricsController {
 
         if (near == null) {
             out.put("enabled", false);
-            out.put("near", Map.of("enabled", false));
+            out.put("near", Map.of("enabled", false, "reason", "Near Cache is not enabled"));
             return out;
         }
 

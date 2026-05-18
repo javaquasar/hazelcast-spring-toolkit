@@ -202,7 +202,8 @@ Map with Near Cache disabled:
   "mapName": "books",
   "enabled": false,
   "near": {
-    "enabled": false
+    "enabled": false,
+    "reason": "Near Cache is not enabled"
   }
 }
 ```

@@ -135,6 +135,21 @@ If Near Cache is not enabled for a JCache cache, the diagnostic response reports
 
 This is a normal diagnostic outcome, not an HTTP failure.
 
+The map near-cache diagnostic uses the same disabled-near-cache contract:
+
+```json
+{
+  "status": "OK",
+  "name": "books",
+  "mapName": "books",
+  "enabled": false,
+  "near": {
+    "enabled": false,
+    "reason": "Near Cache is not enabled"
+  }
+}
+```
+
 If a JCache cache exists but is not backed by Hazelcast `ICache`, the diagnostic
 endpoint returns a structured error response instead of failing with HTTP 500:
 
