@@ -88,8 +88,8 @@ Focus: provide ready-to-adapt operational patterns.
 Possible recipes:
 
 - [x] multi-service Hazelcast client setup
-- Kubernetes discovery examples
-- TLS and security config customizers
+- [x] Kubernetes discovery examples
+- [x] TLS and security config customizers
 - [x] rolling deploy and near-cache invalidation checklist
 - performance comparison examples for Hibernate L2 modes
 - example dashboards and alert rules

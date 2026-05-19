@@ -12,10 +12,11 @@ maps, JCache caches, and Hibernate L2 regions.
 ```properties
 spring.application.name=orders-service
 
-hazelcast.toolkit.client.cluster-name=platform-cache
-hazelcast.toolkit.client.addresses=hazelcast-0.hz:5701,hazelcast-1.hz:5701,hazelcast-2.hz:5701
-hazelcast.toolkit.client.connection-timeout=10000
-hazelcast.toolkit.client.async-start=false
+hazelcast.client.cluster-name=platform-cache
+hazelcast.client.network.cluster-members[0]=hazelcast-0.hz:5701
+hazelcast.client.network.cluster-members[1]=hazelcast-1.hz:5701
+hazelcast.client.network.cluster-members[2]=hazelcast-2.hz:5701
+hazelcast.client.network.smart-routing=true
 ```
 
 Recommended defaults:
@@ -27,6 +28,97 @@ Recommended defaults:
 | Startup | Prefer synchronous startup for cache-dependent services. |
 | Health | Enable toolkit health and include `hazelcastToolkit` in readiness. |
 | Metrics | Enable Micrometer metrics for near-cache and Hibernate L2 visibility. |
+
+## Kubernetes Discovery
+
+The most portable Kubernetes setup is DNS-based: expose Hazelcast members
+through a stable Service or headless Service and feed those names into
+`hazelcast.client.network.cluster-members`.
+
+```yaml
+spring:
+  application:
+    name: orders-service
+
+hazelcast:
+  client:
+    cluster-name: platform-cache
+    network:
+      smart-routing: true
+      cluster-members:
+        - hazelcast.platform-cache.svc.cluster.local:5701
+```
+
+For StatefulSet-style member DNS, list the stable pod hostnames:
+
+```yaml
+hazelcast:
+  client:
+    cluster-name: platform-cache
+    network:
+      cluster-members:
+        - hazelcast-0.hazelcast.platform-cache.svc.cluster.local:5701
+        - hazelcast-1.hazelcast.platform-cache.svc.cluster.local:5701
+        - hazelcast-2.hazelcast.platform-cache.svc.cluster.local:5701
+```
+
+If the service uses Hazelcast's Kubernetes discovery plugin instead of static
+DNS, keep the starter's base properties for common settings and add a
+`HazelcastClientConfigCustomizer` bean for plugin-specific `ClientConfig`
+options. Keep that customizer application-owned, because namespace, service
+name, labels, and RBAC differ by platform.
+
+## TLS And Security Customizers
+
+The starter intentionally keeps low-level security options out of the common
+property model. Register application-owned `HazelcastClientConfigCustomizer`
+beans for TLS, credentials, labels, or provider-specific security settings.
+
+Example TLS customizer:
+
+```java
+import com.hazelcast.config.SSLConfig;
+import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientConfigCustomizer;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
+
+import java.util.Properties;
+
+@Configuration
+class HazelcastClientSecurityConfiguration {
+
+    @Bean
+    @Order(100)
+    HazelcastClientConfigCustomizer hazelcastTlsCustomizer() {
+        return clientConfig -> {
+            Properties sslProperties = new Properties();
+            sslProperties.setProperty("javax.net.ssl.keyStore", "/etc/hazelcast/tls/client.p12");
+            sslProperties.setProperty("javax.net.ssl.keyStorePassword",
+                    System.getenv("HZ_CLIENT_KEYSTORE_PASSWORD"));
+            sslProperties.setProperty("javax.net.ssl.trustStore", "/etc/hazelcast/tls/truststore.p12");
+            sslProperties.setProperty("javax.net.ssl.trustStorePassword",
+                    System.getenv("HZ_CLIENT_TRUSTSTORE_PASSWORD"));
+
+            clientConfig.getNetworkConfig()
+                    .setSSLConfig(new SSLConfig()
+                            .setEnabled(true)
+                            .setProperties(sslProperties));
+        };
+    }
+}
+```
+
+Operational notes:
+
+- Mount keystores and truststores as Kubernetes Secrets or equivalent platform
+  secrets.
+- Do not commit passwords into `application.yml`; inject them from the runtime
+  secret store.
+- Keep Enterprise license keys in `hazelcast.client.enterprise-license-key`
+  backed by an environment variable or secret.
+- Prefer one small customizer per concern, ordered explicitly when one depends
+  on another.
 
 ## Services-Style Observability Baseline
 
