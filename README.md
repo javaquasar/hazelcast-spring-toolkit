@@ -449,6 +449,10 @@ cache still uses JCache. This is a valid migration setup for legacy applications
 that need native Spring Cache semantics while keeping existing JCache-based
 Hibernate L2 wiring.
 
+For a fuller decision table and a migration recipe from JCache-backed Spring
+Cache to Hazelcast native Spring Cache, see
+[docs/cache-modes-maturity.md](docs/cache-modes-maturity.md).
+
 ### Observability
 
 The toolkit exposes observability through three complementary surfaces:

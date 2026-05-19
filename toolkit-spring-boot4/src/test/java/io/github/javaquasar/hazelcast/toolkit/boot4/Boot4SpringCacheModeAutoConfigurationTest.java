@@ -66,6 +66,18 @@ class Boot4SpringCacheModeAutoConfigurationTest {
     }
 
     @Test
+    void nativeModeKeepsExistingJCacheManagerAvailableForHibernateL2() {
+        contextRunner
+                .withPropertyValues("hazelcast.toolkit.spring-cache.mode=native")
+                .run(context -> {
+                    assertThat(context).hasSingleBean(javax.cache.CacheManager.class);
+                    assertThat(context).hasSingleBean(CacheManager.class);
+                    assertThat(context.getBean(CacheManager.class))
+                            .isInstanceOf(com.hazelcast.spring.cache.HazelcastCacheManager.class);
+                });
+    }
+
+    @Test
     void nativeModeSupportsUppercaseRelaxedBinding() {
         contextRunner
                 .withPropertyValues("hazelcast.toolkit.spring-cache.mode=NATIVE")
@@ -123,6 +135,32 @@ class Boot4SpringCacheModeAutoConfigurationTest {
                         .hasSingleBean(CacheManager.class)
                         .getBean(CacheManager.class)
                         .isInstanceOf(ConcurrentMapCacheManager.class));
+    }
+
+    @Test
+    void userDefinedSpringCacheManagerWinsInJCacheMode() {
+        contextRunner
+                .withBean("userCacheManager", CacheManager.class, ConcurrentMapCacheManager::new)
+                .withPropertyValues("hazelcast.toolkit.spring-cache.mode=jcache")
+                .run(context -> {
+                    assertThat(context).hasSingleBean(javax.cache.CacheManager.class);
+                    assertThat(context).hasSingleBean(CacheManager.class);
+                    assertThat(context.getBean(CacheManager.class))
+                            .isInstanceOf(ConcurrentMapCacheManager.class);
+                });
+    }
+
+    @Test
+    void noneModePreservesUserDefinedSpringCacheManager() {
+        contextRunner
+                .withBean("userCacheManager", CacheManager.class, ConcurrentMapCacheManager::new)
+                .withPropertyValues("hazelcast.toolkit.spring-cache.mode=none")
+                .run(context -> {
+                    assertThat(context).hasSingleBean(javax.cache.CacheManager.class);
+                    assertThat(context).hasSingleBean(CacheManager.class);
+                    assertThat(context.getBean(CacheManager.class))
+                            .isInstanceOf(ConcurrentMapCacheManager.class);
+                });
     }
 
     @Test
