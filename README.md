@@ -501,6 +501,8 @@ Production exposure guidance lives in
 [docs/actuator-operations.md](docs/actuator-operations.md), and starter
 Prometheus/Grafana examples live in
 [docs/prometheus-grafana-examples.md](docs/prometheus-grafana-examples.md).
+Production setup recipes live in
+[docs/production-recipes.md](docs/production-recipes.md).
 Supported Boot, Hibernate, Hazelcast, and JPA namespace combinations are listed
 in [docs/compatibility-matrix.md](docs/compatibility-matrix.md).
 
