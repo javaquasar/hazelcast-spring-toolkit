@@ -61,6 +61,10 @@ public class HazelcastHibernateL2AutoConfiguration {
             "com.hazelcast.hibernate.HazelcastLocalCacheRegionFactory";
     static final String HAZELCAST_REGION_FACTORY =
             "com.hazelcast.hibernate.HazelcastCacheRegionFactory";
+    static final String HAZELCAST_INSTANCE_NAME = "hazelcast.instance.name";
+    static final String HAZELCAST_USE_NATIVE_CLIENT = "hibernate.cache.hazelcast.use_native_client";
+    static final String HAZELCAST_NATIVE_CLIENT_INSTANCE_NAME =
+            "hibernate.cache.hazelcast.native_client_instance_name";
 
     @Bean
     @ConditionalOnMissingBean(name = "hazelcastHibernateL2PropertiesCustomizer")
@@ -115,7 +119,7 @@ public class HazelcastHibernateL2AutoConfiguration {
             properties.putIfAbsent("hibernate.javax.cache.cache_manager", cacheManager);
         } else {
             properties.putIfAbsent("hibernate.cache.region.factory_class", nativeFactoryClass(l2.getRegionFactory()));
-            properties.putIfAbsent("hazelcast.instance.name", hazelcastInstance.getName());
+            applyNativeHazelcastInstanceName(properties, hazelcastInstance);
         }
 
         properties.putIfAbsent("hibernate.cache.use_query_cache", l2.isUseQueryCache());
@@ -140,11 +144,45 @@ public class HazelcastHibernateL2AutoConfiguration {
                     l2.getRegionFactory(),
                     properties.get("hibernate.cache.region.factory_class")
             );
+            applyNativeClientInstanceNameFallback(properties, hazelcastInstance.getName());
             return;
         }
 
         properties.putIfAbsent("hibernate.cache.region.factory_class", nativeFactoryClass(l2.getRegionFactory()));
-        properties.putIfAbsent("hazelcast.instance.name", hazelcastInstance.getName());
+        applyNativeHazelcastInstanceName(properties, hazelcastInstance);
+    }
+
+    private static void applyNativeHazelcastInstanceName(
+            java.util.Map<String, Object> properties,
+            HazelcastInstance hazelcastInstance) {
+
+        String instanceName = hazelcastInstance.getName();
+        properties.putIfAbsent(HAZELCAST_INSTANCE_NAME, instanceName);
+        applyNativeClientInstanceNameFallback(properties, instanceName);
+    }
+
+    private static void applyNativeClientInstanceNameFallback(
+            java.util.Map<String, Object> properties,
+            String instanceName) {
+        if (isNativeClientRequested(properties) && shouldFallbackNativeClientInstanceName(properties)) {
+            properties.put(HAZELCAST_NATIVE_CLIENT_INSTANCE_NAME, instanceName);
+        }
+    }
+
+    private static boolean isNativeClientRequested(java.util.Map<String, Object> properties) {
+        Object useNativeClient = properties.get(HAZELCAST_USE_NATIVE_CLIENT);
+        return Boolean.parseBoolean(String.valueOf(useNativeClient))
+                || properties.containsKey(HAZELCAST_NATIVE_CLIENT_INSTANCE_NAME);
+    }
+
+    private static boolean shouldFallbackNativeClientInstanceName(java.util.Map<String, Object> properties) {
+        Object configuredName = properties.get(HAZELCAST_NATIVE_CLIENT_INSTANCE_NAME);
+        if (configuredName == null) {
+            return true;
+        }
+
+        String value = String.valueOf(configuredName).trim();
+        return value.isEmpty() || value.endsWith("-") || value.contains("${");
     }
 
     private void warnIfRegionFactoryAlreadySet(java.util.Map<String, Object> properties) {
