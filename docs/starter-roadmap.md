@@ -69,7 +69,7 @@ modern services.
 Planned work:
 
 - [x] add migration recipes for JCache to native Spring Cache mode
-- [ ] add more Boot 2 legacy-service examples
+- [x] add more Boot 2 legacy-service examples
 - [x] strengthen tests for user-provided `CacheManager` beans
 - [x] document behavior when both JCache and native Hazelcast Spring Cache are on
   the classpath

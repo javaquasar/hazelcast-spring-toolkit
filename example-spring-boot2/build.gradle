@@ -21,6 +21,7 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-starter:${springBoot2Version}"
     implementation "org.springframework.boot:spring-boot-starter-actuator:${springBoot2Version}"
     implementation "org.springframework:spring-context-support:5.3.34"
+    implementation "com.hazelcast:hazelcast-spring:${hazelcastVersion}"
     implementation 'javax.cache:cache-api:1.1.1'
     implementation 'javax.persistence:javax.persistence-api:2.2'
     implementation 'io.micrometer:micrometer-core:1.12.13'

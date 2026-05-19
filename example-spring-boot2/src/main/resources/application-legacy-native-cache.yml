@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: boot2-legacy-native-cache
+
+hazelcast:
+  toolkit:
+    spring-cache:
+      mode: native
+    metrics:
+      enabled: true
+      diagnostic-endpoint:
+        enabled: true
+    health:
+      enabled: true
