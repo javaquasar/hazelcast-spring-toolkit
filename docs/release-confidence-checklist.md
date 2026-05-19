@@ -45,6 +45,41 @@ build/central-bundles/hazelcast-toolkit-<releaseVersion>-central-bundle.zip
 docs/releases/v<releaseVersion>.md
 ```
 
+7. Verify generated publication metadata before uploading:
+
+```bash
+./gradlew clean publishMavenJavaPublicationToLocalStagingRepository "-PreleaseVersion=<releaseVersion>" --stacktrace
+```
+
+Inspect the staged module directories under:
+
+```text
+<module>/build/staging-repo/io/github/javaquasar/<artifact>/<releaseVersion>/
+```
+
+Each published module should contain:
+
+- `.pom`
+- `.module`
+- main JAR
+- `-sources.jar`
+- `-javadoc.jar`
+- `.asc` signatures for published artifacts
+- checksum files in the final Central bundle
+
+Spot-check generated POM metadata:
+
+- `groupId` is `io.github.javaquasar`
+- artifact ids use the `hazelcast-toolkit-*` public naming scheme
+- version equals `<releaseVersion>`
+- license, SCM, and developer metadata are present
+- optional dependencies such as `hazelcast-spring` are not pulled into default
+  starter runtime metadata unless explicitly requested by the consuming service
+
+8. Keep release commands version-neutral in docs and notes. Prefer placeholders
+   such as `<releaseVersion>` in reusable guides, and put concrete versions only
+   in per-version release notes under `docs/releases/`.
+
 ## GitHub Actions Release Flow
 
 The `Release to Maven Central` workflow starts on:
@@ -75,6 +110,23 @@ Before pushing a tag, run the workflow manually with:
 | `dry_run` | `true` |
 
 This verifies the release path without uploading to Maven Central.
+
+## Tag Commands
+
+Use a concrete version only at the shell boundary:
+
+```bash
+git tag -a v<releaseVersion> -m "Release v<releaseVersion>"
+git push origin main
+git push origin v<releaseVersion>
+```
+
+If a tag was pushed before verification completed, delete it locally and remotely:
+
+```bash
+git tag -d v<releaseVersion>
+git push origin :refs/tags/v<releaseVersion>
+```
 
 ## After Publishing
 

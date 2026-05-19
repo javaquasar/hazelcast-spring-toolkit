@@ -106,10 +106,10 @@ Focus: make the tag-to-Central release path boring and repeatable.
 Planned work:
 
 - [x] add a concise pre-tag release confidence checklist
-- [ ] add stronger generated metadata verification notes
+- [x] add stronger generated metadata verification notes
 - [x] document the expected GitHub Actions behavior for tag pushes and dry runs
 - [x] add a published-consumer smoke runbook
-- [ ] keep release notes and release commands version-neutral where possible
+- [x] keep release notes and release commands version-neutral where possible
 
 Goal:
 
