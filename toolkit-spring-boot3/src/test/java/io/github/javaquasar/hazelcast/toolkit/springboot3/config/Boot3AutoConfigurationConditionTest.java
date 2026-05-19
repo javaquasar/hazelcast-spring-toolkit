@@ -132,6 +132,66 @@ class Boot3AutoConfigurationConditionTest {
     }
 
     @Test
+    void nativeHibernateModeFallsBackToActualHazelcastInstanceNameForBrokenNativeClientName() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        ConfigurationPropertiesAutoConfiguration.class,
+                        HazelcastToolkitAutoConfiguration.class,
+                        HazelcastHibernateL2AutoConfiguration.class
+                ))
+                .withUserConfiguration(HazelcastOnlyInfrastructure.class)
+                .withPropertyValues(
+                        "hazelcast.toolkit.hibernate.l2.enabled=true",
+                        "hazelcast.toolkit.hibernate.l2.region-factory=HAZELCAST"
+                )
+                .run(context -> {
+                    HibernatePropertiesCustomizer customizer = context.getBean(
+                            "hazelcastHibernateL2PropertiesCustomizer",
+                            HibernatePropertiesCustomizer.class
+                    );
+                    LinkedHashMap<String, Object> hibernateProperties = new LinkedHashMap<>();
+                    hibernateProperties.put("hibernate.cache.hazelcast.use_native_client", "true");
+                    hibernateProperties.put("hibernate.cache.hazelcast.native_client_instance_name", "app-hz-client-");
+
+                    customizer.customize(hibernateProperties);
+
+                    assertThat(hibernateProperties)
+                            .containsEntry("hibernate.cache.hazelcast.native_client_instance_name", "test-hazelcast-instance")
+                            .containsEntry("hazelcast.instance.name", "test-hazelcast-instance");
+                });
+    }
+
+    @Test
+    void nativeHibernateModeFallsBackEvenWhenRegionFactoryIsAlreadyConfigured() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        ConfigurationPropertiesAutoConfiguration.class,
+                        HazelcastToolkitAutoConfiguration.class,
+                        HazelcastHibernateL2AutoConfiguration.class
+                ))
+                .withUserConfiguration(HazelcastOnlyInfrastructure.class)
+                .withPropertyValues(
+                        "hazelcast.toolkit.hibernate.l2.enabled=true",
+                        "hazelcast.toolkit.hibernate.l2.region-factory=HAZELCAST"
+                )
+                .run(context -> {
+                    HibernatePropertiesCustomizer customizer = context.getBean(
+                            "hazelcastHibernateL2PropertiesCustomizer",
+                            HibernatePropertiesCustomizer.class
+                    );
+                    LinkedHashMap<String, Object> hibernateProperties = new LinkedHashMap<>();
+                    hibernateProperties.put("hibernate.cache.region.factory_class", "com.hazelcast.hibernate.HazelcastCacheRegionFactory");
+                    hibernateProperties.put("hibernate.cache.hazelcast.use_native_client", "true");
+                    hibernateProperties.put("hibernate.cache.hazelcast.native_client_instance_name", "app-hz-client-");
+
+                    customizer.customize(hibernateProperties);
+
+                    assertThat(hibernateProperties)
+                            .containsEntry("hibernate.cache.hazelcast.native_client_instance_name", "test-hazelcast-instance");
+                });
+    }
+
+    @Test
     void actuatorEndpointRequiresExplicitPropertyAndEntityManagerFactory() {
         actuatorContext
                 .run(context -> assertThat(context).doesNotHaveBean(HazelcastNearCacheEndpoint.class));
@@ -269,6 +329,9 @@ class Boot3AutoConfigurationConditionTest {
                 (proxy, method, args) -> {
                     if (method.getName().equals("toString")) {
                         return "test-" + type.getSimpleName();
+                    }
+                    if (method.getName().equals("getName")) {
+                        return "test-hazelcast-instance";
                     }
                     if (method.getName().equals("getCacheNames")) {
                         return Collections.emptyList();
