@@ -91,8 +91,8 @@ Possible recipes:
 - [x] Kubernetes discovery examples
 - [x] TLS and security config customizers
 - [x] rolling deploy and near-cache invalidation checklist
-- performance comparison examples for Hibernate L2 modes
-- example dashboards and alert rules
+- [x] performance comparison examples for Hibernate L2 modes
+- [x] example dashboards and alert rules
 
 Goal:
 

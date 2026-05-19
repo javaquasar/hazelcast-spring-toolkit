@@ -82,3 +82,58 @@ Suggested starting points:
 
 Tune all thresholds per service. Cache behavior varies heavily by traffic shape,
 entity size, invalidation rate, and deployment pattern.
+
+## Example Alert Rules
+
+These examples are intentionally conservative. Treat them as templates, not as
+universal production thresholds.
+
+```yaml
+groups:
+  - name: hazelcast-toolkit
+    rules:
+      - alert: HazelcastToolkitNearCacheDisabled
+        expr: hazelcast_toolkit_near_cache_enabled == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Hazelcast Toolkit near-cache is disabled
+          description: 'Near Cache is disabled for {{ $labels.kind }} {{ $labels.cache }}.'
+
+      - alert: HazelcastToolkitNearCacheLowHitRatio
+        expr: |
+          (
+            sum by (cache, kind) (rate(hazelcast_toolkit_near_cache_hits_total[10m]))
+            /
+            (
+              sum by (cache, kind) (rate(hazelcast_toolkit_near_cache_hits_total[10m]))
+              +
+              sum by (cache, kind) (rate(hazelcast_toolkit_near_cache_misses_total[10m]))
+            )
+          ) < 0.80
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: Hazelcast Toolkit near-cache hit ratio is low
+          description: 'Near Cache hit ratio is below 80% for {{ $labels.kind }} {{ $labels.cache }}.'
+
+      - alert: HazelcastToolkitHibernateStatisticsDisabled
+        expr: hazelcast_toolkit_hibernate_statistics_enabled == 0
+        for: 15m
+        labels:
+          severity: info
+        annotations:
+          summary: Hibernate L2 statistics are disabled
+          description: 'Hibernate L2 metrics may be incomplete for regionFactory={{ $labels.regionFactory }}.'
+```
+
+Suggested dashboard rows:
+
+| Row | Panels |
+|---|---|
+| Readiness | Hazelcast health, member count from health details or blackbox check |
+| Near-cache | Enabled gauge, hit ratio, misses, invalidations |
+| Hibernate L2 | Hit ratio, hits, misses, statistics enabled |
+| Rollout | Near-cache misses and invalidations over deployment windows |

@@ -178,6 +178,34 @@ After rollout:
   `/hz-toolkit/hz/map/near-stats/{mapName}` only while investigating a concrete
   cache/map question.
 
+## Hibernate L2 Mode Selection
+
+Use the mode that matches the service's operational goal, not only the fastest
+local benchmark result.
+
+| Mode | Cache path | Strength | Trade-off |
+|---|---|---|---|
+| `JCACHE` | Hibernate JCache region factory with the toolkit-managed JCache manager | Portable default; easy to reason about with existing JCache tooling | Dynamic cache behavior follows JCache rules |
+| `HAZELCAST_LOCAL` | Hazelcast native local region factory | Fast local reads with invalidation through Hazelcast | Requires Hazelcast Hibernate dependency and careful rollout observation |
+| `HAZELCAST` | Hazelcast native distributed region factory | Direct distributed-region behavior without local near-cache | More network round-trips; use only for a specific consistency requirement |
+
+Practical rollout sequence:
+
+1. Start with `JCACHE` unless there is a clear reason to bypass JCache.
+2. Use `HAZELCAST_LOCAL` for services where hot entity reads dominate and local
+   near-cache semantics are acceptable.
+3. Use `HAZELCAST` only when a fully distributed native path is required.
+4. Enable Hibernate statistics during comparison windows:
+
+```properties
+hazelcast.toolkit.hibernate.l2.use-statistics=true
+```
+
+5. Compare hit ratio, misses, invalidations, and latency before changing the
+   mode permanently.
+
+The local characterization notes live in [performance.md](performance.md).
+
 ## Native Spring Cache Migration Recipe
 
 For legacy Spring Boot 2 services that used Hazelcast's native Spring cache
