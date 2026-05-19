@@ -3,6 +3,9 @@
 This document explains how to build signed release artifacts for `hazelcast-toolkit`
 and how to publish them to Maven Central using the generated Central Portal bundles.
 
+For the shorter pre-tag checklist, see
+[release-confidence-checklist.md](release-confidence-checklist.md).
+
 ## Published Modules
 
 The current public release set includes:

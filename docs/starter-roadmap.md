@@ -98,3 +98,20 @@ Goal:
 
 The project should feel like a practical starter kit for production Hazelcast
 clients, not only a set of auto-configuration classes.
+
+## 0.8.0: Release Confidence
+
+Focus: make the tag-to-Central release path boring and repeatable.
+
+Planned work:
+
+- [x] add a concise pre-tag release confidence checklist
+- [ ] add stronger generated metadata verification notes
+- [x] document the expected GitHub Actions behavior for tag pushes and dry runs
+- [x] add a published-consumer smoke runbook
+- [ ] keep release notes and release commands version-neutral where possible
+
+Goal:
+
+Maintainers should be able to publish a release without rediscovering signing,
+bundle, tag, and published-consumer verification details every time.
