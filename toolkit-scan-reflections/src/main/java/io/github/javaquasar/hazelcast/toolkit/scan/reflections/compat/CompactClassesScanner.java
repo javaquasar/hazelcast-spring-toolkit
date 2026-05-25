@@ -2,6 +2,7 @@ package io.github.javaquasar.hazelcast.toolkit.scan.reflections.compat;
 
 import com.hazelcast.nio.serialization.compact.CompactSerializer;
 import io.github.javaquasar.hazelcast.toolkit.annotation.HzCompact;
+import io.github.javaquasar.hazelcast.toolkit.scan.api.ClassScanner;
 import org.reflections.Reflections;
 
 import java.lang.reflect.Constructor;
@@ -10,7 +11,13 @@ import java.util.Set;
 
 /**
  * Backwards-compatible scanner: finds classes annotated with {@link HzCompact}.
+ *
+ * @deprecated use {@link ClassScanner} together with
+ * {@code io.github.javaquasar.hazelcast.toolkit.hazelcast.compact.CompactClientConfigSupport}.
+ * The runtime starter path uses that abstraction-based scanner flow and supports
+ * both reflective {@link HzCompact} classes and explicit Compact serializers.
  */
+@Deprecated(since = "0.9.0", forRemoval = false)
 public class CompactClassesScanner {
 
     public CompactScanResult scan(String basePackage) {
