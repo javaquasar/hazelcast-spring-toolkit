@@ -161,6 +161,9 @@ Member mode is intended for legacy or advanced deployments where the Spring Boot
 application must join the Hazelcast cluster as a member. Ordinary horizontally
 scaled microservices should usually stay in client mode.
 
+For production guidance, Kubernetes warnings, TLS notes, and client/member/mixed
+examples, see [docs/production-member-mode.md](docs/production-member-mode.md).
+
 Minimal member-mode configuration:
 
 ```yaml
