@@ -11,6 +11,26 @@
       "description": "Actuator near-cache probe settings."
     },
     {
+      "name": "hazelcast.toolkit.instance",
+      "type": "io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties$Instance",
+      "description": "Hazelcast instance creation mode settings."
+    },
+    {
+      "name": "hazelcast.toolkit.member",
+      "type": "io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties$Member",
+      "description": "Hazelcast embedded member mode settings."
+    },
+    {
+      "name": "hazelcast.toolkit.member.network",
+      "type": "io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties$Member$Network",
+      "description": "Hazelcast embedded member network settings."
+    },
+    {
+      "name": "hazelcast.toolkit.member.network.join",
+      "type": "io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties$Member$Join",
+      "description": "Hazelcast embedded member discovery settings."
+    },
+    {
       "name": "hazelcast.toolkit.hibernate.l2",
       "type": "io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties$Hibernate$L2",
       "description": "Hibernate second-level cache settings."
@@ -43,6 +63,59 @@
       "type": "java.lang.String",
       "defaultValue": "",
       "description": "Toolkit-managed Hazelcast client name prefix."
+    },
+    {
+      "name": "hazelcast.toolkit.instance.mode",
+      "type": "io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties$Instance$Mode",
+      "defaultValue": "CLIENT",
+      "description": "Hazelcast instance creation mode: CLIENT, MEMBER, or NONE."
+    },
+    {
+      "name": "hazelcast.toolkit.member.instance-name",
+      "type": "java.lang.String",
+      "defaultValue": "",
+      "description": "Optional Hazelcast member instance name used in member mode."
+    },
+    {
+      "name": "hazelcast.toolkit.member.cluster-name",
+      "type": "java.lang.String",
+      "defaultValue": "dev",
+      "description": "Hazelcast cluster name used by the embedded member."
+    },
+    {
+      "name": "hazelcast.toolkit.member.network.port",
+      "type": "java.lang.Integer",
+      "defaultValue": 5701,
+      "description": "Hazelcast member network port."
+    },
+    {
+      "name": "hazelcast.toolkit.member.network.port-auto-increment",
+      "type": "java.lang.Boolean",
+      "defaultValue": true,
+      "description": "Whether Hazelcast can increment the member port if the configured port is busy."
+    },
+    {
+      "name": "hazelcast.toolkit.member.network.public-address",
+      "type": "java.lang.String",
+      "defaultValue": "",
+      "description": "Optional public address advertised by the Hazelcast member."
+    },
+    {
+      "name": "hazelcast.toolkit.member.network.join.auto-detection-enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": false,
+      "description": "Enable Hazelcast member auto-detection discovery."
+    },
+    {
+      "name": "hazelcast.toolkit.member.network.join.multicast-enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": false,
+      "description": "Enable Hazelcast member multicast discovery."
+    },
+    {
+      "name": "hazelcast.toolkit.member.network.join.tcp-ip-members",
+      "type": "java.util.List<java.lang.String>",
+      "description": "Static TCP/IP member addresses used by the embedded member."
     },
     {
       "name": "hazelcast.toolkit.metrics.enabled",
@@ -116,6 +189,23 @@
     }
   ],
   "hints": [
+    {
+      "name": "hazelcast.toolkit.instance.mode",
+      "values": [
+        {
+          "value": "CLIENT",
+          "description": "Create a Hazelcast client that connects to an external cluster."
+        },
+        {
+          "value": "MEMBER",
+          "description": "Create an embedded Hazelcast member."
+        },
+        {
+          "value": "NONE",
+          "description": "Do not create a HazelcastInstance; the application provides one."
+        }
+      ]
+    },
     {
       "name": "hazelcast.toolkit.spring-cache.mode",
       "values": [

@@ -2,8 +2,11 @@ package io.github.javaquasar.hazelcast.toolkit.springboot4.config;
 
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.spi.properties.ClusterProperty;
+import com.hazelcast.spring.context.SpringManagedContext;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientConfigCustomizer;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientFactory;
+import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastMemberConfigCustomizer;
+import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastMemberFactory;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HazelcastClientProperties;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties;
 import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HazelcastNearCacheMetricsBinder;
@@ -15,17 +18,22 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.annotation.Order;
 import org.springframework.core.env.Environment;
 
 import javax.cache.CacheManager;
 
 @AutoConfiguration
 public class HazelcastToolkitAutoConfiguration {
+
+    private static final String HAZELCAST_LOGGING_TYPE = "hazelcast.logging.type";
 
     @Bean
     @ConditionalOnMissingBean
@@ -55,6 +63,13 @@ public class HazelcastToolkitAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean
+    public HazelcastMemberFactory hazelcastMemberFactory(ClassScanner scanner,
+                                                         ObjectProvider<HazelcastMemberConfigCustomizer> customizers) {
+        return new HazelcastMemberFactory(scanner, customizers.orderedStream().toList());
+    }
+
+    @Bean
     @ConditionalOnProperty(prefix = "hazelcast.client", name = "enterprise-license-key")
     public HazelcastClientConfigCustomizer hazelcastEnterpriseLicenseKeyCustomizer(HazelcastClientProperties props) {
         return clientConfig -> {
@@ -66,7 +81,8 @@ public class HazelcastToolkitAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean(name = "hazelcastInstance")
+    @ConditionalOnMissingBean(HazelcastInstance.class)
+    @ConditionalOnProperty(prefix = "hazelcast.toolkit.instance", name = "mode", havingValue = "client", matchIfMissing = true)
     public HazelcastInstance hazelcastInstance(HazelcastClientFactory factory,
                                                HazelcastClientProperties props,
                                                HzToolkitProperties toolkitProps,
@@ -83,12 +99,70 @@ public class HazelcastToolkitAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean(HazelcastInstance.class)
+    @ConditionalOnProperty(prefix = "hazelcast.toolkit.instance", name = "mode", havingValue = "member")
+    public HazelcastInstance hazelcastMemberInstance(HazelcastMemberFactory factory,
+                                                     HzToolkitProperties toolkitProps) {
+        HzToolkitProperties.Member member = toolkitProps.getMember();
+        HzToolkitProperties.Member.Network network = member.getNetwork();
+        HzToolkitProperties.Member.Join join = network.getJoin();
+        return factory.createMember(
+                member.getInstanceName(),
+                member.getClusterName(),
+                network.getPort(),
+                network.isPortAutoIncrement(),
+                network.getPublicAddress(),
+                join.isAutoDetectionEnabled(),
+                join.isMulticastEnabled(),
+                join.getTcpIpMembers(),
+                toolkitProps.getCompact().getBasePackage()
+        );
+    }
+
+    @Bean
+    @Order(0)
+    @ConditionalOnClass(SpringManagedContext.class)
+    @ConditionalOnMissingBean(name = "hazelcastSpringManagedContextMemberConfigCustomizer")
+    public HazelcastMemberConfigCustomizer hazelcastSpringManagedContextMemberConfigCustomizer(
+            ApplicationContext applicationContext) {
+        return config -> {
+            SpringManagedContext managedContext = new SpringManagedContext();
+            managedContext.setApplicationContext(applicationContext);
+            config.setManagedContext(managedContext);
+        };
+    }
+
+    @Bean
+    @Order(0)
+    @ConditionalOnMissingBean(name = "hazelcastSlf4jLoggingMemberConfigCustomizer")
+    public HazelcastMemberConfigCustomizer hazelcastSlf4jLoggingMemberConfigCustomizer() {
+        return config -> {
+            if (!config.getProperties().containsKey(HAZELCAST_LOGGING_TYPE)) {
+                config.setProperty(HAZELCAST_LOGGING_TYPE, "slf4j");
+            }
+        };
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "hazelcast.client", name = "enterprise-license-key")
+    public HazelcastMemberConfigCustomizer hazelcastMemberEnterpriseLicenseKeyCustomizer(HazelcastClientProperties props) {
+        return config -> {
+            String licenseKey = props.getEnterpriseLicenseKey();
+            if (licenseKey != null && !licenseKey.isBlank()) {
+                config.setProperty(ClusterProperty.ENTERPRISE_LICENSE_KEY.getName(), licenseKey);
+            }
+        };
+    }
+
+    @Bean
+    @ConditionalOnBean(HazelcastInstance.class)
     public HzListenersAutoRegistrar hzListenersAutoRegistrar(HazelcastInstance hazelcastInstance,
                                                              ListableBeanFactory beanFactory) {
         return new HzListenersAutoRegistrar(hazelcastInstance, beanFactory);
     }
 
     @Bean
+    @ConditionalOnBean(HazelcastInstance.class)
     @ConditionalOnClass({HzToolkitMetricsController.class, CacheManager.class})
     @ConditionalOnProperty(prefix = "hazelcast.toolkit.metrics.diagnostic-endpoint", name = "enabled", havingValue = "true")
     @ConditionalOnMissingBean
@@ -98,6 +172,7 @@ public class HazelcastToolkitAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnBean(HazelcastInstance.class)
     @ConditionalOnClass({HazelcastNearCacheMetricsBinder.class, MeterRegistry.class, CacheManager.class})
     @ConditionalOnProperty(prefix = "hazelcast.toolkit.metrics", name = "enabled", havingValue = "true")
     @ConditionalOnMissingBean

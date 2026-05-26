@@ -1,6 +1,6 @@
 # Hazelcast Toolkit
 
-**Annotation-driven Hazelcast client integration for Spring Boot.**
+**Annotation-driven Hazelcast integration for Spring Boot.**
 Register Compact serialization types with `@HzCompact`, wire IMap listeners with `@HzIMapListener`, and activate Hibernate second-level cache with one property — all without writing a single line of `ClientConfig` boilerplate.
 
 [![Java 17](https://img.shields.io/badge/Java-17-blue)](https://adoptium.net/)
@@ -20,7 +20,7 @@ While Spring Boot provides basic Hazelcast auto-configuration, it is intentional
 
 | Feature                              | Official Spring Boot                          | hazelcast-toolkit                                      | Benefit |
 |--------------------------------------|-----------------------------------------------|-------------------------------------------------------|---------|
-| **Hazelcast Instance**               | Basic client/server auto-config               | Smart client with auto-naming, `HazelcastClientConfigCustomizer` | Cleaner, more maintainable configuration |
+| **Hazelcast Instance**               | Basic client/server auto-config               | Explicit `client` / `member` / `none` modes with smart client naming and type-safe customizers | Cleaner, more predictable topology |
 | **Compact Serialization**            | Not supported                                 | `@HzCompact` + automatic package scanning (zero-config + explicit serializers) | Modern, efficient, cross-language ready |
 | **IMap Event Listeners**             | Manual registration                           | `@HzIMapListener` on Spring beans (auto-registered) | Zero-boilerplate event-driven architecture |
 | **Hibernate 2nd-Level Cache**        | No dedicated support                          | Full auto-configuration with safe defaults + known issue documentation | Production-ready L2 caching |
@@ -46,6 +46,8 @@ hazelcast:
       cluster-members:
         - 127.0.0.1:5701
   toolkit:
+    instance:
+      mode: client                         # default: client | member | none
     compact:
       base-package: com.example.app.model   # @HzCompact classes
     client:
@@ -138,9 +140,52 @@ hazelcast:
       cluster-members:
         - 127.0.0.1:5701
   toolkit:
+    instance:
+      mode: client                         # default
     compact:
       base-package: com.example.app.model   # package containing @HzCompact classes
 ```
+
+### Hazelcast Instance Mode
+
+The toolkit is client-first by default. A Spring Boot application connects to an
+external Hazelcast cluster unless another mode is explicitly selected.
+
+| Mode | Behavior |
+|---|---|
+| `client` | Default. Creates a Hazelcast client from `hazelcast.client.*` and applies `HazelcastClientConfigCustomizer` beans. |
+| `member` | Creates an embedded Hazelcast member from `hazelcast.toolkit.member.*` and applies `HazelcastMemberConfigCustomizer` beans. |
+| `none` | Does not create a `HazelcastInstance`; the application must provide one. |
+
+Member mode is intended for legacy or advanced deployments where the Spring Boot
+application must join the Hazelcast cluster as a member. Ordinary horizontally
+scaled microservices should usually stay in client mode.
+
+Minimal member-mode configuration:
+
+```yaml
+hazelcast:
+  toolkit:
+    instance:
+      mode: member
+    member:
+      instance-name: my-service-member
+      cluster-name: dev
+      network:
+        port: 5701
+        port-auto-increment: true
+        join:
+          auto-detection-enabled: false
+          multicast-enabled: false
+          tcp-ip-members:
+            - 127.0.0.1:5701
+```
+
+Member mode also applies two safe defaults when possible:
+
+- `hazelcast.logging.type=slf4j` unless the application already set it
+- Spring `ApplicationContext` integration through Hazelcast `SpringManagedContext`
+  when `com.hazelcast:hazelcast-spring` is on the classpath
 
 ### 3. Annotate your types
 

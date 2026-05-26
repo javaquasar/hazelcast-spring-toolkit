@@ -1,12 +1,15 @@
 package io.github.javaquasar.hazelcast.toolkit.springboot2.config;
 
 import com.hazelcast.core.HazelcastInstance;
+import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientFactory;
+import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastMemberFactory;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties;
 import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HazelcastNearCacheMetricsBinder;
 import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HibernateL2MetricsBinder;
 import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HzToolkitMetricsController;
 import io.github.javaquasar.hazelcast.toolkit.springboot2.actuator.HazelcastNearCacheEndpoint;
 import io.github.javaquasar.hazelcast.toolkit.springboot2.actuator.HazelcastToolkitHealthIndicator;
+import io.github.javaquasar.hazelcast.toolkit.scan.api.ClassScanner;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.context.ConfigurationPropertiesAutoConfiguration;
@@ -18,9 +21,12 @@ import org.springframework.context.annotation.Configuration;
 
 import javax.cache.CacheManager;
 import javax.persistence.EntityManagerFactory;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Proxy;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -47,6 +53,34 @@ class Boot2AutoConfigurationConditionTest {
                     HazelcastHealthAutoConfiguration.class
             ))
             .withUserConfiguration(TestInfrastructure.class);
+
+    @Test
+    void defaultInstanceModeCreatesClientHazelcastInstance() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(HazelcastToolkitAutoConfiguration.class))
+                .withUserConfiguration(TestInstanceFactories.class)
+                .run(context -> assertThat(context.getBean(HazelcastInstance.class).toString())
+                        .isEqualTo("client-hazelcast-instance"));
+    }
+
+    @Test
+    void memberInstanceModeCreatesMemberHazelcastInstance() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(HazelcastToolkitAutoConfiguration.class))
+                .withUserConfiguration(TestInstanceFactories.class)
+                .withPropertyValues("hazelcast.toolkit.instance.mode=member")
+                .run(context -> assertThat(context.getBean(HazelcastInstance.class).toString())
+                        .isEqualTo("member-hazelcast-instance"));
+    }
+
+    @Test
+    void noneInstanceModeDoesNotCreateHazelcastInstance() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(HazelcastToolkitAutoConfiguration.class))
+                .withUserConfiguration(TestInstanceFactories.class)
+                .withPropertyValues("hazelcast.toolkit.instance.mode=none")
+                .run(context -> assertThat(context).doesNotHaveBean(HazelcastInstance.class));
+    }
 
     @Test
     void diagnosticControllerIsControlledSeparatelyFromMicrometerMetrics() {
@@ -288,6 +322,20 @@ class Boot2AutoConfigurationConditionTest {
     }
 
     @Configuration(proxyBeanMethods = false)
+    static class TestInstanceFactories {
+
+        @Bean
+        HazelcastClientFactory hazelcastClientFactory() {
+            return new TestHazelcastClientFactory();
+        }
+
+        @Bean
+        HazelcastMemberFactory hazelcastMemberFactory() {
+            return new TestHazelcastMemberFactory();
+        }
+    }
+
+    @Configuration(proxyBeanMethods = false)
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     static class UserDefinedBeans {
 
@@ -348,5 +396,78 @@ class Boot2AutoConfigurationConditionTest {
                     return null;
                 }
         );
+    }
+
+    private static HazelcastInstance namedHazelcastInstance(String name) {
+        return (HazelcastInstance) Proxy.newProxyInstance(
+                HazelcastInstance.class.getClassLoader(),
+                new Class<?>[]{HazelcastInstance.class},
+                (proxy, method, args) -> {
+                    if (method.getName().equals("toString") || method.getName().equals("getName")) {
+                        return name;
+                    }
+                    if (method.getReturnType().equals(boolean.class)) {
+                        return false;
+                    }
+                    if (method.getReturnType().equals(int.class)) {
+                        return 0;
+                    }
+                    if (method.getReturnType().equals(long.class)) {
+                        return 0L;
+                    }
+                    return null;
+                }
+        );
+    }
+
+    private static class TestHazelcastClientFactory extends HazelcastClientFactory {
+
+        TestHazelcastClientFactory() {
+            super(new EmptyClassScanner());
+        }
+
+        @Override
+        public HazelcastInstance createClient(String baseName,
+                                              String explicitInstanceName,
+                                              String applicationName,
+                                              String clusterName,
+                                              List<String> clusterMembers,
+                                              boolean smartRouting,
+                                              String compactBasePackage) {
+            return namedHazelcastInstance("client-hazelcast-instance");
+        }
+    }
+
+    private static class TestHazelcastMemberFactory extends HazelcastMemberFactory {
+
+        TestHazelcastMemberFactory() {
+            super(new EmptyClassScanner());
+        }
+
+        @Override
+        public HazelcastInstance createMember(String instanceName,
+                                              String clusterName,
+                                              int port,
+                                              boolean portAutoIncrement,
+                                              String publicAddress,
+                                              boolean autoDetectionEnabled,
+                                              boolean multicastEnabled,
+                                              List<String> tcpIpMembers,
+                                              String compactBasePackage) {
+            return namedHazelcastInstance("member-hazelcast-instance");
+        }
+    }
+
+    private static class EmptyClassScanner implements ClassScanner {
+
+        @Override
+        public Set<Class<?>> findAnnotated(String basePackage, Class<? extends Annotation> annotation) {
+            return Collections.emptySet();
+        }
+
+        @Override
+        public <T> Set<Class<? extends T>> findSubTypes(String basePackage, Class<T> superType) {
+            return Collections.emptySet();
+        }
     }
 }

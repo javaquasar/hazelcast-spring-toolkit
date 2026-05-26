@@ -27,6 +27,8 @@ package io.github.javaquasar.hazelcast.toolkit.hazelcast.config;
 public class HzToolkitProperties {
 
     private Compact compact = new Compact();
+    private Instance instance = new Instance();
+    private Member member = new Member();
     private Metrics metrics = new Metrics();
     private Client client = new Client();
     private Hibernate hibernate = new Hibernate();
@@ -40,6 +42,22 @@ public class HzToolkitProperties {
 
     public void setCompact(Compact compact) {
         this.compact = compact;
+    }
+
+    public Instance getInstance() {
+        return instance;
+    }
+
+    public void setInstance(Instance instance) {
+        this.instance = instance;
+    }
+
+    public Member getMember() {
+        return member;
+    }
+
+    public void setMember(Member member) {
+        this.member = member;
     }
 
     public Metrics getMetrics() {
@@ -102,6 +120,153 @@ public class HzToolkitProperties {
 
         public void setBasePackage(String basePackage) {
             this.basePackage = basePackage;
+        }
+    }
+
+    /**
+     * Hazelcast instance creation settings ({@code hazelcast.toolkit.instance.*}).
+     */
+    public static class Instance {
+
+        /**
+         * Selects how the starter creates the application {@code HazelcastInstance}.
+         *
+         * <p>Defaults to {@link Mode#CLIENT} to preserve the original client-first
+         * toolkit behavior.
+         */
+        private Mode mode = Mode.CLIENT;
+
+        public Mode getMode() {
+            return mode;
+        }
+
+        public void setMode(Mode mode) {
+            this.mode = mode;
+        }
+
+        public enum Mode {
+            /**
+             * Default. Creates a Hazelcast client that connects to an external cluster.
+             */
+            CLIENT,
+
+            /**
+             * Creates an embedded Hazelcast member that joins or forms a cluster.
+             */
+            MEMBER,
+
+            /**
+             * Does not create a {@code HazelcastInstance}; the application must provide one.
+             */
+            NONE
+        }
+    }
+
+    /**
+     * Member-mode settings ({@code hazelcast.toolkit.member.*}).
+     */
+    public static class Member {
+        private String instanceName = "";
+        private String clusterName = "dev";
+        private Network network = new Network();
+
+        public String getInstanceName() {
+            return instanceName;
+        }
+
+        public void setInstanceName(String instanceName) {
+            this.instanceName = instanceName;
+        }
+
+        public String getClusterName() {
+            return clusterName;
+        }
+
+        public void setClusterName(String clusterName) {
+            this.clusterName = clusterName;
+        }
+
+        public Network getNetwork() {
+            return network;
+        }
+
+        public void setNetwork(Network network) {
+            this.network = network;
+        }
+
+        /**
+         * Hazelcast member network settings.
+         */
+        public static class Network {
+            private int port = 5701;
+            private boolean portAutoIncrement = true;
+            private String publicAddress = "";
+            private Join join = new Join();
+
+            public int getPort() {
+                return port;
+            }
+
+            public void setPort(int port) {
+                this.port = port;
+            }
+
+            public boolean isPortAutoIncrement() {
+                return portAutoIncrement;
+            }
+
+            public void setPortAutoIncrement(boolean portAutoIncrement) {
+                this.portAutoIncrement = portAutoIncrement;
+            }
+
+            public String getPublicAddress() {
+                return publicAddress;
+            }
+
+            public void setPublicAddress(String publicAddress) {
+                this.publicAddress = publicAddress;
+            }
+
+            public Join getJoin() {
+                return join;
+            }
+
+            public void setJoin(Join join) {
+                this.join = join;
+            }
+        }
+
+        /**
+         * Minimal member discovery settings.
+         */
+        public static class Join {
+            private boolean autoDetectionEnabled = false;
+            private boolean multicastEnabled = false;
+            private java.util.List<String> tcpIpMembers = new java.util.ArrayList<>();
+
+            public boolean isAutoDetectionEnabled() {
+                return autoDetectionEnabled;
+            }
+
+            public void setAutoDetectionEnabled(boolean autoDetectionEnabled) {
+                this.autoDetectionEnabled = autoDetectionEnabled;
+            }
+
+            public boolean isMulticastEnabled() {
+                return multicastEnabled;
+            }
+
+            public void setMulticastEnabled(boolean multicastEnabled) {
+                this.multicastEnabled = multicastEnabled;
+            }
+
+            public java.util.List<String> getTcpIpMembers() {
+                return tcpIpMembers;
+            }
+
+            public void setTcpIpMembers(java.util.List<String> tcpIpMembers) {
+                this.tcpIpMembers = tcpIpMembers;
+            }
         }
     }
 

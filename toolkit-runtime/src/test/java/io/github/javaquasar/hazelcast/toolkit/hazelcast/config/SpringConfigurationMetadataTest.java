@@ -29,6 +29,7 @@ class SpringConfigurationMetadataTest {
     void metadataContainsEnumHintsForModeProperties() throws IOException {
         String metadata = readMetadata();
 
+        assertHintValues(metadata, "hazelcast.toolkit.instance.mode", "CLIENT", "MEMBER", "NONE");
         assertHintValues(metadata, "hazelcast.toolkit.spring-cache.mode", "JCACHE", "NATIVE", "NONE");
         assertHintValues(metadata, "hazelcast.toolkit.hibernate.l2.region-factory",
                 "JCACHE", "HAZELCAST_LOCAL", "HAZELCAST");
@@ -38,6 +39,15 @@ class SpringConfigurationMetadataTest {
         return List.of(
                 "hazelcast.toolkit.compact.base-package",
                 "hazelcast.toolkit.client.base-name",
+                "hazelcast.toolkit.instance.mode",
+                "hazelcast.toolkit.member.instance-name",
+                "hazelcast.toolkit.member.cluster-name",
+                "hazelcast.toolkit.member.network.port",
+                "hazelcast.toolkit.member.network.port-auto-increment",
+                "hazelcast.toolkit.member.network.public-address",
+                "hazelcast.toolkit.member.network.join.auto-detection-enabled",
+                "hazelcast.toolkit.member.network.join.multicast-enabled",
+                "hazelcast.toolkit.member.network.join.tcp-ip-members",
                 "hazelcast.toolkit.metrics.enabled",
                 "hazelcast.toolkit.metrics.diagnostic-endpoint.enabled",
                 "hazelcast.toolkit.health.enabled",
