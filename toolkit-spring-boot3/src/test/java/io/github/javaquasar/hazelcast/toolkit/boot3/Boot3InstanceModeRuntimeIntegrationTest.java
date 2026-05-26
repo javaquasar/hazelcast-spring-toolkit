@@ -7,6 +7,7 @@ import com.hazelcast.config.NetworkConfig;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import io.github.javaquasar.hazelcast.toolkit.springboot3.config.HazelcastToolkitAutoConfiguration;
+import io.github.javaquasar.hazelcast.toolkit.springboot3.actuator.HazelcastToolkitHealthIndicator;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.context.ConfigurationPropertiesAutoConfiguration;
 import org.springframework.boot.test.context.assertj.AssertableApplicationContext;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.boot.actuate.health.Health;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -50,10 +52,16 @@ class Boot3InstanceModeRuntimeIntegrationTest {
                     HazelcastInstance appInstance = context.getBean(HazelcastInstance.class);
 
                     appInstance.getMap("instance-mode-client").put("status", "ok");
+                    Health health = new HazelcastToolkitHealthIndicator(appInstance).health();
 
                     assertThat(externalMember.getCluster().getMembers()).hasSize(1);
                     assertThat(externalMember.getMap("instance-mode-client").get("status")).isEqualTo("ok");
                     assertThat(Hazelcast.getAllHazelcastInstances()).containsExactly(externalMember);
+                    assertThat(health.getDetails())
+                            .containsEntry("mode", "client")
+                            .containsEntry("clusterName", clusterName)
+                            .containsEntry("memberCount", 1)
+                            .containsEntry("connected", true);
                 });
     }
 
@@ -70,9 +78,14 @@ class Boot3InstanceModeRuntimeIntegrationTest {
 
                     awaitMemberCount(externalMember, 2);
                     appMember.getMap("instance-mode-member").put("status", "ok");
+                    Health health = new HazelcastToolkitHealthIndicator(appMember).health();
 
                     assertThat(externalMember.getMap("instance-mode-member").get("status")).isEqualTo("ok");
                     assertThat(Hazelcast.getAllHazelcastInstances()).contains(externalMember, appMember);
+                    assertThat(health.getDetails())
+                            .containsEntry("mode", "member")
+                            .containsEntry("clusterName", clusterName)
+                            .containsEntry("memberCount", 2);
                 });
     }
 

@@ -3,6 +3,7 @@ package io.github.javaquasar.hazelcast.toolkit.springboot2.actuator;
 import com.hazelcast.cluster.Cluster;
 import com.hazelcast.cluster.ClusterState;
 import com.hazelcast.cluster.Member;
+import com.hazelcast.config.Config;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.LifecycleService;
 import org.junit.jupiter.api.Test;
@@ -22,9 +23,35 @@ class HazelcastToolkitHealthIndicatorTest {
 
         assertThat(health.getStatus()).isEqualTo(Status.UP);
         assertThat(health.getDetails()).containsEntry("instanceName", "test-hazelcast");
+        assertThat(health.getDetails()).containsEntry("mode", "member");
+        assertThat(health.getDetails()).containsEntry("clusterName", "test-cluster");
         assertThat(health.getDetails()).containsEntry("lifecycleRunning", true);
         assertThat(health.getDetails()).containsEntry("clusterState", "ACTIVE");
         assertThat(health.getDetails()).containsEntry("memberCount", 1);
+    }
+
+    @Test
+    void reportsClientModeAndConnectedStateWhenLocalEndpointIsNotMember() {
+        Health health = new HazelcastToolkitHealthIndicator(hazelcastInstance(true, 1, false, false)).health();
+
+        assertThat(health.getStatus()).isEqualTo(Status.UP);
+        assertThat(health.getDetails()).containsEntry("mode", "client");
+        assertThat(health.getDetails()).containsEntry("clusterName", "test-cluster");
+        assertThat(health.getDetails()).containsEntry("memberCount", 1);
+        assertThat(health.getDetails()).containsEntry("connected", true);
+    }
+
+    @Test
+    void reportsClientModeAsDisconnectedWhenClusterInspectionFails() {
+        Health health = new HazelcastToolkitHealthIndicator(hazelcastInstance(true, 1, true, false)).health();
+
+        assertThat(health.getStatus()).isEqualTo(Status.DOWN);
+        assertThat(health.getDetails()).containsEntry("mode", "client");
+        assertThat(health.getDetails()).containsEntry("clusterName", "test-cluster");
+        assertThat(health.getDetails()).containsEntry("lifecycleRunning", true);
+        assertThat(health.getDetails()).containsEntry("clusterState", "unknown");
+        assertThat(health.getDetails()).containsEntry("memberCount", -1);
+        assertThat(health.getDetails()).containsEntry("connected", false);
     }
 
     @Test
@@ -51,10 +78,15 @@ class HazelcastToolkitHealthIndicatorTest {
 
         assertThat(health.getStatus()).isEqualTo(Status.DOWN);
         assertThat(health.getDetails()).containsEntry("instanceName", "test-hazelcast");
-        assertThat(health.getDetails()).containsKey("error");
+        assertThat(health.getDetails()).containsEntry("clusterState", "unknown");
+        assertThat(health.getDetails()).containsEntry("memberCount", -1);
     }
 
     private static HazelcastInstance hazelcastInstance(boolean running, int memberCount, boolean failCluster) {
+        return hazelcastInstance(running, memberCount, failCluster, true);
+    }
+
+    private static HazelcastInstance hazelcastInstance(boolean running, int memberCount, boolean failCluster, boolean memberMode) {
         LifecycleService lifecycleService = proxy(LifecycleService.class, (proxy, method, args) -> {
             if ("isRunning".equals(method.getName())) {
                 return running;
@@ -84,6 +116,15 @@ class HazelcastToolkitHealthIndicatorTest {
             }
             if ("getCluster".equals(method.getName())) {
                 return cluster;
+            }
+            if ("getConfig".equals(method.getName())) {
+                Config config = new Config();
+                config.setClusterName("test-cluster");
+                return config;
+            }
+            if ("getLocalEndpoint".equals(method.getName())) {
+                return memberMode ? member() : proxy(method.getReturnType(), (endpointProxy, endpointMethod, endpointArgs) ->
+                        defaultValue(endpointMethod.getReturnType()));
             }
             return defaultValue(method.getReturnType());
         });
