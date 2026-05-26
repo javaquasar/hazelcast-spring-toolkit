@@ -401,3 +401,6 @@ Important warnings:
   starter?
 - How much Hibernate native-mode coverage is required before calling member
   mode production-ready?
+- Should `HazelcastJCacheAutoConfiguration` become mode-aware so JCache,
+  diagnostic JCache endpoints, and near-cache metrics can back off or use a
+  member-compatible path when `hazelcast.toolkit.instance.mode=member`?

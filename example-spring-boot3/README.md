@@ -9,6 +9,8 @@ Runnable example for `hazelcast-toolkit` that demonstrates:
 - client near-cache configuration plus both REST and Actuator probe flows
 - Micrometer observability plus `/hz-toolkit` diagnostics
 - ready-to-run local setup with `compose.yaml` and [http/demo.http](http/demo.http)
+- optional `member` profile for running the example application as an embedded
+  Hazelcast member
 
 ## What This Example Contains
 
@@ -96,6 +98,18 @@ Native Hazelcast local region-factory profile:
 ```bash
 ./gradlew :example-spring-boot3:run --args="--spring.profiles.active=hazelcast-local"
 ```
+
+Embedded Hazelcast member profile:
+
+```bash
+./gradlew :example-spring-boot3:run --args="--spring.profiles.active=member"
+```
+
+The `member` profile intentionally uses `HAZELCAST_LOCAL` for Hibernate L2 and
+disables the JCache-based Spring Cache, JCache diagnostics, and near-cache
+metrics path. That keeps the example aligned with embedded member topology: the
+application owns a Hazelcast member instead of creating a Hazelcast client and a
+client-backed JCache manager.
 
 The app starts on `http://localhost:8080`.
 
@@ -238,6 +252,7 @@ The module tests cover:
 - recommendation map listener events
 - near-cache REST demo
 - built-in Actuator near-cache probe
+- member-mode startup smoke coverage
 - real HTTP flow on a random port via `TestRestTemplate`
 
 Run them with:

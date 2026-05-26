@@ -1,0 +1,28 @@
+spring:
+  autoconfigure:
+    exclude:
+      - io.github.javaquasar.hazelcast.toolkit.springboot3.config.HazelcastJCacheAutoConfiguration
+
+hazelcast:
+  toolkit:
+    instance:
+      mode: member
+    member:
+      instance-name: hz.example.member
+      cluster-name: dev
+      network:
+        port: 5701
+        port-auto-increment: true
+        join:
+          auto-detection-enabled: false
+          multicast-enabled: false
+          tcp-ip-members: []
+    spring-cache:
+      mode: none
+    metrics:
+      enabled: false
+      diagnostic-endpoint:
+        enabled: false
+    hibernate:
+      l2:
+        region-factory: HAZELCAST_LOCAL
