@@ -224,7 +224,8 @@ Shared features should continue to work on top of either mode where supported:
 
 ## First Implementation Slice
 
-Status: implemented in the v0.10.0 development branch.
+Status: implemented in the v0.10.0 development branch, including Boot 3
+runtime hardening coverage for client, member, and mixed topologies.
 
 1. Add `InstanceMode` enum to toolkit properties.
 2. Keep `CLIENT` as the default.
