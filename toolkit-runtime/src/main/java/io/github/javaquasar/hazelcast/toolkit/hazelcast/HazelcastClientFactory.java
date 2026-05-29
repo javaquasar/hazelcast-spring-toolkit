@@ -112,6 +112,9 @@ public class HazelcastClientFactory {
         clientConfig.setClusterName(clusterName);
         clientConfig.getNetworkConfig().setAddresses(clusterMembers);
         if (!smartRouting) {
+            // TODO compatibility debt: replace this Hazelcast impl API before the next
+            // minor support expansion. RoutingMode/setRoutingMode are deprecated for
+            // removal in Hazelcast 5.7; keep the public smartRouting=false behavior.
             clientConfig.getNetworkConfig().getClusterRoutingConfig().setRoutingMode(RoutingMode.SINGLE_MEMBER);
         }
 

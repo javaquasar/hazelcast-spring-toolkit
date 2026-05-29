@@ -15,6 +15,41 @@ Java 17 or newer.
 | `hazelcast-toolkit-spring-boot3` | `3.x` | `6.2.x` | `jakarta.persistence` | `6.6.x` | Main modern starter line and example target. |
 | `hazelcast-toolkit-spring-boot4` | `4.0.x` | `6.2.x` | `jakarta.persistence` | `6.6.x` / Boot-managed | Early Boot 4 line; release only after full starter tests are green. |
 
+## Hazelcast Version Policy
+
+The toolkit compiles against the lowest supported Hazelcast 5.x minor line and
+verifies the same starter test suite against every supported minor line. For the
+current line, the supported Hazelcast range is:
+
+| Hazelcast line | Reference version | Verification status |
+|---|---:|---|
+| `5.5.x` | `5.5.0` | CI matrix target |
+| `5.6.x` | `5.6.0` | CI matrix target |
+| `5.7.x` | `5.7.0` | CI matrix target |
+
+Keep source code on public Hazelcast APIs that exist in `5.5.0`. Do not use
+`@Beta`, `@EvolvingApi`, `@PrivateApi`, `impl`, or `internal` Hazelcast types in
+published modules unless the access is isolated behind reflection and covered by
+all three matrix jobs.
+
+Consumers may run a newer supported Hazelcast minor by adding their own direct
+Hazelcast dependency or dependency-management entry. The repository matrix uses
+the same override:
+
+```bash
+./gradlew :toolkit-runtime:test :toolkit-spring-boot3:test -PhazelcastVersion=5.7.0
+```
+
+## Known Compatibility Debt
+
+| Area | Current state | Required change |
+|---|---|---|
+| Client routing configuration | `HazelcastClientFactory` maps `smartRouting=false` to `ClusterRoutingConfig#setRoutingMode(RoutingMode.SINGLE_MEMBER)`. In Hazelcast `5.7.0`, `RoutingMode` and `setRoutingMode(...)` compile with removal warnings. | Replace the implementation with the supported public Hazelcast routing API before adding the next Hazelcast minor line. Preserve the toolkit API and property behavior: `smartRouting=false` must still create a single-member client routing configuration. |
+
+Do not remove or rename the toolkit-level `smartRouting` API while fixing this
+debt. The compatibility issue is the Hazelcast implementation call, not the
+consumer-facing configuration contract.
+
 ## Build-Time Reference Versions
 
 These are the versions currently used by the repository test matrix:
@@ -22,7 +57,8 @@ These are the versions currently used by the repository test matrix:
 | Component | Version |
 |---|---|
 | Java toolchain | `17` |
-| Hazelcast | `5.5.0` |
+| Hazelcast compile baseline | `5.5.0` |
+| Hazelcast verified lines | `5.5.0`, `5.6.0`, `5.7.0` |
 | Spring Boot 2 | `2.7.18` |
 | Spring Boot 3 | `3.5.7` |
 | Spring Boot 4 | `4.0.0` |
@@ -69,6 +105,15 @@ Before publishing a `0.5.x` release, run:
 
 ```bash
 ./gradlew test
+```
+
+For Hazelcast minor-line confidence, run the GitHub Actions
+`Hazelcast Compatibility` workflow, or run the matrix locally:
+
+```bash
+./gradlew :toolkit-runtime:test :toolkit-spring-boot2:test :toolkit-spring-boot3:test :toolkit-spring-boot4:test -PhazelcastVersion=5.5.0
+./gradlew :toolkit-runtime:test :toolkit-spring-boot2:test :toolkit-spring-boot3:test :toolkit-spring-boot4:test -PhazelcastVersion=5.6.0
+./gradlew :toolkit-runtime:test :toolkit-spring-boot2:test :toolkit-spring-boot3:test :toolkit-spring-boot4:test -PhazelcastVersion=5.7.0
 ```
 
 For targeted starter confidence, run:
