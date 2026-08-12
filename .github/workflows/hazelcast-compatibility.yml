@@ -16,17 +16,9 @@ permissions:
 
 jobs:
   hazelcast-compatibility:
-    name: Hazelcast ${{ matrix.hazelcast-version }}
+    name: Hazelcast 5.7 baseline
     runs-on: ubuntu-latest
     timeout-minutes: 45
-
-    strategy:
-      fail-fast: false
-      matrix:
-        hazelcast-version:
-          - 5.5.0
-          - 5.6.0
-          - 5.7.0
 
     steps:
       - name: Check out repository
@@ -49,7 +41,7 @@ jobs:
           :toolkit-spring-boot2:test
           :toolkit-spring-boot3:test
           :toolkit-spring-boot4:test
-          -PhazelcastVersion=${{ matrix.hazelcast-version }}
+          -PhazelcastVersion=5.7.0
 
       - name: Print failed tests
         if: failure()
@@ -63,7 +55,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: hazelcast-${{ matrix.hazelcast-version }}-test-reports
+          name: hazelcast-5.7.0-test-reports
           path: |
             **/build/reports/tests/**/*.html
             **/build/reports/tests/**/*.css

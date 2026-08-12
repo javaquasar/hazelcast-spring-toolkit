@@ -15,7 +15,7 @@ Annotation-driven Hazelcast client integration for Spring Boot applications.
 It removes boilerplate around client bootstrapping, compact serialization
 registration, IMap listener wiring, and Hibernate L2 cache setup.
 
-Group: `io.github.javaquasar` | Java 17 | Hazelcast 5.5.0 | Spring Boot 2/3/4
+Group: `io.github.javaquasar` | Java 17 | Hazelcast 5.7.0 | Spring Boot 2/3/4
 
 Current status:
 

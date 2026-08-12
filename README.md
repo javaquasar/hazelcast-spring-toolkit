@@ -5,7 +5,7 @@ Register Compact serialization types with `@HzCompact`, wire IMap listeners with
 
 [![Java 17](https://img.shields.io/badge/Java-17-blue)](https://adoptium.net/)
 [![Spring Boot 2/3/4](https://img.shields.io/badge/Spring%20Boot-2%20%2F%203%20%2F%204-6db33f)](https://spring.io/projects/spring-boot)
-[![Hazelcast 5.5](https://img.shields.io/badge/Hazelcast-5.5-ff6600)](https://hazelcast.com/)
+[![Hazelcast 5.7](https://img.shields.io/badge/Hazelcast-5.7-ff6600)](https://hazelcast.com/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 ---

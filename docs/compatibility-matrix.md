@@ -1,7 +1,7 @@
 # Compatibility Matrix
 
-This matrix documents the intended starter compatibility surface for the
-`0.5.x` line. It is a support and verification contract, not a promise that every
+This matrix documents the intended starter compatibility surface beginning with
+the `0.11.x` line. It is a support and verification contract, not a promise that every
 nearby dependency patch version has been exhaustively tested.
 
 The project builds all starters with Java 17. Consumer applications should run on
@@ -17,24 +17,20 @@ Java 17 or newer.
 
 ## Hazelcast Version Policy
 
-The toolkit compiles against the lowest supported Hazelcast 5.x minor line and
-verifies the same starter test suite against every supported minor line. For the
-current line, the supported Hazelcast range is:
+The toolkit compiles and tests against Hazelcast `5.7.0`. For the current line,
+the supported Hazelcast range is:
 
 | Hazelcast line | Reference version | Verification status |
 |---|---:|---|
-| `5.5.x` | `5.5.0` | CI matrix target |
-| `5.6.x` | `5.6.0` | CI matrix target |
-| `5.7.x` | `5.7.0` | CI matrix target |
+| `5.7.x` | `5.7.0` | Compile baseline and CI target |
 
-Keep source code on public Hazelcast APIs that exist in `5.5.0`. Do not use
+Keep source code on public Hazelcast APIs available in `5.7.0`. Do not use
 `@Beta`, `@EvolvingApi`, `@PrivateApi`, `impl`, or `internal` Hazelcast types in
 published modules unless the access is isolated behind reflection and covered by
-all three matrix jobs.
+the Hazelcast 5.7 baseline job.
 
-Consumers may run a newer supported Hazelcast minor by adding their own direct
-Hazelcast dependency or dependency-management entry. The repository matrix uses
-the same override:
+Consumers may test a newer Hazelcast version by adding their own direct Hazelcast
+dependency or dependency-management entry. The repository uses the same override:
 
 ```bash
 ./gradlew :toolkit-runtime:test :toolkit-spring-boot3:test -PhazelcastVersion=5.7.0
@@ -57,8 +53,8 @@ These are the versions currently used by the repository test matrix:
 | Component | Version |
 |---|---|
 | Java toolchain | `17` |
-| Hazelcast compile baseline | `5.5.0` |
-| Hazelcast verified lines | `5.5.0`, `5.6.0`, `5.7.0` |
+| Hazelcast compile baseline | `5.7.0` |
+| Hazelcast verified lines | `5.7.0` |
 | Spring Boot 2 | `2.7.18` |
 | Spring Boot 3 | `3.5.7` |
 | Spring Boot 4 | `4.0.0` |
@@ -101,18 +97,16 @@ backs off instead of failing at startup.
 
 ## Verification Expectations
 
-Before publishing a `0.5.x` release, run:
+Before publishing a `0.11.x` release, run:
 
 ```bash
 ./gradlew test
 ```
 
-For Hazelcast minor-line confidence, run the GitHub Actions
-`Hazelcast Compatibility` workflow, or run the matrix locally:
+For Hazelcast baseline confidence, run the GitHub Actions
+`Hazelcast Compatibility` workflow, or run it locally:
 
 ```bash
-./gradlew :toolkit-runtime:test :toolkit-spring-boot2:test :toolkit-spring-boot3:test :toolkit-spring-boot4:test -PhazelcastVersion=5.5.0
-./gradlew :toolkit-runtime:test :toolkit-spring-boot2:test :toolkit-spring-boot3:test :toolkit-spring-boot4:test -PhazelcastVersion=5.6.0
 ./gradlew :toolkit-runtime:test :toolkit-spring-boot2:test :toolkit-spring-boot3:test :toolkit-spring-boot4:test -PhazelcastVersion=5.7.0
 ```
 
