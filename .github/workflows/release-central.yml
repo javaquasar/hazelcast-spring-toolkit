@@ -28,30 +28,30 @@ permissions:
   contents: read
 
 jobs:
-  release:
-    name: Build and upload Central bundle
+  release_validation:
+    name: Validate release request and documentation
     runs-on: ubuntu-latest
-    environment: maven-central
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      publishing_type: ${{ steps.release.outputs.publishing_type }}
+      dry_run: ${{ steps.release.outputs.dry_run }}
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-          cache: gradle
-
       - name: Resolve release inputs
         id: release
         shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_PUBLISHING_TYPE: ${{ inputs.publishing_type }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            VERSION="${{ inputs.version }}"
-            PUBLISHING_TYPE="${{ inputs.publishing_type }}"
-            DRY_RUN="${{ inputs.dry_run }}"
+            VERSION="${INPUT_VERSION}"
+            PUBLISHING_TYPE="${INPUT_PUBLISHING_TYPE}"
+            DRY_RUN="${INPUT_DRY_RUN}"
           else
             VERSION="${GITHUB_REF_NAME#v}"
             PUBLISHING_TYPE="USER_MANAGED"
@@ -66,6 +66,30 @@ jobs:
           echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
           echo "publishing_type=${PUBLISHING_TYPE}" >> "${GITHUB_OUTPUT}"
           echo "dry_run=${DRY_RUN}" >> "${GITHUB_OUTPUT}"
+
+      - name: Validate release documentation
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          node --test scripts/validate-release-notes.test.mjs
+          node scripts/validate-release-notes.mjs "${RELEASE_VERSION}"
+
+  release:
+    name: Build and upload Central bundle
+    needs: release_validation
+    runs-on: ubuntu-latest
+    environment: maven-central
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
 
       - name: Check release secrets
         shell: bash
@@ -106,19 +130,19 @@ jobs:
         run: docker info
 
       - name: Run release integration tests
-        run: ./gradlew :toolkit-runtime:test :toolkit-spring-boot2:test :toolkit-spring-boot3:test :toolkit-spring-boot4:test :example-spring-boot3:test -PreleaseVersion=${{ steps.release.outputs.version }}
+        run: ./gradlew :toolkit-runtime:test :toolkit-spring-boot2:test :toolkit-spring-boot3:test :toolkit-spring-boot4:test :example-spring-boot3:test -PreleaseVersion=${{ needs.release_validation.outputs.version }}
 
       - name: Build signed Central bundle
         env:
           ORG_GRADLE_PROJECT_signingKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingKeyId: ${{ steps.signing.outputs.gradle_key_id }}
           ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.SIGNING_PASSWORD }}
-        run: ./gradlew clean collectCentralAggregateBundle -PreleaseVersion=${{ steps.release.outputs.version }} --stacktrace
+        run: ./gradlew clean collectCentralAggregateBundle -PreleaseVersion=${{ needs.release_validation.outputs.version }} --stacktrace
 
       - name: Verify signed Central bundle
         shell: bash
         env:
-          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          RELEASE_VERSION: ${{ needs.release_validation.outputs.version }}
           SIGNING_KEY_ID: ${{ steps.signing.outputs.full_key_id }}
         run: |
           BUNDLE="build/central-bundles/hazelcast-toolkit-${RELEASE_VERSION}-central-bundle.zip"
@@ -148,14 +172,14 @@ jobs:
               ' sh {}
 
       - name: Upload Central bundle
-        if: steps.release.outputs.dry_run != 'true'
+        if: needs.release_validation.outputs.dry_run != 'true'
         id: upload
         shell: bash
         env:
           CENTRAL_PORTAL_USERNAME: ${{ secrets.CENTRAL_PORTAL_USERNAME }}
           CENTRAL_PORTAL_PASSWORD: ${{ secrets.CENTRAL_PORTAL_PASSWORD }}
-          RELEASE_VERSION: ${{ steps.release.outputs.version }}
-          PUBLISHING_TYPE: ${{ steps.release.outputs.publishing_type }}
+          RELEASE_VERSION: ${{ needs.release_validation.outputs.version }}
+          PUBLISHING_TYPE: ${{ needs.release_validation.outputs.publishing_type }}
         run: |
           BUNDLE="build/central-bundles/hazelcast-toolkit-${RELEASE_VERSION}-central-bundle.zip"
           if [[ ! -f "${BUNDLE}" ]]; then
@@ -176,7 +200,7 @@ jobs:
       - name: Save Central bundle
         uses: actions/upload-artifact@v4
         with:
-          name: central-bundle-${{ steps.release.outputs.version }}
+          name: central-bundle-${{ needs.release_validation.outputs.version }}
           path: build/central-bundles/*.zip
 
       - name: Print failed tests
@@ -191,7 +215,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: release-test-reports-${{ steps.release.outputs.version }}
+          name: release-test-reports-${{ needs.release_validation.outputs.version }}
           path: |
             **/build/reports/tests/**/*.html
             **/build/reports/tests/**/*.css
@@ -204,6 +228,47 @@ jobs:
       - name: Print follow-up
         run: |
           echo "Central deployment id: ${{ steps.upload.outputs.deployment_id }}"
-          echo "Publishing type: ${{ steps.release.outputs.publishing_type }}"
-          echo "Dry run: ${{ steps.release.outputs.dry_run }}"
+          echo "Publishing type: ${{ needs.release_validation.outputs.publishing_type }}"
+          echo "Dry run: ${{ needs.release_validation.outputs.dry_run }}"
           echo "For USER_MANAGED releases, open https://central.sonatype.com/publishing and publish after validation succeeds."
+
+  github-release:
+    name: Publish GitHub release notes
+    needs: [release_validation, release]
+    if: needs.release_validation.outputs.dry_run == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create or update GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ needs.release_validation.outputs.version }}
+        run: |
+          TAG="v${RELEASE_VERSION}"
+          TITLE="Hazelcast Toolkit v${RELEASE_VERSION}"
+          NOTES_FILE="docs/releases/${TAG}.md"
+          WORKFLOW_COMMIT="$(git rev-parse "${GITHUB_SHA}^{commit}")"
+
+          if git rev-parse --verify --quiet "refs/tags/${TAG}" >/dev/null; then
+            TAG_COMMIT="$(git rev-list -n 1 "${TAG}")"
+            if [[ "${TAG_COMMIT}" != "${WORKFLOW_COMMIT}" ]]; then
+              echo "Tag ${TAG} points to ${TAG_COMMIT}, not workflow commit ${WORKFLOW_COMMIT}." >&2
+              exit 1
+            fi
+          fi
+
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release edit "${TAG}" --title "${TITLE}" --notes-file "${NOTES_FILE}" --latest
+            echo "Updated GitHub Release ${TAG}."
+          else
+            gh release create "${TAG}" --target "${WORKFLOW_COMMIT}" --title "${TITLE}" --notes-file "${NOTES_FILE}" --latest
+            echo "Created GitHub Release ${TAG}."
+          fi
