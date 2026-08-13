@@ -6,6 +6,32 @@ and how to publish them to Maven Central using the generated Central Portal bund
 For the shorter pre-tag checklist, see
 [release-confidence-checklist.md](release-confidence-checklist.md).
 
+## Release Documentation Gate
+
+Release notes are the source of truth for the corresponding GitHub Release.
+Before starting a release, copy [releases/TEMPLATE.md](releases/TEMPLATE.md) to
+`docs/releases/v<releaseVersion>.md` and replace every placeholder.
+
+The `Release to Maven Central` workflow validates documentation immediately after
+it resolves the requested version, before it reads release secrets or starts the
+test and publishing work. The gate checks that:
+
+- the version uses semantic versioning;
+- `README.md`, the compatibility matrix, the release-confidence checklist, this
+  guide, and the versioned release-notes file exist and are committed;
+- the first non-empty line is exactly
+  `# Release Notes: v<releaseVersion>`;
+- `## Compatibility` and `## Verification` exist and contain text;
+- the release notes contain no `TODO`, `TBD`, `FIXME`, or `<releaseVersion>`
+  placeholders.
+
+Run the same validation locally before pushing the release tag:
+
+```bash
+node --test scripts/validate-release-notes.test.mjs
+node scripts/validate-release-notes.mjs <releaseVersion>
+```
+
 ## Published Modules
 
 The current public release set includes:
@@ -263,7 +289,11 @@ Then either:
 2. Push a release tag such as `v<releaseVersion>`.
 
 Tag-triggered releases use `USER_MANAGED`. Manual releases can use either
-`USER_MANAGED` or `AUTOMATIC`.
+`USER_MANAGED` or `AUTOMATIC`. After a successful non-dry-run Central upload,
+the workflow creates the `v<releaseVersion>` tag when needed and creates or
+updates the GitHub Release from `docs/releases/v<releaseVersion>.md`. Re-running
+the workflow for the same commit and version updates the existing release instead
+of creating a duplicate.
 
 ### Replacing A Pushed Tag Before Publishing
 

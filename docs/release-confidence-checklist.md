@@ -45,6 +45,13 @@ build/central-bundles/hazelcast-toolkit-<releaseVersion>-central-bundle.zip
 docs/releases/v<releaseVersion>.md
 ```
 
+Run the same documentation gate used by the release workflow:
+
+```bash
+node --test scripts/validate-release-notes.test.mjs
+node scripts/validate-release-notes.mjs <releaseVersion>
+```
+
 7. Verify generated publication metadata before uploading:
 
 ```bash
@@ -92,12 +99,16 @@ name. For example, pushing `v0.7.0` releases version `0.7.0`.
 
 The workflow:
 
+- validates the versioned release notes and required release documentation before
+  requesting access to the `maven-central` environment
 - validates release secrets
 - derives the short Gradle signing key id from the full signing subkey id
 - runs the release integration test matrix
 - builds the signed Central aggregate bundle
 - verifies generated `.asc` signatures
 - uploads the bundle unless it is a manual dry run
+- creates or updates the GitHub Release from the versioned release-notes file
+  after a successful non-dry-run upload
 
 ## Manual Dry Run
 
