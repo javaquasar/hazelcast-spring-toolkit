@@ -64,13 +64,23 @@ class Boot2AutoConfigurationConditionTest {
     }
 
     @Test
-    void memberInstanceModeCreatesMemberHazelcastInstance() {
+    void memberInstanceModeCreatesConfiguredLiteMemberHazelcastInstance() {
         new ApplicationContextRunner()
-                .withConfiguration(AutoConfigurations.of(HazelcastToolkitAutoConfiguration.class))
+                .withConfiguration(AutoConfigurations.of(
+                        ConfigurationPropertiesAutoConfiguration.class,
+                        HazelcastToolkitAutoConfiguration.class
+                ))
                 .withUserConfiguration(TestInstanceFactories.class)
-                .withPropertyValues("hazelcast.toolkit.instance.mode=member")
-                .run(context -> assertThat(context.getBean(HazelcastInstance.class).toString())
-                        .isEqualTo("member-hazelcast-instance"));
+                .withPropertyValues(
+                        "hazelcast.toolkit.instance.mode=member",
+                        "hazelcast.toolkit.member.lite-member=true"
+                )
+                .run(context -> {
+                    assertThat(context.getBean(HzToolkitProperties.class).getMember().isLiteMember()).isTrue();
+                    assertThat(context.getBean(HazelcastInstance.class).toString())
+                            .isEqualTo("member-hazelcast-instance");
+                    assertThat(context.getBean(TestHazelcastMemberFactory.class).liteMember).isTrue();
+                });
     }
 
     @Test
@@ -385,7 +395,7 @@ class Boot2AutoConfigurationConditionTest {
         }
 
         @Bean
-        HazelcastMemberFactory hazelcastMemberFactory() {
+        TestHazelcastMemberFactory hazelcastMemberFactory() {
             return new TestHazelcastMemberFactory();
         }
     }
@@ -495,6 +505,8 @@ class Boot2AutoConfigurationConditionTest {
 
     private static class TestHazelcastMemberFactory extends HazelcastMemberFactory {
 
+        private boolean liteMember;
+
         TestHazelcastMemberFactory() {
             super(new EmptyClassScanner());
         }
@@ -502,6 +514,7 @@ class Boot2AutoConfigurationConditionTest {
         @Override
         public HazelcastInstance createMember(String instanceName,
                                               String clusterName,
+                                              boolean liteMember,
                                               int port,
                                               boolean portAutoIncrement,
                                               String publicAddress,
@@ -509,6 +522,7 @@ class Boot2AutoConfigurationConditionTest {
                                               boolean multicastEnabled,
                                               List<String> tcpIpMembers,
                                               String compactBasePackage) {
+            this.liteMember = liteMember;
             return namedHazelcastInstance("member-hazelcast-instance");
         }
     }

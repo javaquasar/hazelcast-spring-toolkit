@@ -45,6 +45,7 @@ class SpringConfigurationMetadataTest {
                 "hazelcast.toolkit.instance.mode",
                 "hazelcast.toolkit.member.instance-name",
                 "hazelcast.toolkit.member.cluster-name",
+                "hazelcast.toolkit.member.lite-member",
                 "hazelcast.toolkit.member.network.port",
                 "hazelcast.toolkit.member.network.port-auto-increment",
                 "hazelcast.toolkit.member.network.public-address",

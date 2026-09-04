@@ -32,6 +32,7 @@ hazelcast:
     instance:
       mode: client
     member:
+      lite-member: false
       network:
         port: 5072
         port-auto-increment: false
@@ -69,6 +70,31 @@ The toolkit translates that alias to the Hazelcast Hibernate provider key
 required by the active topology. A conflicting explicit native-client flag or
 instance name stops startup with a configuration error.
 
+## Lite Member Fallback
+
+For an application that must join the cluster as a member but should not own
+partition data, enable lite member mode together with member topology:
+
+```properties
+hazelcast.toolkit.instance.mode=member
+hazelcast.toolkit.member.lite-member=true
+```
+
+A lite member joins the cluster and can use distributed maps and caches, but it
+does not own primary or backup partitions. Its data operations are routed to
+the data members. As a result, starting or stopping the application does not
+move partition data to or from that application, which makes it suitable as a
+lower-disruption fallback from client mode.
+
+Lite member mode does not remove every topology effect. The cluster membership
+view and member count still change, listeners and lifecycle events still run,
+and the application still needs member-to-member network access and matching
+cluster security. Changing the application to a full member later can trigger
+partition migration.
+
+The property defaults to `false`, so existing member-mode applications remain
+full data members after upgrading.
+
 ## When To Use Member Mode
 
 Member mode is appropriate when the Spring Boot process must own cluster data
@@ -89,9 +115,10 @@ restart, secure, and upgrade independently.
 ## Why This Is An Advanced Topology
 
 In member mode, every Spring Boot application instance becomes a Hazelcast
-cluster member. Scaling the deployment no longer only scales HTTP/application
-capacity; it also changes the Hazelcast cluster size, partition table,
-replication traffic, and failure domain.
+cluster member. A full member can own partitions, so scaling the deployment no
+longer only scales HTTP/application capacity; it can also change the partition
+table, replication traffic, and failure domain. A lite member avoids partition
+ownership but still changes the cluster membership view.
 
 Operational consequences:
 
@@ -327,6 +354,8 @@ and events as a client.
 ## Production Checklist
 
 - Keep `hazelcast.toolkit.instance.mode` explicit in production configuration.
+- Decide explicitly whether member-mode applications should be full members or
+  set `hazelcast.toolkit.member.lite-member=true` to avoid partition ownership.
 - Configure shared `hazelcast.toolkit.cluster-name` and
   `hazelcast.toolkit.network.seed-members` for switchable applications.
 - Keep the cluster name identical across all clients and members that should

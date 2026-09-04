@@ -105,6 +105,12 @@
       "description": "Hazelcast cluster name used by the embedded member."
     },
     {
+      "name": "hazelcast.toolkit.member.lite-member",
+      "type": "java.lang.Boolean",
+      "defaultValue": false,
+      "description": "Start member mode as a lite member that does not own primary or backup partitions."
+    },
+    {
       "name": "hazelcast.toolkit.member.network.port",
       "type": "java.lang.Integer",
       "defaultValue": 5701,

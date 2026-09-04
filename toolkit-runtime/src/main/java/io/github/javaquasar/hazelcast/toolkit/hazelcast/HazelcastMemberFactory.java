@@ -48,9 +48,34 @@ public class HazelcastMemberFactory {
                                           boolean multicastEnabled,
                                           List<String> tcpIpMembers,
                                           String compactBasePackage) {
+        return createMember(
+                instanceName,
+                clusterName,
+                false,
+                port,
+                portAutoIncrement,
+                publicAddress,
+                autoDetectionEnabled,
+                multicastEnabled,
+                tcpIpMembers,
+                compactBasePackage
+        );
+    }
+
+    public HazelcastInstance createMember(String instanceName,
+                                          String clusterName,
+                                          boolean liteMember,
+                                          int port,
+                                          boolean portAutoIncrement,
+                                          String publicAddress,
+                                          boolean autoDetectionEnabled,
+                                          boolean multicastEnabled,
+                                          List<String> tcpIpMembers,
+                                          String compactBasePackage) {
         Config config = createMemberConfig(
                 instanceName,
                 clusterName,
+                liteMember,
                 port,
                 portAutoIncrement,
                 publicAddress,
@@ -71,6 +96,30 @@ public class HazelcastMemberFactory {
                                      boolean multicastEnabled,
                                      List<String> tcpIpMembers,
                                      String compactBasePackage) {
+        return createMemberConfig(
+                instanceName,
+                clusterName,
+                false,
+                port,
+                portAutoIncrement,
+                publicAddress,
+                autoDetectionEnabled,
+                multicastEnabled,
+                tcpIpMembers,
+                compactBasePackage
+        );
+    }
+
+    public Config createMemberConfig(String instanceName,
+                                     String clusterName,
+                                     boolean liteMember,
+                                     int port,
+                                     boolean portAutoIncrement,
+                                     String publicAddress,
+                                     boolean autoDetectionEnabled,
+                                     boolean multicastEnabled,
+                                     List<String> tcpIpMembers,
+                                     String compactBasePackage) {
         Config config = new Config();
         if (hasText(instanceName)) {
             config.setInstanceName(instanceName);
@@ -78,6 +127,7 @@ public class HazelcastMemberFactory {
         if (hasText(clusterName)) {
             config.setClusterName(clusterName);
         }
+        config.setLiteMember(liteMember);
 
         NetworkConfig networkConfig = config.getNetworkConfig();
         networkConfig.setPort(port);
