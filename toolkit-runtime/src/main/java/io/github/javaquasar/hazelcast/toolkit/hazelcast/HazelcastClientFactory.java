@@ -2,7 +2,7 @@ package io.github.javaquasar.hazelcast.toolkit.hazelcast;
 
 import com.hazelcast.client.HazelcastClient;
 import com.hazelcast.client.config.ClientConfig;
-import com.hazelcast.client.impl.connection.tcp.RoutingMode;
+import com.hazelcast.client.config.RoutingMode;
 import com.hazelcast.core.HazelcastInstance;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.compact.CompactClientConfigSupport;
 import io.github.javaquasar.hazelcast.toolkit.scan.api.ClassScanner;
@@ -112,9 +112,6 @@ public class HazelcastClientFactory {
         clientConfig.setClusterName(clusterName);
         clientConfig.getNetworkConfig().setAddresses(clusterMembers);
         if (!smartRouting) {
-            // TODO compatibility debt: replace this Hazelcast impl API before the next
-            // minor support expansion. RoutingMode/setRoutingMode are deprecated for
-            // removal in Hazelcast 5.7; keep the public smartRouting=false behavior.
             clientConfig.getNetworkConfig().getClusterRoutingConfig().setRoutingMode(RoutingMode.SINGLE_MEMBER);
         }
 

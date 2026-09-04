@@ -36,15 +36,14 @@ dependency or dependency-management entry. The repository uses the same override
 ./gradlew :toolkit-runtime:test :toolkit-spring-boot3:test -PhazelcastVersion=5.7.0
 ```
 
-## Known Compatibility Debt
+## Client Routing Compatibility
 
-| Area | Current state | Required change |
-|---|---|---|
-| Client routing configuration | `HazelcastClientFactory` maps `smartRouting=false` to `ClusterRoutingConfig#setRoutingMode(RoutingMode.SINGLE_MEMBER)`. In Hazelcast `5.7.0`, `RoutingMode` and `setRoutingMode(...)` compile with removal warnings. | Replace the implementation with the supported public Hazelcast routing API before adding the next Hazelcast minor line. Preserve the toolkit API and property behavior: `smartRouting=false` must still create a single-member client routing configuration. |
-
-Do not remove or rename the toolkit-level `smartRouting` API while fixing this
-debt. The compatibility issue is the Hazelcast implementation call, not the
-consumer-facing configuration contract.
+`HazelcastClientFactory` maps `smartRouting=false` to
+`ClusterRoutingConfig#setRoutingMode(RoutingMode.SINGLE_MEMBER)` using the
+public `com.hazelcast.client.config.RoutingMode` API. The toolkit-level
+`smartRouting` property remains unchanged: `false` creates a single-member
+client routing configuration, while `true` retains Hazelcast's default
+all-members routing mode.
 
 ## Build-Time Reference Versions
 

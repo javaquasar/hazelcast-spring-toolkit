@@ -210,7 +210,7 @@ jobs:
           echo "Uploaded Central deployment: ${DEPLOYMENT_ID}"
 
       - name: Save Central bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: central-bundle-${{ needs.release_validation.outputs.version }}
           path: build/central-bundles/*.zip
@@ -225,7 +225,7 @@ jobs:
 
       - name: Save test reports
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-test-reports-${{ needs.release_validation.outputs.version }}
           path: |
