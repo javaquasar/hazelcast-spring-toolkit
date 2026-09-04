@@ -181,6 +181,7 @@ hazelcast:
       mode: member
     member:
       instance-name: my-service-member
+      lite-member: false
       network:
         port: 5701
         port-auto-increment: true
@@ -194,6 +195,13 @@ With shared `cluster-name`, `network.seed-members`, and
 topologies only requires changing `hazelcast.toolkit.instance.mode`. The older
 `hazelcast.client.*` and `hazelcast.toolkit.member.*` connection properties are
 still supported as compatibility fallbacks.
+
+Set `hazelcast.toolkit.member.lite-member=true` when the application must join
+the cluster as a member without owning primary or backup partitions. Starting
+or stopping that application then does not move partition data to or from it.
+The lite member still participates in cluster membership, and its map and cache
+operations are routed to data members. The default is `false`, preserving the
+existing full-member behavior.
 
 Member mode also applies two safe defaults when possible:
 
@@ -721,6 +729,7 @@ Examples:
 | `network.seed-members` | `[]` | Shared addresses used by client connections and member TCP/IP discovery |
 | `enterprise-license-key` | _(empty)_ | Shared Hazelcast Enterprise license key for client and member modes |
 | `client.base-name` | _(empty)_ | Toolkit naming prefix; when combined with `spring.application.name`, produces `<base-name>-<app-name>` |
+| `member.lite-member` | `false` | Start member mode without owning primary or backup partitions; useful when application joins/leaves must not move partition data |
 | `compact.base-package` | _(empty)_ | Root package to scan for `@HzCompact` classes |
 | `spring-cache.mode` | `JCACHE` | Spring Cache manager mode: `JCACHE` \| `NATIVE` \| `NONE` |
 | `metrics.enabled` | `false` | Enable Hibernate L2 metrics and client near-cache metrics; the near-cache binder is omitted in member mode |

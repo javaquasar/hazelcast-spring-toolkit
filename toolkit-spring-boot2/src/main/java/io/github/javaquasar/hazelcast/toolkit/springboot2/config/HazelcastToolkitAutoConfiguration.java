@@ -131,6 +131,7 @@ public class HazelcastToolkitAutoConfiguration {
                 member.getInstanceName(),
                 HazelcastConnectionSettingsResolver.clusterName(
                         toolkitProps, props, HzToolkitProperties.Instance.Mode.MEMBER),
+                member.isLiteMember(),
                 network.getPort(),
                 network.isPortAutoIncrement(),
                 network.getPublicAddress(),

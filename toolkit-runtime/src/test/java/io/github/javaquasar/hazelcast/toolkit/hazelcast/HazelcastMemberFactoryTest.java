@@ -38,6 +38,7 @@ class HazelcastMemberFactoryTest {
 
         assertEquals("test-member", config.getInstanceName());
         assertEquals("test-cluster", config.getClusterName());
+        assertFalse(config.isLiteMember());
         assertEquals(0, config.getNetworkConfig().getPort());
         assertFalse(config.getNetworkConfig().isPortAutoIncrement());
         assertEquals("127.0.0.1", config.getNetworkConfig().getPublicAddress());
@@ -69,6 +70,26 @@ class HazelcastMemberFactoryTest {
         );
 
         assertFalse(config.getNetworkConfig().getJoin().getTcpIpConfig().isEnabled());
+    }
+
+    @Test
+    void createMemberConfigCreatesLiteMemberWhenEnabled() {
+        HazelcastMemberFactory factory = new HazelcastMemberFactory(new ReflectionsClassScanner());
+
+        Config config = factory.createMemberConfig(
+                "",
+                "test-cluster",
+                true,
+                5701,
+                true,
+                "",
+                false,
+                false,
+                List.of(),
+                null
+        );
+
+        assertTrue(config.isLiteMember());
     }
 
     @SuppressWarnings("unchecked")

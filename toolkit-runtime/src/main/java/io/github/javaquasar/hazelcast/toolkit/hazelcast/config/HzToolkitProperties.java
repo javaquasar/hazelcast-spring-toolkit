@@ -218,6 +218,7 @@ public class HzToolkitProperties {
     public static class Member {
         private String instanceName = "";
         private String clusterName = "dev";
+        private boolean liteMember = false;
         private Network network = new Network();
 
         public String getInstanceName() {
@@ -234,6 +235,14 @@ public class HzToolkitProperties {
 
         public void setClusterName(String clusterName) {
             this.clusterName = clusterName;
+        }
+
+        public boolean isLiteMember() {
+            return liteMember;
+        }
+
+        public void setLiteMember(boolean liteMember) {
+            this.liteMember = liteMember;
         }
 
         public Network getNetwork() {
