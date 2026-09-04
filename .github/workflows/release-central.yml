@@ -3,10 +3,6 @@ name: Release to Maven Central
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: Release version, for example 0.3.1
-        required: true
-        type: string
       publishing_type:
         description: Central Portal publishing mode
         required: true
@@ -33,6 +29,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
+      title: ${{ steps.release.outputs.title }}
+      notes_file: ${{ steps.release.outputs.notes_file }}
       publishing_type: ${{ steps.release.outputs.publishing_type }}
       dry_run: ${{ steps.release.outputs.dry_run }}
 
@@ -44,34 +43,47 @@ jobs:
         id: release
         shell: bash
         env:
-          INPUT_VERSION: ${{ inputs.version }}
           INPUT_PUBLISHING_TYPE: ${{ inputs.publishing_type }}
           INPUT_DRY_RUN: ${{ inputs.dry_run }}
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            VERSION="${INPUT_VERSION}"
             PUBLISHING_TYPE="${INPUT_PUBLISHING_TYPE}"
             DRY_RUN="${INPUT_DRY_RUN}"
           else
-            VERSION="${GITHUB_REF_NAME#v}"
             PUBLISHING_TYPE="USER_MANAGED"
             DRY_RUN="false"
           fi
 
-          if [[ -z "${VERSION}" || "${VERSION}" == *"-SNAPSHOT" ]]; then
-            echo "Release version must be a non-SNAPSHOT version." >&2
-            exit 1
-          fi
+          VERSION="$(node scripts/resolve-release-version.mjs "${GITHUB_EVENT_NAME}" "${GITHUB_REF_NAME}")"
+          TAG="v${VERSION}"
+          TITLE="Hazelcast Toolkit ${TAG}"
+          NOTES_FILE="docs/releases/${TAG}.md"
 
           echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
+          echo "title=${TITLE}" >> "${GITHUB_OUTPUT}"
+          echo "notes_file=${NOTES_FILE}" >> "${GITHUB_OUTPUT}"
           echo "publishing_type=${PUBLISHING_TYPE}" >> "${GITHUB_OUTPUT}"
           echo "dry_run=${DRY_RUN}" >> "${GITHUB_OUTPUT}"
+
+          {
+            echo "## Release configuration"
+            echo
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Version | \`${VERSION}\` |"
+            echo "| Tag | \`${TAG}\` |"
+            echo "| GitHub Release | ${TITLE} |"
+            echo "| Release notes | \`${NOTES_FILE}\` |"
+            echo "| Publishing type | \`${PUBLISHING_TYPE}\` |"
+            echo "| Dry run | \`${DRY_RUN}\` |"
+          } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Validate release documentation
         env:
           RELEASE_VERSION: ${{ steps.release.outputs.version }}
         run: |
-          node --test scripts/validate-release-notes.test.mjs
+          node --test scripts/*.test.mjs
           node scripts/validate-release-notes.mjs "${RELEASE_VERSION}"
 
   release:
@@ -250,11 +262,13 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_VERSION: ${{ needs.release_validation.outputs.version }}
+          RELEASE_TAG: ${{ needs.release_validation.outputs.tag }}
+          RELEASE_TITLE: ${{ needs.release_validation.outputs.title }}
+          RELEASE_NOTES_FILE: ${{ needs.release_validation.outputs.notes_file }}
         run: |
-          TAG="v${RELEASE_VERSION}"
-          TITLE="Hazelcast Toolkit v${RELEASE_VERSION}"
-          NOTES_FILE="docs/releases/${TAG}.md"
+          TAG="${RELEASE_TAG}"
+          TITLE="${RELEASE_TITLE}"
+          NOTES_FILE="${RELEASE_NOTES_FILE}"
           WORKFLOW_COMMIT="$(git rev-parse "${GITHUB_SHA}^{commit}")"
 
           if git rev-parse --verify --quiet "refs/tags/${TAG}" >/dev/null; then

@@ -785,6 +785,11 @@ Examples:
 
 ### Publishing to Maven Central
 
+For a manual GitHub Actions release, select the release branch in
+`Release to Maven Central`. The workflow reads the final version from
+`gradle.properties` and automatically fills the release tag, title, and notes
+from `docs/releases/v<releaseVersion>.md`.
+
 Publish all Maven publications into local staging repositories:
 
 ```bash

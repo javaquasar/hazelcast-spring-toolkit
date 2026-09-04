@@ -48,7 +48,7 @@ docs/releases/v<releaseVersion>.md
 Run the same documentation gate used by the release workflow:
 
 ```bash
-node --test scripts/validate-release-notes.test.mjs
+node --test scripts/*.test.mjs
 node scripts/validate-release-notes.mjs <releaseVersion>
 ```
 
@@ -94,8 +94,10 @@ The `Release to Maven Central` workflow starts on:
 - manual `workflow_dispatch`
 - pushed tags matching `v*`
 
-For tag-based releases, the workflow derives the release version from the tag
-name. For example, pushing `v0.7.0` releases version `0.7.0`.
+For manual releases, the workflow derives the release version from the selected
+branch's `gradle.properties`. For tag-based releases, it derives the version from
+the tag and verifies that it matches `gradle.properties`. For example, pushing
+`v0.12.0` requires the project version to be `0.12.0`.
 
 The workflow:
 
@@ -107,6 +109,7 @@ The workflow:
 - builds the signed Central aggregate bundle
 - verifies generated `.asc` signatures
 - uploads the bundle unless it is a manual dry run
+- shows the resolved version, tag, title, and notes file in the workflow summary
 - creates or updates the GitHub Release from the versioned release-notes file
   after a successful non-dry-run upload
 
@@ -116,11 +119,12 @@ Before pushing a tag, run the workflow manually with:
 
 | Input | Value |
 |---|---|
-| `version` | `<releaseVersion>` |
 | `publishing_type` | `USER_MANAGED` |
 | `dry_run` | `true` |
 
-This verifies the release path without uploading to Maven Central.
+Select the release branch that contains the final non-SNAPSHOT version in
+`gradle.properties`. This verifies the release path without uploading to Maven
+Central.
 
 ## Tag Commands
 

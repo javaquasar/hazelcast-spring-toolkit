@@ -13,7 +13,7 @@ Before starting a release, copy [releases/TEMPLATE.md](releases/TEMPLATE.md) to
 `docs/releases/v<releaseVersion>.md` and replace every placeholder.
 
 The `Release to Maven Central` workflow validates documentation immediately after
-it resolves the requested version, before it reads release secrets or starts the
+it resolves the project version, before it reads release secrets or starts the
 test and publishing work. The gate checks that:
 
 - the version uses semantic versioning;
@@ -28,7 +28,7 @@ test and publishing work. The gate checks that:
 Run the same validation locally before pushing the release tag:
 
 ```bash
-node --test scripts/validate-release-notes.test.mjs
+node --test scripts/*.test.mjs
 node scripts/validate-release-notes.mjs <releaseVersion>
 ```
 
@@ -285,15 +285,17 @@ subkey.
 
 Then either:
 
-1. Run `Release to Maven Central` manually from GitHub Actions and enter `<releaseVersion>`.
+1. Run `Release to Maven Central` manually from the release branch. The workflow
+   reads `<releaseVersion>` from `gradle.properties`.
 2. Push a release tag such as `v<releaseVersion>`.
 
 Tag-triggered releases use `USER_MANAGED`. Manual releases can use either
-`USER_MANAGED` or `AUTOMATIC`. After a successful non-dry-run Central upload,
-the workflow creates the `v<releaseVersion>` tag when needed and creates or
-updates the GitHub Release from `docs/releases/v<releaseVersion>.md`. Re-running
-the workflow for the same commit and version updates the existing release instead
-of creating a duplicate.
+`USER_MANAGED` or `AUTOMATIC`. A tag-triggered version must match the version in
+`gradle.properties`. After a successful non-dry-run Central upload, the workflow
+creates the `v<releaseVersion>` tag when needed and automatically fills the
+GitHub Release title and body from the resolved version and
+`docs/releases/v<releaseVersion>.md`. Re-running the workflow for the same commit
+and version updates the existing release instead of creating a duplicate.
 
 ### Replacing A Pushed Tag Before Publishing
 
@@ -319,14 +321,15 @@ assembly without uploading anything to Central Portal:
 2. Open `Actions`.
 3. Select `Release to Maven Central`.
 4. Click `Run workflow`.
-5. Select the release branch, usually `main`.
-6. Enter `version`: `<releaseVersion>`.
-7. Select `publishing_type`: `USER_MANAGED`.
-8. Leave `dry_run`: `true`.
-9. Click `Run workflow`.
+5. Select the release branch containing the final version in `gradle.properties`.
+6. Select `publishing_type`: `USER_MANAGED`.
+7. Leave `dry_run`: `true`.
+8. Click `Run workflow`.
+9. Confirm the automatically resolved version, tag, title, and notes file in the
+   workflow summary.
 10. If the `maven-central` environment requires approval, approve the deployment.
 
-When the dry run is green, run the workflow again with the same version and:
+When the dry run is green, run the workflow again from the same branch with:
 
 ```text
 publishing_type = USER_MANAGED
