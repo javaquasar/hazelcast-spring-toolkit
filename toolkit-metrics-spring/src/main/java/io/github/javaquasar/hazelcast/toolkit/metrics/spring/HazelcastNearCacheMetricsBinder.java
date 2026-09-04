@@ -59,15 +59,12 @@ public class HazelcastNearCacheMetricsBinder implements MeterBinder, DisposableB
 
     private final CacheManager cacheManager;
     private final HazelcastInstance hazelcastInstance;
-    private final Set<String> registeredMapNames = ConcurrentHashMap.newKeySet();
-    private final Set<String> registeredCacheNames = ConcurrentHashMap.newKeySet();
     private final Set<MeterRegistry> boundRegistries = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Map<String, NearCacheMetricTarget> mapTargets = new ConcurrentHashMap<>();
     private final Map<String, NearCacheMetricTarget> cacheTargets = new ConcurrentHashMap<>();
     private final AtomicBoolean listenerRegistered = new AtomicBoolean(false);
 
     private volatile UUID distributedObjectListenerId;
-    private volatile MeterRegistry meterRegistry;
 
     public HazelcastNearCacheMetricsBinder(CacheManager cacheManager,
                                            HazelcastInstance hazelcastInstance) {
@@ -82,10 +79,9 @@ public class HazelcastNearCacheMetricsBinder implements MeterBinder, DisposableB
                 return;
             }
         }
-        this.meterRegistry = registry;
+        registerDistributedObjectListener();
         registerExistingDistributedObjects(registry);
         registerExistingCaches(registry);
-        registerDistributedObjectListener(registry);
     }
 
     @Override
@@ -107,14 +103,16 @@ public class HazelcastNearCacheMetricsBinder implements MeterBinder, DisposableB
         }
     }
 
-    private void registerDistributedObjectListener(MeterRegistry registry) {
+    private void registerDistributedObjectListener() {
         if (!listenerRegistered.compareAndSet(false, true)) {
             return;
         }
         distributedObjectListenerId = hazelcastInstance.addDistributedObjectListener(new DistributedObjectListener() {
             @Override
             public void distributedObjectCreated(DistributedObjectEvent event) {
-                registerDistributedObject(registry, event.getDistributedObject());
+                for (MeterRegistry registry : boundRegistrySnapshot()) {
+                    registerDistributedObject(registry, event.getDistributedObject());
+                }
             }
 
             @Override
@@ -123,6 +121,12 @@ public class HazelcastNearCacheMetricsBinder implements MeterBinder, DisposableB
                 // underlying distributed object disappears.
             }
         });
+    }
+
+    private MeterRegistry[] boundRegistrySnapshot() {
+        synchronized (boundRegistries) {
+            return boundRegistries.toArray(MeterRegistry[]::new);
+        }
     }
 
     private void registerDistributedObject(MeterRegistry registry, DistributedObject object) {
@@ -141,9 +145,6 @@ public class HazelcastNearCacheMetricsBinder implements MeterBinder, DisposableB
     }
 
     private void registerIMapMetrics(MeterRegistry registry, String mapName) {
-        if (!registeredMapNames.add(mapName)) {
-            return;
-        }
         Tags tags = Tags.of("cache", mapName, "kind", "imap");
         NearCacheMetricTarget target = mapTargets.computeIfAbsent(
                 mapName,
@@ -157,9 +158,6 @@ public class HazelcastNearCacheMetricsBinder implements MeterBinder, DisposableB
     }
 
     private void registerJCacheMetrics(MeterRegistry registry, String cacheName) {
-        if (!registeredCacheNames.add(cacheName)) {
-            return;
-        }
         Tags tags = Tags.of("cache", cacheName, "kind", "jcache");
         NearCacheMetricTarget target = cacheTargets.computeIfAbsent(
                 cacheName,

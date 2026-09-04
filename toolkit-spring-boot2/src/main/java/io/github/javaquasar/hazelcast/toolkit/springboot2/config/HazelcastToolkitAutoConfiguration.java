@@ -205,7 +205,6 @@ public class HazelcastToolkitAutoConfiguration {
     static class ClientNearCacheMetricsConfiguration {
 
         @Bean
-        @ConditionalOnBean(HazelcastInstance.class)
         @ConditionalOnClass({HazelcastNearCacheMetricsBinder.class, MeterRegistry.class, CacheManager.class})
         @ConditionalOnProperty(prefix = "hazelcast.toolkit.metrics", name = "enabled", havingValue = "true")
         @ConditionalOnMissingBean

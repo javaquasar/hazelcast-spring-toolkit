@@ -107,6 +107,16 @@ class Boot2AutoConfigurationConditionTest {
     }
 
     @Test
+    void nearCacheMetricsBinderUsesAutoConfiguredClientInstance() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(HazelcastToolkitAutoConfiguration.class))
+                .withUserConfiguration(TestInstanceFactories.class)
+                .withBean(CacheManager.class, () -> proxy(CacheManager.class))
+                .withPropertyValues("hazelcast.toolkit.metrics.enabled=true")
+                .run(context -> assertThat(context).hasSingleBean(HazelcastNearCacheMetricsBinder.class));
+    }
+
+    @Test
     void memberModeDoesNotCreateClientNearCacheMetricsBinder() {
         toolkitContext
                 .withPropertyValues(
