@@ -43,10 +43,10 @@ import java.lang.annotation.Target;
  *
  * <p>Registration and deregistration are performed by
  * {@code HzListenersAutoRegistrar}, which runs after all Spring singletons are
- * fully initialized (implements {@link org.springframework.beans.factory.SmartInitializingSingleton})
- * and cleans up on context shutdown (implements {@link org.springframework.beans.factory.DisposableBean}).
- * AOP-proxied beans are handled correctly via
- * {@link org.springframework.aop.support.AopUtils#getTargetClass}.
+ * fully initialized (implements Spring {@code SmartInitializingSingleton}) and
+ * cleans up on context shutdown (implements Spring {@code DisposableBean}).
+ * AOP-proxied beans are handled correctly via Spring
+ * {@code AopUtils.getTargetClass(...)}.
  *
  * @see com.hazelcast.map.listener.MapListener
  * @see com.hazelcast.core.EntryListener

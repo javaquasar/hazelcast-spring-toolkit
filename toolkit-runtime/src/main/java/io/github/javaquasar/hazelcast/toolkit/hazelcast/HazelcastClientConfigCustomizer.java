@@ -8,8 +8,8 @@ import com.hazelcast.client.config.ClientConfig;
  *
  * <p>Register one or more implementations as Spring beans to extend or override
  * the default configuration produced by {@link HazelcastClientFactory}.
- * All registered customizers are applied in {@link org.springframework.core.Ordered}
- * order before {@code HazelcastClient.newHazelcastClient(config)} is called.
+ * All registered customizers are applied in Spring {@code Ordered} order before
+ * {@code HazelcastClient.newHazelcastClient(config)} is called.
  *
  * <p><b>Example</b> — add a custom serialization config:
  * <pre>{@code
