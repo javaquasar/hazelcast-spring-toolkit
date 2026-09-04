@@ -73,11 +73,17 @@ These are the versions currently used by the repository test matrix:
 | Area | Boot 2 | Boot 3 | Boot 4 |
 |---|---|---|---|
 | JCache API | `javax.cache` | `javax.cache` | `javax.cache` |
+| JCache topology binding | Client provider for clients; server provider for members | Client provider for clients; server provider for members | Client provider for clients; server provider for members |
 | JPA API | `javax.persistence` | `jakarta.persistence` | `jakarta.persistence` |
 | Default Spring Cache mode | `JCACHE` | `JCACHE` | `JCACHE` |
 | Native Spring Cache mode | Requires `com.hazelcast:hazelcast-spring` | Requires `com.hazelcast:hazelcast-spring` | Requires `com.hazelcast:hazelcast-spring` |
 | Hibernate L2 default mode | `JCACHE` | `JCACHE` | `JCACHE` |
 | Native Hibernate L2 modes | Require `com.hazelcast:hazelcast-hibernate53` compatible with Hazelcast 5 | Require `com.hazelcast:hazelcast-hibernate53` compatible with Hazelcast 5 | Require `com.hazelcast:hazelcast-hibernate53` compatible with Hazelcast 5 |
+
+Native Hibernate L2 topology is derived from the live Hazelcast endpoint on all
+three Boot lines. `hibernate.cache.hazelcast.instance.name` is the shared
+toolkit alias; provider-specific underscore keys remain internal compatibility
+details.
 | Near-cache actuator endpoint | `/actuator/hazelcastNearCache` | `/actuator/hazelcastNearCache` | `/actuator/hazelcastNearCache` |
 | Diagnostic controller | Opt-in `/hz-toolkit/...`, separate from Actuator | Opt-in `/hz-toolkit/...`, separate from Actuator | Opt-in `/hz-toolkit/...`, separate from Actuator |
 | Health indicator | Opt-in `hazelcast.toolkit.health.enabled=true` | Opt-in `hazelcast.toolkit.health.enabled=true` | Opt-in `hazelcast.toolkit.health.enabled=true` |

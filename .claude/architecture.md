@@ -67,13 +67,17 @@ it has no dependency on `toolkit-scan-reflections` at all.
 | `CompactClientConfigSupport` | Canonical compact-registration path: applies explicit serializers first, then reflective compact classes. |
 | `HazelcastClientConfigCustomizer` | Extension point for client config tuning, typically used as ordered Spring beans. |
 | `HazelcastClientProperties` | `@ConfigurationProperties("hazelcast.client")` for client name, cluster name, and network settings. |
-| `HzToolkitProperties` | `@ConfigurationProperties("hazelcast.toolkit")` for compact scan, metrics, client naming, and Hibernate L2 features. |
+| `HzToolkitProperties` | `@ConfigurationProperties("hazelcast.toolkit")` for shared topology settings, compact scan, metrics, client naming, and Hibernate L2 features. |
+| `HazelcastConnectionSettingsResolver` | Resolves shared cluster, seed-member, and license settings with legacy mode-specific fallbacks. |
+| `HazelcastInstanceModeResolver` | Detects client/member topology from the live local endpoint, including externally supplied instances in `NONE` mode. |
+| `HazelcastHibernateInstanceConfigurer` | Translates the topology-neutral Hibernate instance-name alias into provider-specific client/member properties and rejects contradictions. |
 
 ### toolkit-spring-common
 
 | Class | Role |
 |---|---|
 | `HzListenersAutoRegistrar` | Finds `@HzIMapListener` beans, resolves proxies correctly, registers listeners on startup, deregisters on shutdown. |
+| `HazelcastJCacheManagerFactory` | Creates a JCache manager with the client provider for clients and server provider for members. |
 
 ### toolkit-metrics-spring
 
@@ -137,13 +141,22 @@ It demonstrates:
 hazelcast:
   client:
     instance-name: ""
-    cluster-name: dev
     network:
-      cluster-members: [127.0.0.1:5701]
       smart-routing: true
   toolkit:
+    cluster-name: dev
+    enterprise-license-key: ""
+    network:
+      seed-members: [127.0.0.1:5701]
+    instance:
+      mode: CLIENT
     client:
       base-name: hz.client
+    member:
+      instance-name: ""
+      network:
+        port: 5701
+        port-auto-increment: true
     compact:
       base-package: com.example.hz
     metrics:
@@ -156,6 +169,10 @@ hazelcast:
         use-query-cache: false
         use-statistics: false
 ```
+
+Shared settings override legacy `hazelcast.client.cluster-name`,
+`hazelcast.client.network.cluster-members`, and their member equivalents. When
+the shared fields are absent, legacy behavior is unchanged.
 
 Client name derivation follows this order:
 

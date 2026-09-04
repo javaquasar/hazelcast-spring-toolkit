@@ -15,6 +15,60 @@ Hazelcast cluster:
 hazelcast.toolkit.instance.mode=member
 ```
 
+## One-Property Topology Switch
+
+Keep values needed by both topologies under `hazelcast.toolkit`:
+
+```yaml
+hazelcast:
+  toolkit:
+    cluster-name: platform-cache
+    enterprise-license-key: ${HZ_ENTERPRISE_LICENSE_KEY:}
+    network:
+      seed-members:
+        - 10.3.0.5:5071
+        - 10.3.0.6:5071
+        - 10.3.0.9:5071
+    instance:
+      mode: client
+    member:
+      network:
+        port: 5072
+        port-auto-increment: false
+        join:
+          auto-detection-enabled: false
+          multicast-enabled: false
+  client:
+    network:
+      smart-routing: true
+```
+
+After the mode-specific client and member options are prepared, switching the
+application topology only changes:
+
+```properties
+hazelcast.toolkit.instance.mode=member
+```
+
+The shared cluster name, seed addresses, and Enterprise license are used by
+both modes. Legacy `hazelcast.client.cluster-name`,
+`hazelcast.client.network.cluster-members`,
+`hazelcast.toolkit.member.cluster-name`, and
+`hazelcast.toolkit.member.network.join.tcp-ip-members` remain supported when
+their shared replacements are absent.
+
+JCache and native Hibernate wiring follow the live instance automatically. For
+native Hibernate modes, omit provider-specific instance properties or use the
+single topology-neutral alias:
+
+```properties
+spring.jpa.properties.hibernate.cache.hazelcast.instance.name=<actual-hazelcast-instance-name>
+```
+
+The toolkit translates that alias to the Hazelcast Hibernate provider key
+required by the active topology. A conflicting explicit native-client flag or
+instance name stops startup with a configuration error.
+
 ## When To Use Member Mode
 
 Member mode is appropriate when the Spring Boot process must own cluster data
@@ -77,10 +131,15 @@ Minimal static DNS example:
 ```yaml
 hazelcast:
   toolkit:
+    cluster-name: platform-cache
+    network:
+      seed-members:
+        - orders-service-0.orders-service-hz.default.svc.cluster.local:5701
+        - orders-service-1.orders-service-hz.default.svc.cluster.local:5701
+        - orders-service-2.orders-service-hz.default.svc.cluster.local:5701
     instance:
       mode: member
     member:
-      cluster-name: platform-cache
       instance-name: orders-service-member
       network:
         port: 5701
@@ -88,10 +147,6 @@ hazelcast:
         join:
           auto-detection-enabled: false
           multicast-enabled: false
-          tcp-ip-members:
-            - orders-service-0.orders-service-hz.default.svc.cluster.local:5701
-            - orders-service-1.orders-service-hz.default.svc.cluster.local:5701
-            - orders-service-2.orders-service-hz.default.svc.cluster.local:5701
 ```
 
 For plugin-specific discovery settings, keep the toolkit properties for common
@@ -177,15 +232,16 @@ external cluster.
 ```yaml
 hazelcast:
   toolkit:
+    cluster-name: platform-cache
+    network:
+      seed-members:
+        - hazelcast-0.hazelcast.default.svc.cluster.local:5701
+        - hazelcast-1.hazelcast.default.svc.cluster.local:5701
     instance:
       mode: client
   client:
-    cluster-name: platform-cache
     network:
       smart-routing: true
-      cluster-members:
-        - hazelcast-0.hazelcast.default.svc.cluster.local:5701
-        - hazelcast-1.hazelcast.default.svc.cluster.local:5701
 ```
 
 Use this for most services.
@@ -197,10 +253,14 @@ A single Spring Boot application starts an embedded Hazelcast member.
 ```yaml
 hazelcast:
   toolkit:
+    cluster-name: platform-cache
+    network:
+      seed-members:
+        - orders-service-0.orders-service-hz.default.svc.cluster.local:5701
+        - orders-service-1.orders-service-hz.default.svc.cluster.local:5701
     instance:
       mode: member
     member:
-      cluster-name: platform-cache
       instance-name: orders-service-member
       network:
         port: 5701
@@ -208,9 +268,6 @@ hazelcast:
         join:
           auto-detection-enabled: false
           multicast-enabled: false
-          tcp-ip-members:
-            - orders-service-0.orders-service-hz.default.svc.cluster.local:5701
-            - orders-service-1.orders-service-hz.default.svc.cluster.local:5701
 ```
 
 Use this only when the service is supposed to join the data-grid cluster as a
@@ -230,10 +287,13 @@ spring:
 
 hazelcast:
   toolkit:
+    cluster-name: platform-cache
+    network:
+      seed-members:
+        - orders-member-0.orders-member-hz.default.svc.cluster.local:5701
     instance:
       mode: member
     member:
-      cluster-name: platform-cache
       instance-name: orders-member
       network:
         port: 5701
@@ -241,8 +301,6 @@ hazelcast:
         join:
           auto-detection-enabled: false
           multicast-enabled: false
-          tcp-ip-members:
-            - orders-member-0.orders-member-hz.default.svc.cluster.local:5701
 ```
 
 Client application:
@@ -254,13 +312,12 @@ spring:
 
 hazelcast:
   toolkit:
-    instance:
-      mode: client
-  client:
     cluster-name: platform-cache
     network:
-      cluster-members:
+      seed-members:
         - orders-member-0.orders-member-hz.default.svc.cluster.local:5701
+    instance:
+      mode: client
 ```
 
 Use mixed mode during migrations or for specialized topologies where one
@@ -270,8 +327,12 @@ and events as a client.
 ## Production Checklist
 
 - Keep `hazelcast.toolkit.instance.mode` explicit in production configuration.
-- Keep `cluster-name` identical across all clients and members that should join
-  the same cluster.
+- Configure shared `hazelcast.toolkit.cluster-name` and
+  `hazelcast.toolkit.network.seed-members` for switchable applications.
+- Keep the cluster name identical across all clients and members that should
+  join the same cluster.
+- Remove provider-specific Hibernate `use_native_client`, `instance_name`, and
+  `native_client_instance_name` settings before switching topology.
 - Verify health details expose the expected `mode`, `clusterName`, and
   `memberCount`.
 - Watch member count during rolling deploys.

@@ -1,7 +1,8 @@
 package io.github.javaquasar.hazelcast.toolkit.springboot4.config;
 
-import com.hazelcast.cache.HazelcastCachingProvider;
 import com.hazelcast.core.HazelcastInstance;
+import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties;
+import io.github.javaquasar.hazelcast.toolkit.spring.cache.HazelcastJCacheManagerFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
@@ -13,17 +14,15 @@ import org.springframework.cache.jcache.JCacheCacheManager;
 import org.springframework.context.annotation.Bean;
 
 import javax.cache.CacheManager;
-import javax.cache.spi.CachingProvider;
-import java.util.Properties;
 
 /**
  * Auto-configuration that wires a {@code javax.cache.CacheManager} to the toolkit-managed
  * {@link HazelcastInstance} using
- * {@link HazelcastCachingProvider#propertiesByInstanceItself(HazelcastInstance)}.
+ * the client or server provider selected from the live Hazelcast topology.
  *
- * <p>This guarantees the JCache manager is bound to the exact live client instance created by
- * {@link HazelcastToolkitAutoConfiguration}, rather than relying on instance-name lookup which
- * is fragile when multiple clients share the same JVM.
+ * <p>This guarantees the JCache manager is bound to the exact live Hazelcast instance created by
+ * {@link HazelcastToolkitAutoConfiguration}, rather than relying on generic provider selection
+ * or instance-name lookup.
  *
  * <p>A Spring {@link org.springframework.cache.CacheManager} backed by {@link JCacheCacheManager}
  * is also registered so that Spring's {@code @Cacheable} / {@code @CacheEvict} annotations work
@@ -39,13 +38,12 @@ public class HazelcastJCacheAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(CacheManager.class)
-    public CacheManager jCacheManager(HazelcastInstance hazelcastInstance) {
-        CachingProvider cachingProvider = new HazelcastCachingProvider();
-        Properties properties = HazelcastCachingProvider.propertiesByInstanceItself(hazelcastInstance);
-        return cachingProvider.getCacheManager(
-                cachingProvider.getDefaultURI(),
-                cachingProvider.getDefaultClassLoader(),
-                properties
+    public CacheManager jCacheManager(
+            HazelcastInstance hazelcastInstance,
+            HzToolkitProperties toolkitProperties) {
+        return HazelcastJCacheManagerFactory.create(
+                hazelcastInstance,
+                toolkitProperties.getInstance().getMode()
         );
     }
 

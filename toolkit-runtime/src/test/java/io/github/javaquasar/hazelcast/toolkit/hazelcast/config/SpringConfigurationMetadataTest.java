@@ -37,6 +37,9 @@ class SpringConfigurationMetadataTest {
 
     private static List<String> expectedProperties() {
         return List.of(
+                "hazelcast.toolkit.cluster-name",
+                "hazelcast.toolkit.enterprise-license-key",
+                "hazelcast.toolkit.network.seed-members",
                 "hazelcast.toolkit.compact.base-package",
                 "hazelcast.toolkit.client.base-name",
                 "hazelcast.toolkit.instance.mode",

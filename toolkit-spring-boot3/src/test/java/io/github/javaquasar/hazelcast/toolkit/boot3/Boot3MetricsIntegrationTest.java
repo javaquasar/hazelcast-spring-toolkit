@@ -99,7 +99,12 @@ class Boot3MetricsIntegrationTest extends TestcontainersEnvironment {
         assertTrue(!meterRegistry.find("hazelcast.toolkit.hibernate.l2.miss.count").meters().isEmpty());
 
         Gauge regionGauge = waitForGauge("hazelcast.toolkit.near.cache.enabled", SharedTestCachedEntity.CACHE_REGION, "jcache");
-        assertNotNull(regionGauge);
+        assertNotNull(regionGauge, () -> "Near-cache region meter was not registered. Binders="
+                + meterBinders.stream().map(binder -> binder.getClass().getName()).toList()
+                + ", caches=" + cacheManager.getCacheNames()
+                + ", distributedObjects=" + hazelcastInstance.getDistributedObjects().stream()
+                .map(object -> object.getServiceName() + ":" + object.getName()).toList()
+                + ", meters=" + meterRegistry.getMeters().stream().map(meter -> meter.getId().toString()).toList());
         assertTrue(regionGauge.value() >= 0.0d);
 
         String runtimeMapName = "boot3-runtime-map";

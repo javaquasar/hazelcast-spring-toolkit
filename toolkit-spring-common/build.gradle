@@ -24,10 +24,12 @@ dependencies {
     compileOnly 'org.springframework:spring-context:5.3.34'
     compileOnly 'org.springframework:spring-aop:5.3.34'
     compileOnly 'org.hibernate.orm:hibernate-core:6.6.33.Final'
+    compileOnly 'javax.cache:cache-api:1.1.1'
     implementation "com.hazelcast:hazelcast:${hazelcastVersion}"
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
     testImplementation 'org.hibernate.orm:hibernate-core:6.6.33.Final'
+    testImplementation 'javax.cache:cache-api:1.1.1'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     testFixturesImplementation project(':toolkit-scan-reflections')

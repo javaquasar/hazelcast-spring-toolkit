@@ -31,6 +31,11 @@
       "description": "Hazelcast embedded member discovery settings."
     },
     {
+      "name": "hazelcast.toolkit.network",
+      "type": "io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties$Network",
+      "description": "Connection settings shared by client and member modes."
+    },
+    {
       "name": "hazelcast.toolkit.hibernate.l2",
       "type": "io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties$Hibernate$L2",
       "description": "Hibernate second-level cache settings."
@@ -52,6 +57,23 @@
     }
   ],
   "properties": [
+    {
+      "name": "hazelcast.toolkit.cluster-name",
+      "type": "java.lang.String",
+      "defaultValue": "",
+      "description": "Shared cluster name for client and member modes. Overrides the legacy mode-specific cluster-name properties when set."
+    },
+    {
+      "name": "hazelcast.toolkit.enterprise-license-key",
+      "type": "java.lang.String",
+      "defaultValue": "",
+      "description": "Shared Hazelcast Enterprise license key for client and member modes."
+    },
+    {
+      "name": "hazelcast.toolkit.network.seed-members",
+      "type": "java.util.List<java.lang.String>",
+      "description": "Shared seed member addresses used for client connections and member TCP/IP discovery."
+    },
     {
       "name": "hazelcast.toolkit.compact.base-package",
       "type": "java.lang.String",
