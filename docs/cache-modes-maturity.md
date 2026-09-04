@@ -10,6 +10,12 @@ The two settings control different integration layers:
 | `hazelcast.toolkit.spring-cache.mode` | Spring `org.springframework.cache.CacheManager` used by `@Cacheable` and application cache utilities | `jcache` |
 | `hazelcast.toolkit.hibernate.l2.region-factory` | Hibernate second-level cache region factory | `JCACHE` |
 
+The toolkit always keeps a Hazelcast-backed `javax.cache.CacheManager` available
+when JCache is on the classpath, including when Spring Cache mode is `native` or
+`none`. Its provider follows the live topology: client provider for a Hazelcast
+client, server provider for an embedded member. This prevents member mode from
+being cast to Hazelcast's client implementation.
+
 ## Recommended Combinations
 
 | Spring Cache mode | Hibernate L2 region factory | Result | Use when |
@@ -74,3 +80,20 @@ should win over starter auto-configuration.
 In `none` mode the toolkit never creates a Spring `CacheManager`, but it can
 still create the JCache manager needed by Hibernate L2 when the Hibernate L2
 configuration asks for `JCACHE`.
+
+## Native Hibernate Across Topologies
+
+For `HAZELCAST_LOCAL` and `HAZELCAST`, the toolkit detects the live instance and
+sets the provider-specific properties internally. Applications that can run as
+either topology should remove explicit `use_native_client`, `instance_name`, and
+`native_client_instance_name` values.
+
+One optional topology-neutral alias is supported in both modes:
+
+```properties
+spring.jpa.properties.hibernate.cache.hazelcast.instance.name=<actual-hazelcast-instance-name>
+```
+
+If omitted, the live instance name is used. If supplied, it must match the live
+instance. Contradictory provider-specific values fail fast during Hibernate
+property customization.

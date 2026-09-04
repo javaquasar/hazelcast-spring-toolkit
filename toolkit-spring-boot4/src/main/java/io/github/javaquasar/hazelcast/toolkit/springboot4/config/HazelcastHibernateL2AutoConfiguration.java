@@ -2,7 +2,9 @@ package io.github.javaquasar.hazelcast.toolkit.springboot4.config;
 
 import com.hazelcast.cache.HazelcastCachingProvider;
 import com.hazelcast.core.HazelcastInstance;
+import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HazelcastHibernateInstanceConfigurer;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties;
+import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties.Instance.Mode;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties.Hibernate.L2;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties.Hibernate.L2.RegionFactoryType;
 import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HibernateL2MetricsBinder;
@@ -39,7 +41,7 @@ import jakarta.persistence.EntityManagerFactory;
  * <ul>
  *   <li>{@code JCACHE} mode: only {@code hibernate.cache.use_second_level_cache=true}.</li>
  *   <li>{@code HAZELCAST_LOCAL} / {@code HAZELCAST} mode: additionally sets
- *       {@code hibernate.cache.region.factory_class} and {@code hazelcast.instance.name}.</li>
+ *       {@code hibernate.cache.region.factory_class} and topology-appropriate instance properties.</li>
  * </ul>
  *
  * <h2>Full wiring ({@code extended-config=true})</h2>
@@ -63,11 +65,6 @@ public class HazelcastHibernateL2AutoConfiguration {
             "com.hazelcast.hibernate.HazelcastLocalCacheRegionFactory";
     static final String HAZELCAST_REGION_FACTORY =
             "com.hazelcast.hibernate.HazelcastCacheRegionFactory";
-    static final String HAZELCAST_INSTANCE_NAME = "hazelcast.instance.name";
-    static final String HAZELCAST_USE_NATIVE_CLIENT = "hibernate.cache.hazelcast.use_native_client";
-    static final String HAZELCAST_NATIVE_CLIENT_INSTANCE_NAME =
-            "hibernate.cache.hazelcast.native_client_instance_name";
-
     @Bean
     @ConditionalOnMissingBean(name = "hazelcastHibernateL2PropertiesCustomizer")
     public HibernatePropertiesCustomizer hazelcastHibernateL2PropertiesCustomizer(
@@ -76,15 +73,16 @@ public class HazelcastHibernateL2AutoConfiguration {
             HzToolkitProperties toolkitProperties) {
 
         L2 l2 = toolkitProperties.getHibernate().getL2();
+        Mode instanceMode = toolkitProperties.getInstance().getMode();
         validateNativeModeClasspath(l2.getRegionFactory());
 
         return properties -> {
             properties.putIfAbsent("hibernate.cache.use_second_level_cache", true);
 
             if (l2.isExtendedConfig()) {
-                applyFullSet(properties, l2, hazelcastInstance, cacheManagerProvider);
+                applyFullSet(properties, l2, hazelcastInstance, instanceMode, cacheManagerProvider);
             } else {
-                applyMinimumNativeSet(properties, l2, hazelcastInstance);
+                applyMinimumNativeSet(properties, l2, hazelcastInstance, instanceMode);
             }
         };
     }
@@ -103,6 +101,7 @@ public class HazelcastHibernateL2AutoConfiguration {
             java.util.Map<String, Object> properties,
             L2 l2,
             HazelcastInstance hazelcastInstance,
+            Mode instanceMode,
             ObjectProvider<CacheManager> cacheManagerProvider) {
 
         warnIfRegionFactoryAlreadySet(properties);
@@ -121,7 +120,7 @@ public class HazelcastHibernateL2AutoConfiguration {
             properties.putIfAbsent("hibernate.javax.cache.cache_manager", cacheManager);
         } else {
             properties.putIfAbsent("hibernate.cache.region.factory_class", nativeFactoryClass(l2.getRegionFactory()));
-            applyNativeHazelcastInstanceName(properties, hazelcastInstance);
+            HazelcastHibernateInstanceConfigurer.apply(properties, hazelcastInstance, instanceMode);
         }
 
         properties.putIfAbsent("hibernate.cache.use_query_cache", l2.isUseQueryCache());
@@ -131,7 +130,8 @@ public class HazelcastHibernateL2AutoConfiguration {
     private void applyMinimumNativeSet(
             java.util.Map<String, Object> properties,
             L2 l2,
-            HazelcastInstance hazelcastInstance) {
+            HazelcastInstance hazelcastInstance,
+            Mode instanceMode) {
 
         if (l2.getRegionFactory() == RegionFactoryType.JCACHE) {
             return;
@@ -141,50 +141,16 @@ public class HazelcastHibernateL2AutoConfiguration {
             log.warn(
                     "Hazelcast toolkit Hibernate L2: region-factory={} requested but " +
                     "hibernate.cache.region.factory_class is already set to '{}'. " +
-                    "Skipping region.factory_class and hazelcast.instance.name. " +
-                    "To apply alongside the existing config, set hazelcast.toolkit.hibernate.l2.extended-config=true.",
+                    "Keeping the existing region factory and binding it to the live Hazelcast topology.",
                     l2.getRegionFactory(),
                     properties.get("hibernate.cache.region.factory_class")
             );
-            applyNativeClientInstanceNameFallback(properties, hazelcastInstance.getName());
+            HazelcastHibernateInstanceConfigurer.apply(properties, hazelcastInstance, instanceMode);
             return;
         }
 
         properties.putIfAbsent("hibernate.cache.region.factory_class", nativeFactoryClass(l2.getRegionFactory()));
-        applyNativeHazelcastInstanceName(properties, hazelcastInstance);
-    }
-
-    private static void applyNativeHazelcastInstanceName(
-            java.util.Map<String, Object> properties,
-            HazelcastInstance hazelcastInstance) {
-
-        String instanceName = hazelcastInstance.getName();
-        properties.putIfAbsent(HAZELCAST_INSTANCE_NAME, instanceName);
-        applyNativeClientInstanceNameFallback(properties, instanceName);
-    }
-
-    private static void applyNativeClientInstanceNameFallback(
-            java.util.Map<String, Object> properties,
-            String instanceName) {
-        if (isNativeClientRequested(properties) && shouldFallbackNativeClientInstanceName(properties)) {
-            properties.put(HAZELCAST_NATIVE_CLIENT_INSTANCE_NAME, instanceName);
-        }
-    }
-
-    private static boolean isNativeClientRequested(java.util.Map<String, Object> properties) {
-        Object useNativeClient = properties.get(HAZELCAST_USE_NATIVE_CLIENT);
-        return Boolean.parseBoolean(String.valueOf(useNativeClient))
-                || properties.containsKey(HAZELCAST_NATIVE_CLIENT_INSTANCE_NAME);
-    }
-
-    private static boolean shouldFallbackNativeClientInstanceName(java.util.Map<String, Object> properties) {
-        Object configuredName = properties.get(HAZELCAST_NATIVE_CLIENT_INSTANCE_NAME);
-        if (configuredName == null) {
-            return true;
-        }
-
-        String value = String.valueOf(configuredName).trim();
-        return value.isEmpty() || value.endsWith("-") || value.contains("${");
+        HazelcastHibernateInstanceConfigurer.apply(properties, hazelcastInstance, instanceMode);
     }
 
     private void warnIfRegionFactoryAlreadySet(java.util.Map<String, Object> properties) {

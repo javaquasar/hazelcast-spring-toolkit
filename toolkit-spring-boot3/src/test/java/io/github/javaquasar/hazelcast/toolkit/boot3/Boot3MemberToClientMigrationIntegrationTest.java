@@ -2,6 +2,7 @@ package io.github.javaquasar.hazelcast.toolkit.boot3;
 
 import com.hazelcast.core.HazelcastInstance;
 import io.github.javaquasar.hazelcast.toolkit.spring.test.MemberToClientMigrationTestSupport;
+import io.github.javaquasar.hazelcast.toolkit.springboot3.config.HazelcastJCacheAutoConfiguration;
 import io.github.javaquasar.hazelcast.toolkit.springboot3.config.HazelcastToolkitAutoConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -26,7 +27,8 @@ class Boot3MemberToClientMigrationIntegrationTest extends MemberToClientMigratio
         return new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
                         ConfigurationPropertiesAutoConfiguration.class,
-                        HazelcastToolkitAutoConfiguration.class
+                        HazelcastToolkitAutoConfiguration.class,
+                        HazelcastJCacheAutoConfiguration.class
                 ));
     }
 }

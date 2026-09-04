@@ -55,7 +55,9 @@ second-level caching, but full wiring happens only when explicitly requested.
 
 - Minimal mode always applies `hibernate.cache.use_second_level_cache=true`
 - All other Hibernate properties are conservative and conflict-aware
-- Existing `spring.jpa.properties.*` values should continue to win
+- Existing non-topology `spring.jpa.properties.*` values continue to win
+- Topology properties are derived from the live Hazelcast instance; explicit
+  contradictory values fail fast
 - Native region factory modes require `hazelcast-hibernate`
 
 ### Region Factory Choice
@@ -65,6 +67,24 @@ second-level caching, but full wiring happens only when explicitly requested.
 | `JCACHE` | Safest and least opinionated default |
 | `HAZELCAST_LOCAL` | Recommended native option for most client applications |
 | `HAZELCAST` | Use only when stronger cluster-wide consistency justifies the trade-off |
+
+## Resolved In September 2026
+
+- Member mode no longer passes a server member through the generic JCache
+  provider, which selected the client implementation and failed with a
+  `ClassCastException`. JCache manager creation now selects the client or server
+  provider from the live Hazelcast endpoint.
+- Native Hibernate L2 no longer writes the unsupported
+  `hazelcast.instance.name` property. The toolkit now maps clients to
+  `native_client_instance_name`, members to `instance_name`, and exposes the
+  topology-neutral `hibernate.cache.hazelcast.instance.name` alias to
+  applications.
+- Shared `hazelcast.toolkit.cluster-name`, `network.seed-members`, and
+  `enterprise-license-key` settings allow applications to change topology by
+  changing `hazelcast.toolkit.instance.mode`; legacy mode-specific properties
+  remain fallback inputs.
+- Client near-cache metrics are no longer registered in member mode. Hibernate
+  L2 metrics remain available independently.
 
 ## Resolved In April 2026 (fourth pass)
 

@@ -1,7 +1,8 @@
 package io.github.javaquasar.hazelcast.toolkit.springboot2.config;
 
-import com.hazelcast.cache.HazelcastCachingProvider;
 import com.hazelcast.core.HazelcastInstance;
+import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties;
+import io.github.javaquasar.hazelcast.toolkit.spring.cache.HazelcastJCacheManagerFactory;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.cache.CacheAutoConfiguration;
@@ -13,8 +14,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import javax.cache.CacheManager;
-import javax.cache.spi.CachingProvider;
-import java.util.Properties;
 
 @Configuration(proxyBeanMethods = false)
 @AutoConfigureAfter(HazelcastToolkitAutoConfiguration.class)
@@ -24,13 +23,12 @@ public class HazelcastJCacheAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(CacheManager.class)
-    public CacheManager jCacheManager(HazelcastInstance hazelcastInstance) {
-        CachingProvider cachingProvider = new HazelcastCachingProvider();
-        Properties properties = HazelcastCachingProvider.propertiesByInstanceItself(hazelcastInstance);
-        return cachingProvider.getCacheManager(
-                cachingProvider.getDefaultURI(),
-                cachingProvider.getDefaultClassLoader(),
-                properties
+    public CacheManager jCacheManager(
+            HazelcastInstance hazelcastInstance,
+            HzToolkitProperties toolkitProperties) {
+        return HazelcastJCacheManagerFactory.create(
+                hazelcastInstance,
+                toolkitProperties.getInstance().getMode()
         );
     }
 

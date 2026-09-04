@@ -39,19 +39,21 @@ Spring Boot gives you the foundation.
 
 ```yaml
 hazelcast:
-  client:
+  toolkit:
     cluster-name: dev
     enterprise-license-key: ${HZ_ENTERPRISE_LICENSE_KEY:}   # optional, Hazelcast Enterprise only
     network:
-      cluster-members:
+      seed-members:
         - 127.0.0.1:5701
-  toolkit:
     instance:
       mode: client                         # default: client | member | none
     compact:
       base-package: com.example.app.model   # @HzCompact classes
     client:
       base-name: hz.client                  # optional smart naming
+  client:
+    network:
+      smart-routing: true                  # client-only setting
 ```
 
 ### 1. Add the dependency
@@ -133,17 +135,19 @@ spring:
     name: my-service
 
 hazelcast:
-  client:
+  toolkit:
     cluster-name: dev
     enterprise-license-key: ${HZ_ENTERPRISE_LICENSE_KEY:}   # optional, Hazelcast Enterprise only
     network:
-      cluster-members:
+      seed-members:
         - 127.0.0.1:5701
-  toolkit:
     instance:
       mode: client                         # default
     compact:
       base-package: com.example.app.model   # package containing @HzCompact classes
+  client:
+    network:
+      smart-routing: true
 ```
 
 ### Hazelcast Instance Mode
@@ -153,8 +157,8 @@ external Hazelcast cluster unless another mode is explicitly selected.
 
 | Mode | Behavior |
 |---|---|
-| `client` | Default. Creates a Hazelcast client from `hazelcast.client.*` and applies `HazelcastClientConfigCustomizer` beans. |
-| `member` | Creates an embedded Hazelcast member from `hazelcast.toolkit.member.*` and applies `HazelcastMemberConfigCustomizer` beans. |
+| `client` | Default. Creates a Hazelcast client using shared connection settings plus client-specific options and applies `HazelcastClientConfigCustomizer` beans. |
+| `member` | Creates an embedded Hazelcast member using the same shared connection settings plus member-specific options and applies `HazelcastMemberConfigCustomizer` beans. |
 | `none` | Does not create a `HazelcastInstance`; the application must provide one. |
 
 Member mode is intended for legacy or advanced deployments where the Spring Boot
@@ -169,20 +173,27 @@ Minimal member-mode configuration:
 ```yaml
 hazelcast:
   toolkit:
+    cluster-name: dev
+    network:
+      seed-members:
+        - 127.0.0.1:5701
     instance:
       mode: member
     member:
       instance-name: my-service-member
-      cluster-name: dev
       network:
         port: 5701
         port-auto-increment: true
         join:
           auto-detection-enabled: false
           multicast-enabled: false
-          tcp-ip-members:
-            - 127.0.0.1:5701
 ```
+
+With shared `cluster-name`, `network.seed-members`, and
+`enterprise-license-key` configured, changing between client and member
+topologies only requires changing `hazelcast.toolkit.instance.mode`. The older
+`hazelcast.client.*` and `hazelcast.toolkit.member.*` connection properties are
+still supported as compatibility fallbacks.
 
 Member mode also applies two safe defaults when possible:
 
@@ -288,7 +299,9 @@ hazelcast:
 ```
 
 **Full wiring mode** — the toolkit also sets `region.factory_class`, the JCache provider binding,
-`use_query_cache`, and `generate_statistics`. Existing `spring.jpa.properties.*` values always win (`putIfAbsent`):
+`use_query_cache`, and `generate_statistics`. Existing non-topology
+`spring.jpa.properties.*` values win through `putIfAbsent`; topology values that
+contradict the live Hazelcast instance fail fast:
 
 ```yaml
 hazelcast:
@@ -313,8 +326,21 @@ hazelcast:
         region-factory: HAZELCAST_LOCAL   # or HAZELCAST for full distributed mode
 ```
 
-Requires `com.hazelcast:hazelcast-hibernate` on the classpath.
-With `extended-config=false` (default), only `region.factory_class` and `hazelcast.instance.name` are set in addition to `use_second_level_cache=true`.
+Requires `com.hazelcast:hazelcast-hibernate` on the classpath. The toolkit
+detects whether the live `HazelcastInstance` is a client or member and binds the
+native region factory accordingly.
+
+The topology-neutral property name is the same in both modes:
+
+```properties
+spring.jpa.properties.hibernate.cache.hazelcast.instance.name=<actual-hazelcast-instance-name>
+```
+
+This property is optional because the toolkit derives it from the live instance.
+When supplied, it must match the actual instance name. The toolkit translates
+this alias to the provider-specific `instance_name` or
+`native_client_instance_name` key internally; applications should not configure
+those internal keys when they need to switch topology.
 
 | Property | Default | Description |
 |---|---|---|
@@ -364,18 +390,20 @@ When `region-factory: HAZELCAST` is active, Hibernate uses Hazelcast's native
 `HazelcastCacheRegionFactory`, which stores regions in Hazelcast `IMap`
 structures. Those regions appear under **Storage -> Maps**.
 
-For Hazelcast client applications, native Hibernate mode must use the native
-client loader so `hazelcast-hibernate` reuses the toolkit-managed client instead
-of trying to start or find an embedded member:
+For native Hibernate mode, the toolkit selects the client or member loader from
+the live instance. The same application configuration works in both topologies:
 
 ```properties
 hazelcast.toolkit.hibernate.l2.enabled=true
 hazelcast.toolkit.hibernate.l2.extended-config=true
 hazelcast.toolkit.hibernate.l2.region-factory=HAZELCAST
 
-spring.jpa.properties.hibernate.cache.hazelcast.use_native_client=true
-spring.jpa.properties.hibernate.cache.hazelcast.native_client_instance_name=<toolkit-client-instance-name>
+# Optional; omit this line to derive the name from the live instance.
+spring.jpa.properties.hibernate.cache.hazelcast.instance.name=<actual-hazelcast-instance-name>
 ```
+
+Provider-specific properties remain accepted for backward compatibility when
+they agree with the active topology. Remove them from switchable configurations.
 
 Use `HAZELCAST` when the goal is to store Hibernate L2 regions as distributed
 Hazelcast maps.
@@ -400,7 +428,8 @@ Treat those numbers as engineering guidance, not as a universal benchmark.
 
 By default, the toolkit keeps its original Spring Cache behavior: it creates a
 Hazelcast-backed `javax.cache.CacheManager` and exposes it through Spring's
-`JCacheCacheManager`.
+`JCacheCacheManager`. The JCache manager uses the client provider for a live
+Hazelcast client and the server provider for a live member.
 
 ```yaml
 hazelcast:
@@ -688,10 +717,13 @@ Examples:
 
 | Property | Default | Description |
 |---|---|---|
+| `cluster-name` | _(empty)_ | Shared cluster name for client and member modes; overrides the legacy mode-specific value when set |
+| `network.seed-members` | `[]` | Shared addresses used by client connections and member TCP/IP discovery |
+| `enterprise-license-key` | _(empty)_ | Shared Hazelcast Enterprise license key for client and member modes |
 | `client.base-name` | _(empty)_ | Toolkit naming prefix; when combined with `spring.application.name`, produces `<base-name>-<app-name>` |
 | `compact.base-package` | _(empty)_ | Root package to scan for `@HzCompact` classes |
 | `spring-cache.mode` | `JCACHE` | Spring Cache manager mode: `JCACHE` \| `NATIVE` \| `NONE` |
-| `metrics.enabled` | `false` | Enable Micrometer near-cache and Hibernate L2 binders |
+| `metrics.enabled` | `false` | Enable Hibernate L2 metrics and client near-cache metrics; the near-cache binder is omitted in member mode |
 | `metrics.diagnostic-endpoint.enabled` | `false` | Enable the optional `/hz-toolkit/...` diagnostic controller separately from metrics publishing |
 | `health.enabled` | `false` | Enable the optional Hazelcast toolkit health indicator for `/actuator/health` |
 | `hibernate.l2.enabled` | `false` | Activate Hibernate second-level cache support |

@@ -26,6 +26,9 @@ package io.github.javaquasar.hazelcast.toolkit.hazelcast.config;
  */
 public class HzToolkitProperties {
 
+    private String clusterName = "";
+    private String enterpriseLicenseKey = "";
+    private Network network = new Network();
     private Compact compact = new Compact();
     private Instance instance = new Instance();
     private Member member = new Member();
@@ -35,6 +38,53 @@ public class HzToolkitProperties {
     private SpringCache springCache = new SpringCache();
     private Actuator actuator = new Actuator();
     private Health health = new Health();
+
+    /**
+     * Shared cluster name used by both client and member modes when configured.
+     * Mode-specific legacy properties remain supported as fallbacks.
+     */
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
+    }
+
+    /**
+     * Shared Hazelcast Enterprise license key used by both client and member modes.
+     */
+    public String getEnterpriseLicenseKey() {
+        return enterpriseLicenseKey;
+    }
+
+    public void setEnterpriseLicenseKey(String enterpriseLicenseKey) {
+        this.enterpriseLicenseKey = enterpriseLicenseKey;
+    }
+
+    public Network getNetwork() {
+        return network;
+    }
+
+    public void setNetwork(Network network) {
+        this.network = network;
+    }
+
+    /**
+     * Connection settings shared by client and member modes
+     * ({@code hazelcast.toolkit.network.*}).
+     */
+    public static class Network {
+        private java.util.List<String> seedMembers = new java.util.ArrayList<>();
+
+        public java.util.List<String> getSeedMembers() {
+            return seedMembers;
+        }
+
+        public void setSeedMembers(java.util.List<String> seedMembers) {
+            this.seedMembers = seedMembers;
+        }
+    }
 
     public Compact getCompact() {
         return compact;
@@ -417,7 +467,8 @@ public class HzToolkitProperties {
          *   <li><b>JCACHE mode</b> — sets {@code hibernate.cache.use_second_level_cache=true} only.
          *       All JCache provider and factory-class wiring is left to the application.</li>
          *   <li><b>HAZELCAST_LOCAL / HAZELCAST modes</b> — additionally sets
-         *       {@code hibernate.cache.region.factory_class} and {@code hazelcast.instance.name}.
+         *       {@code hibernate.cache.region.factory_class} and the topology-appropriate
+         *       Hazelcast Hibernate instance properties.
          *       Both are skipped (with a WARN) if {@code region.factory_class} is already present.</li>
          * </ul>
          * All other Hibernate cache properties ({@code use_query_cache}, {@code generate_statistics},
@@ -425,8 +476,10 @@ public class HzToolkitProperties {
          * if needed.
          *
          * <h2>Extended configuration mode — {@code extended-config=true}</h2>
-         * <p>The toolkit applies the complete property set using {@code putIfAbsent}, so
-         * any value already present in {@code spring.jpa.properties.*} always takes precedence.
+         * <p>The toolkit applies the complete non-topology property set using
+         * {@code putIfAbsent}, so existing application values take precedence.
+         * Topology properties are derived from the live Hazelcast instance and
+         * contradictory explicit values fail fast.
          * In JCACHE mode this additionally wires {@code region.factory_class}, the Hazelcast
          * JCache provider, and the {@code CacheManager} instance binding.
          * {@code use-query-cache} and {@code use-statistics} are also applied (both default

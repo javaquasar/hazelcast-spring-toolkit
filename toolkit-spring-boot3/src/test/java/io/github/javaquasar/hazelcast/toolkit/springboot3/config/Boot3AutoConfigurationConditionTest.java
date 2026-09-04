@@ -107,6 +107,20 @@ class Boot3AutoConfigurationConditionTest {
     }
 
     @Test
+    void memberModeDoesNotCreateClientNearCacheMetricsBinder() {
+        toolkitContext
+                .withPropertyValues(
+                        "hazelcast.toolkit.instance.mode=member",
+                        "hazelcast.toolkit.metrics.enabled=true",
+                        "hazelcast.toolkit.hibernate.l2.enabled=true"
+                )
+                .run(context -> {
+                    assertThat(context).doesNotHaveBean(HazelcastNearCacheMetricsBinder.class);
+                    assertThat(context).hasSingleBean(HibernateL2MetricsBinder.class);
+                });
+    }
+
+    @Test
     void hibernateL2CustomizerRequiresExplicitProperty() {
         toolkitContext
                 .run(context -> assertThat(context).doesNotHaveBean(HibernatePropertiesCustomizer.class));
@@ -191,7 +205,38 @@ class Boot3AutoConfigurationConditionTest {
 
                     assertThat(hibernateProperties)
                             .containsEntry("hibernate.cache.hazelcast.native_client_instance_name", "test-hazelcast-instance")
-                            .containsEntry("hazelcast.instance.name", "test-hazelcast-instance");
+                            .containsEntry("hibernate.cache.hazelcast.instance.name", "test-hazelcast-instance");
+                });
+    }
+
+    @Test
+    void nativeHibernateModeBindsMemberWithoutNativeClientProperties() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        ConfigurationPropertiesAutoConfiguration.class,
+                        HazelcastToolkitAutoConfiguration.class,
+                        HazelcastHibernateL2AutoConfiguration.class
+                ))
+                .withUserConfiguration(HazelcastOnlyInfrastructure.class)
+                .withPropertyValues(
+                        "hazelcast.toolkit.instance.mode=member",
+                        "hazelcast.toolkit.hibernate.l2.enabled=true",
+                        "hazelcast.toolkit.hibernate.l2.region-factory=HAZELCAST"
+                )
+                .run(context -> {
+                    HibernatePropertiesCustomizer customizer = context.getBean(
+                            "hazelcastHibernateL2PropertiesCustomizer",
+                            HibernatePropertiesCustomizer.class
+                    );
+                    LinkedHashMap<String, Object> hibernateProperties = new LinkedHashMap<>();
+
+                    customizer.customize(hibernateProperties);
+
+                    assertThat(hibernateProperties)
+                            .containsEntry("hibernate.cache.hazelcast.use_native_client", false)
+                            .containsEntry("hibernate.cache.hazelcast.instance.name", "test-hazelcast-instance")
+                            .containsEntry("hibernate.cache.hazelcast.instance_name", "test-hazelcast-instance")
+                            .doesNotContainKey("hibernate.cache.hazelcast.native_client_instance_name");
                 });
     }
 

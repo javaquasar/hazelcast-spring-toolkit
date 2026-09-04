@@ -7,6 +7,7 @@ import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientConfigCus
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastClientFactory;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastMemberConfigCustomizer;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.HazelcastMemberFactory;
+import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HazelcastConnectionSettingsResolver;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HazelcastClientProperties;
 import io.github.javaquasar.hazelcast.toolkit.hazelcast.config.HzToolkitProperties;
 import io.github.javaquasar.hazelcast.toolkit.metrics.spring.HazelcastNearCacheMetricsBinder;
@@ -86,10 +87,11 @@ public class HazelcastToolkitAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnProperty(prefix = "hazelcast.client", name = "enterprise-license-key")
-    public HazelcastClientConfigCustomizer hazelcastEnterpriseLicenseKeyCustomizer(HazelcastClientProperties props) {
+    public HazelcastClientConfigCustomizer hazelcastEnterpriseLicenseKeyCustomizer(
+            HazelcastClientProperties props,
+            HzToolkitProperties toolkitProps) {
         return clientConfig -> {
-            String licenseKey = props.getEnterpriseLicenseKey();
+            String licenseKey = HazelcastConnectionSettingsResolver.enterpriseLicenseKey(toolkitProps, props);
             if (licenseKey != null && !licenseKey.isBlank()) {
                 clientConfig.setProperty(ClusterProperty.ENTERPRISE_LICENSE_KEY.getName(), licenseKey);
             }
@@ -107,8 +109,10 @@ public class HazelcastToolkitAutoConfiguration {
                 resolveClientBaseName(toolkitProps),
                 resolveExplicitInstanceName(props, toolkitProps),
                 environment.getProperty("spring.application.name"),
-                props.getClusterName(),
-                props.getNetwork().getClusterMembers(),
+                HazelcastConnectionSettingsResolver.clusterName(
+                        toolkitProps, props, HzToolkitProperties.Instance.Mode.CLIENT),
+                HazelcastConnectionSettingsResolver.seedMembers(
+                        toolkitProps, props, HzToolkitProperties.Instance.Mode.CLIENT),
                 props.getNetwork().isSmartRouting(),
                 toolkitProps.getCompact().getBasePackage()
         );
@@ -118,19 +122,22 @@ public class HazelcastToolkitAutoConfiguration {
     @ConditionalOnMissingBean(HazelcastInstance.class)
     @ConditionalOnProperty(prefix = "hazelcast.toolkit.instance", name = "mode", havingValue = "member")
     public HazelcastInstance hazelcastMemberInstance(HazelcastMemberFactory factory,
+                                                     HazelcastClientProperties props,
                                                      HzToolkitProperties toolkitProps) {
         HzToolkitProperties.Member member = toolkitProps.getMember();
         HzToolkitProperties.Member.Network network = member.getNetwork();
         HzToolkitProperties.Member.Join join = network.getJoin();
         return factory.createMember(
                 member.getInstanceName(),
-                member.getClusterName(),
+                HazelcastConnectionSettingsResolver.clusterName(
+                        toolkitProps, props, HzToolkitProperties.Instance.Mode.MEMBER),
                 network.getPort(),
                 network.isPortAutoIncrement(),
                 network.getPublicAddress(),
                 join.isAutoDetectionEnabled(),
                 join.isMulticastEnabled(),
-                join.getTcpIpMembers(),
+                HazelcastConnectionSettingsResolver.seedMembers(
+                        toolkitProps, props, HzToolkitProperties.Instance.Mode.MEMBER),
                 toolkitProps.getCompact().getBasePackage()
         );
     }
@@ -160,10 +167,11 @@ public class HazelcastToolkitAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnProperty(prefix = "hazelcast.client", name = "enterprise-license-key")
-    public HazelcastMemberConfigCustomizer hazelcastMemberEnterpriseLicenseKeyCustomizer(HazelcastClientProperties props) {
+    public HazelcastMemberConfigCustomizer hazelcastMemberEnterpriseLicenseKeyCustomizer(
+            HazelcastClientProperties props,
+            HzToolkitProperties toolkitProps) {
         return config -> {
-            String licenseKey = props.getEnterpriseLicenseKey();
+            String licenseKey = HazelcastConnectionSettingsResolver.enterpriseLicenseKey(toolkitProps, props);
             if (licenseKey != null && !licenseKey.isBlank()) {
                 config.setProperty(ClusterProperty.ENTERPRISE_LICENSE_KEY.getName(), licenseKey);
             }
@@ -187,15 +195,25 @@ public class HazelcastToolkitAutoConfiguration {
         return new HzToolkitMetricsController(cacheManager, hazelcastInstance);
     }
 
-    @Bean
-    @ConditionalOnBean(HazelcastInstance.class)
-    @ConditionalOnClass({HazelcastNearCacheMetricsBinder.class, MeterRegistry.class, CacheManager.class})
-    @ConditionalOnProperty(prefix = "hazelcast.toolkit.metrics", name = "enabled", havingValue = "true")
-    @ConditionalOnMissingBean
-    public HazelcastNearCacheMetricsBinder hazelcastNearCacheMetricsBinder(
-            CacheManager cacheManager,
-            HazelcastInstance hazelcastInstance) {
-        return new HazelcastNearCacheMetricsBinder(cacheManager, hazelcastInstance);
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnProperty(
+            prefix = "hazelcast.toolkit.instance",
+            name = "mode",
+            havingValue = "client",
+            matchIfMissing = true
+    )
+    static class ClientNearCacheMetricsConfiguration {
+
+        @Bean
+        @ConditionalOnBean(HazelcastInstance.class)
+        @ConditionalOnClass({HazelcastNearCacheMetricsBinder.class, MeterRegistry.class, CacheManager.class})
+        @ConditionalOnProperty(prefix = "hazelcast.toolkit.metrics", name = "enabled", havingValue = "true")
+        @ConditionalOnMissingBean
+        HazelcastNearCacheMetricsBinder hazelcastNearCacheMetricsBinder(
+                CacheManager cacheManager,
+                HazelcastInstance hazelcastInstance) {
+            return new HazelcastNearCacheMetricsBinder(cacheManager, hazelcastInstance);
+        }
     }
 
     private static String resolveClientBaseName(HzToolkitProperties toolkitProps) {

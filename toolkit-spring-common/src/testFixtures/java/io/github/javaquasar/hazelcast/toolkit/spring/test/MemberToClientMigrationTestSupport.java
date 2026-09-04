@@ -14,6 +14,7 @@ import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -37,13 +38,14 @@ public abstract class MemberToClientMigrationTestSupport {
         HazelcastInstance anchorMember = startAnchorMember(clusterName, anchorPort);
         int applicationMemberPort = freePort();
         String anchorAddress = addressOf(anchorMember);
+        String[] applicationProperties = applicationProperties(
+                clusterName,
+                anchorAddress,
+                applicationMemberPort
+        );
 
         try {
-            applicationRunner.run(memberProperties(
-                    clusterName,
-                    anchorAddress,
-                    applicationMemberPort
-            ), application -> {
+            applicationRunner.run(withMode(applicationProperties, "member"), application -> {
                 awaitMemberCount(anchorMember, 2);
                 assertInstanceOf(Member.class, application.getLocalEndpoint());
                 assertTrue(application.getLifecycleService().isRunning());
@@ -54,7 +56,7 @@ public abstract class MemberToClientMigrationTestSupport {
             assertTrue(anchorMember.getLifecycleService().isRunning());
             assertEquals("member-application", anchorMember.getMap(MAP_NAME).get("written-by"));
 
-            applicationRunner.run(clientProperties(clusterName, anchorAddress), application -> {
+            applicationRunner.run(withMode(applicationProperties, "client"), application -> {
                 assertInstanceOf(Client.class, application.getLocalEndpoint());
                 assertTrue(application.getLifecycleService().isRunning());
                 assertEquals(1, application.getCluster().getMembers().size());
@@ -92,34 +94,30 @@ public abstract class MemberToClientMigrationTestSupport {
         return Hazelcast.newHazelcastInstance(config);
     }
 
-    private static String[] memberProperties(
+    private static String[] applicationProperties(
             String clusterName,
             String anchorAddress,
             int applicationMemberPort
     ) {
         return new String[]{
                 "spring.application.name=migration-smoke-app",
-                "hazelcast.toolkit.instance.mode=member",
+                "hazelcast.toolkit.cluster-name=" + clusterName,
+                "hazelcast.toolkit.network.seed-members[0]=" + anchorAddress,
+                "hazelcast.toolkit.client.base-name=migration-smoke-client",
+                "hazelcast.client.network.smart-routing=false",
                 "hazelcast.toolkit.member.instance-name=migration-smoke-member",
-                "hazelcast.toolkit.member.cluster-name=" + clusterName,
                 "hazelcast.toolkit.member.network.port=" + applicationMemberPort,
                 "hazelcast.toolkit.member.network.port-auto-increment=false",
                 "hazelcast.toolkit.member.network.public-address=127.0.0.1",
                 "hazelcast.toolkit.member.network.join.auto-detection-enabled=false",
-                "hazelcast.toolkit.member.network.join.multicast-enabled=false",
-                "hazelcast.toolkit.member.network.join.tcp-ip-members[0]=" + anchorAddress
+                "hazelcast.toolkit.member.network.join.multicast-enabled=false"
         };
     }
 
-    private static String[] clientProperties(String clusterName, String anchorAddress) {
-        return new String[]{
-                "spring.application.name=migration-smoke-app",
-                "hazelcast.toolkit.instance.mode=client",
-                "hazelcast.toolkit.client.base-name=migration-smoke-client",
-                "hazelcast.client.cluster-name=" + clusterName,
-                "hazelcast.client.network.cluster-members[0]=" + anchorAddress,
-                "hazelcast.client.network.smart-routing=false"
-        };
+    private static String[] withMode(String[] properties, String mode) {
+        String[] result = Arrays.copyOf(properties, properties.length + 1);
+        result[properties.length] = "hazelcast.toolkit.instance.mode=" + mode;
+        return result;
     }
 
     private static String addressOf(HazelcastInstance member) {
